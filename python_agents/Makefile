@@ -39,11 +39,11 @@ coverage-check: coverage
 
 # Run linter
 lint:
-	$(FLAKE8) collector/ explainer/ tests/ --max-line-length=100 --extend-ignore=E203,W503
+	$(FLAKE8) collector/ explainer/ reporter/ tests/ --max-line-length=100 --extend-ignore=E203,W503
 
 # Format code
 format:
-	$(BLACK) collector/ explainer/ tests/ --line-length=100
+	$(BLACK) collector/ explainer/ reporter/ tests/ --line-length=100
 
 # Run all checks before committing
 before-commit: format lint test coverage-check
