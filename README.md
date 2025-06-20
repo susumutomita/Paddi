@@ -1,16 +1,18 @@
-[![CI](https://github.com/susumutomita/Paddi/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/susumutomita/Paddi/actions/workflows/ci.yml)
-![GitHub last commit (by committer)](https://img.shields.io/github/last-commit/susumutomita/Paddi)
-![GitHub top language](https://img.shields.io/github/languages/top/susumutomita/Paddi)
-![GitHub pull requests](https://img.shields.io/github/issues-pr/susumutomita/Paddi)
-![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/susumutomita/Paddi)
-![GitHub repo size](https://img.shields.io/github/repo-size/susumutomita/Paddi)
-
 # 🩹 Paddi: AI-Powered Multi-Agent Cloud Audit System
 
-**Paddi** is a multi-agent system that automates cloud security audits using Google Cloud AI and CLI tooling.
-It consists of three lightweight agents that collaborate to collect configurations, analyze risks with LLMs, and generate human-readable reports.
+[![CI](https://github.com/susumutomita/Paddi/actions/workflows/ci.yml/badge.svg)](https://github.com/susumutomita/Paddi)
+![Last commit](https://img.shields.io/github/last-commit/susumutomita/Paddi)
+![Top language](https://img.shields.io/github/languages/top/susumutomita/Paddi)
+![Pull requests](https://img.shields.io/github/issues-pr/susumutomita/Paddi)
+![Code size](https://img.shields.io/github/languages/code-size/susumutomita/Paddi)
+![Repo size](https://img.shields.io/github/repo-size/susumutomita/Paddi)
 
-Built for the [Google Cloud AI Hackathon: Multi-Agent Edition](https://googlecloudmultiagents.devpost.com/), this project demonstrates how AI agents can assist security workflows by reducing manual effort.
+**Paddi** is a multi-agent system that automates cloud security audits using Google Cloud AI and CLI.
+It uses three lightweight agents to collect configurations and analyze risks.
+These agents work together to generate human-readable reports.
+
+Built for the [Google Cloud AI Hackathon: Multi-Agent Edition](https://googlecloudmultiagents.devpost.com/).
+This project demonstrates how AI agents can assist security workflows by reducing manual effort.
 
 ---
 
@@ -80,9 +82,9 @@ python reporter/agent_reporter.py
 ⸻
 
 📄 Sample Output
-	•	output/audit.md: Markdown-formatted audit report
-	•	output/audit.html: Web-friendly version
-	•	YAML frontmatter includes metadata
+- output/audit.md: Markdown-formatted audit report
+- output/audit.html: Web-friendly version
+- YAML frontmatter includes metadata
 
 ⸻
 
