@@ -15,9 +15,12 @@ This directory contains the Python implementation of Paddi's multi-agent system 
 pip install -r requirements.txt
 
 # Run all agents in sequence (with mock data)
+python run_example.py
+
+# Or run individually:
 python collector/agent_collector.py --use_mock=True
 python explainer/agent_explainer.py --use_mock=True
-# python reporter/agent_reporter.py  # Coming soon
+python reporter/agent_reporter.py
 ```
 
 ## 📋 Agent A: GCP Configuration Collector
@@ -224,3 +227,70 @@ The explainer follows clean architecture principles:
 - **SecurityFinding**: Type-safe data model for findings
 - **GeminiSecurityAnalyzer**: Concrete implementation with Vertex AI
 - **SecurityRiskExplainer**: Main orchestrator with file I/O
+
+## 📊 Agent C: Security Audit Report Generator
+
+The reporter agent converts security findings from Agent B into readable audit reports in Markdown and HTML formats.
+
+### Usage
+
+#### Default Usage
+
+```bash
+python reporter/agent_reporter.py
+```
+
+#### With Custom Parameters
+
+```bash
+python reporter/agent_reporter.py \
+  --input_file="data/explained.json" \
+  --output_dir="output" \
+  --template_dir="templates"
+```
+
+### Output
+
+The reporter generates two report formats:
+
+1. **Markdown Report** (`output/audit.md`):
+   - Obsidian-compatible format
+   - Includes metadata tags
+   - Structured with clear sections
+   - Emoji indicators for severity levels
+
+2. **HTML Report** (`output/audit.html`):
+   - Standalone HTML file
+   - Professional styling
+   - Color-coded severity levels
+   - Ready for browser viewing or sharing
+
+### Features
+
+- **Multiple Output Formats**: Markdown for documentation tools, HTML for web viewing
+- **Template Support**: Optional Jinja2 templates for customization
+- **Executive Summary**: High-level overview with severity breakdown
+- **Detailed Findings**: Complete information for each security issue
+- **Smart Metadata**: Pulls project info from original collection data
+- **Professional Styling**: Clean, readable reports suitable for audits
+
+### Templates
+
+Custom templates can be placed in the `templates/` directory:
+
+- `report.md.j2`: Jinja2 template for Markdown output
+- `report.html.j2`: Jinja2 template for HTML output
+
+Template variables available:
+- `findings`: List of security findings
+- `metadata`: Project information and timestamps
+
+### Architecture
+
+The reporter follows clean architecture principles:
+
+- **ReportGeneratorInterface**: Abstract interface for report generators
+- **MarkdownReportGenerator**: Generates Obsidian-compatible Markdown
+- **HTMLReportGenerator**: Generates styled HTML reports
+- **AuditReportGenerator**: Main orchestrator handling file I/O
+- **Template Support**: Optional Jinja2 templates for customization

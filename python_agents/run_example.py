@@ -28,11 +28,13 @@ def run_command(cmd: list, description: str):
 def main():
     """Run all agents in sequence"""
     print("🎯 Paddi - GCP Security Audit Automation")
-    print("Running agents with mock data...\n")
+    print("Running complete pipeline with mock data...\n")
     
-    # Ensure data directory exists
+    # Ensure directories exist
     data_dir = Path("data")
     data_dir.mkdir(exist_ok=True)
+    output_dir = Path("output")
+    output_dir.mkdir(exist_ok=True)
     
     # Run Agent A: Collector
     run_command(
@@ -46,13 +48,24 @@ def main():
         "Agent B: Analyzing security risks with Gemini"
     )
     
+    # Run Agent C: Reporter
+    run_command(
+        [sys.executable, "reporter/agent_reporter.py"],
+        "Agent C: Generating audit reports"
+    )
+    
     print(f"\n{'='*60}")
     print("✅ All agents completed successfully!")
     print(f"{'='*60}")
-    print("\nResults:")
-    print("  - Configuration data: data/collected.json")
-    print("  - Security findings: data/explained.json")
-    print("\nNext step: Agent C will generate reports (coming soon)")
+    print("\n📁 Generated Files:")
+    print("  📊 data/collected.json    - Raw GCP configuration data")
+    print("  🔍 data/explained.json    - Security findings from Gemini")
+    print("  📄 output/audit.md        - Markdown report (Obsidian-compatible)")
+    print("  🌐 output/audit.html      - HTML report (browser-viewable)")
+    print("\n🎯 Next Steps:")
+    print("  1. View the HTML report: open output/audit.html")
+    print("  2. Import the Markdown into Obsidian: output/audit.md")
+    print("  3. Review and act on the security findings!")
 
 
 if __name__ == "__main__":
