@@ -6,3 +6,4 @@ rules:
   truthy: disable
 ignore: |
   node_modules/
+  .marprc.yml
