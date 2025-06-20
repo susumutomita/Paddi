@@ -2,6 +2,7 @@
   "name": "Paddi",
   "version": "1.0.0",
   "devDependencies": {
+    "@marp-team/marp-cli": "^4.2.0",
     "textlint": "^14.3.0",
     "textlint-rule-no-mixed-zenkaku-and-hankaku-alphabet": "^1.0.1",
     "textlint-rule-no-mixed-zenkaku-and-hankaku-number": "^1.0.0",

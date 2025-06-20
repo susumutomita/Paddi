@@ -1,0 +1,5 @@
+options:
+  theme: gaia
+  html: true
+  pdf: true
+  allowLocalFiles: true

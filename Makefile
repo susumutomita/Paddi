@@ -35,6 +35,21 @@ format:
 .PHONY: before_commit
 before_commit: test format lint
 
+# -------------------------------
+# Presentation
+# -------------------------------
+.PHONY: presentation_pdf
+presentation_pdf:        # Export presentation to PDF using Marp
+	npx marp presentation.md --pdf --allow-local-files --html
+
+.PHONY: presentation_html
+presentation_html:       # Export presentation to HTML using Marp
+	npx marp presentation.md --html --allow-local-files
+
+.PHONY: presentation_watch
+presentation_watch:      # Watch presentation changes and auto-reload
+	npx marp presentation.md --watch --server
+
 .PHONY: run
 run:
 	ground-monitoring
