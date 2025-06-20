@@ -1,0 +1,27 @@
+# Example Paddi CLI Configuration
+# Copy this file to paddi.toml and adjust settings as needed
+
+[python]
+# Python interpreter command
+command = "python3"
+# Path to Python agents directory
+agents_path = "python_agents"
+
+[gcp]
+# GCP project ID (optional, can be provided via command line)
+# project_id = "my-gcp-project"
+
+# Whether to use mock data (true for testing, false for production)
+use_mock = true
+
+[paths]
+# Directory for intermediate data files
+data_dir = "data"
+# Directory for output reports
+output_dir = "output"
+
+[execution]
+# Whether to run agents in parallel (experimental)
+parallel = false
+# Timeout for each agent execution in seconds
+timeout_seconds = 300
