@@ -1,3 +1,1 @@
-"""
-Agent C: Report Generator Module
-"""
+"""Security Audit Report Generator."""

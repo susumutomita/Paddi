@@ -244,7 +244,7 @@ python reporter/agent_reporter.py
 
 ```bash
 python reporter/agent_reporter.py \
-  --input_file="data/explained.json" \
+  --input_dir="data" \
   --output_dir="output" \
   --template_dir="templates"
 ```
@@ -255,42 +255,75 @@ The reporter generates two report formats:
 
 1. **Markdown Report** (`output/audit.md`):
    - Obsidian-compatible format
-   - Includes metadata tags
-   - Structured with clear sections
+   - Includes YAML frontmatter with metadata
+   - Mermaid diagrams for severity visualization
+   - Structured sections with clear remediation priorities
    - Emoji indicators for severity levels
 
 2. **HTML Report** (`output/audit.html`):
-   - Standalone HTML file
-   - Professional styling
-   - Color-coded severity levels
-   - Ready for browser viewing or sharing
+   - Standalone HTML file with embedded CSS
+   - Professional Google-style design
+   - Color-coded severity badges
+   - Responsive grid layout for severity summary
+   - Interactive and printable format
 
 ### Features
 
 - **Multiple Output Formats**: Markdown for documentation tools, HTML for web viewing
-- **Template Support**: Optional Jinja2 templates for customization
+- **Jinja2 Template Support**: Full customization capability for both formats
 - **Executive Summary**: High-level overview with severity breakdown
-- **Detailed Findings**: Complete information for each security issue
-- **Smart Metadata**: Pulls project info from original collection data
-- **Professional Styling**: Clean, readable reports suitable for audits
+- **Visual Analytics**: Mermaid pie charts in Markdown, styled cards in HTML
+- **Smart Metadata**: Automatically extracts project info from collector's output
+- **Professional Styling**: Clean, audit-ready reports suitable for stakeholders
+- **SOLID Architecture**: Clean separation of concerns with abstract generators
 
 ### Templates
 
 Custom templates can be placed in the `templates/` directory:
 
-- `report.md.j2`: Jinja2 template for Markdown output
+- `report.md.j2`: Jinja2 template for Markdown output (sample included)
 - `report.html.j2`: Jinja2 template for HTML output
 
 Template variables available:
-- `findings`: List of security findings
-- `metadata`: Project information and timestamps
+```python
+report = {
+    'project_name': str,      # Project ID from collector
+    'audit_date': str,        # Current date (YYYY-MM-DD)
+    'total_findings': int,    # Count of all findings
+    'severity_counts': dict,  # {'HIGH': 2, 'MEDIUM': 1, ...}
+    'findings': [             # List of SecurityFinding objects
+        {
+            'title': str,
+            'severity': str,
+            'explanation': str,
+            'recommendation': str
+        }
+    ]
+}
+```
 
 ### Architecture
 
-The reporter follows clean architecture principles:
+The reporter follows SOLID principles:
 
-- **ReportGeneratorInterface**: Abstract interface for report generators
-- **MarkdownReportGenerator**: Generates Obsidian-compatible Markdown
-- **HTMLReportGenerator**: Generates styled HTML reports
-- **AuditReportGenerator**: Main orchestrator handling file I/O
-- **Template Support**: Optional Jinja2 templates for customization
+- **ReportGenerator** (ABC): Abstract base class defining the interface
+- **MarkdownGenerator**: Generates Obsidian-compatible Markdown reports
+- **HTMLGenerator**: Generates styled HTML reports with embedded CSS
+- **ReportService**: Main service orchestrating report generation
+- **SecurityFinding**: Data class for type-safe finding representation
+- **AuditReport**: Data class containing all report data
+
+### Example Output
+
+The generated Markdown includes:
+- YAML frontmatter for Obsidian
+- Mermaid pie chart for severity distribution
+- Tabular summary of findings
+- Detailed findings with recommendations
+- Remediation priority guidelines
+
+The HTML report features:
+- Modern, responsive design
+- Color-coded severity indicators
+- Summary cards with finding counts
+- Professional layout suitable for sharing

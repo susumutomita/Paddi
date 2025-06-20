@@ -1,548 +1,379 @@
-"""
-Unit tests for Agent C: Security Audit Report Generator
-"""
+"""Unit tests for the Security Audit Report Generator."""
 
 import json
 import tempfile
+from datetime import datetime
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from reporter.agent_reporter import (
-    AuditReportGenerator,
-    HTMLReportGenerator,
-    MarkdownReportGenerator,
+    AuditReport,
+    HTMLGenerator,
+    MarkdownGenerator,
+    ReportService,
+    SecurityFinding,
 )
 
 
-class TestMarkdownReportGenerator:
-    """Test cases for Markdown Report Generator"""
+@pytest.fixture
+def sample_finding():
+    """Create a sample security finding."""
+    return SecurityFinding(
+        title="Overly Permissive IAM Role",
+        severity="HIGH",
+        explanation="Service account has owner role which grants excessive permissions",
+        recommendation="Apply principle of least privilege and use specific roles",
+    )
 
-    def test_generate_default_markdown(self):
-        """Test generating default Markdown report without template"""
-        generator = MarkdownReportGenerator()
 
-        findings = [
-            {
-                "title": "Test High Finding",
-                "severity": "HIGH",
-                "explanation": "This is a high severity issue",
-                "recommendation": "Fix this immediately",
-            },
-            {
-                "title": "Test Medium Finding",
-                "severity": "MEDIUM",
-                "explanation": "This is a medium severity issue",
-                "recommendation": "Fix this soon",
-            },
-            {
-                "title": "Test Low Finding",
-                "severity": "LOW",
-                "explanation": "This is a low severity issue",
-                "recommendation": "Consider fixing this",
-            },
-        ]
+@pytest.fixture
+def sample_findings():
+    """Create sample security findings list."""
+    return [
+        SecurityFinding(
+            title="Overly Permissive IAM Role",
+            severity="HIGH",
+            explanation="Service account has owner role",
+            recommendation="Use specific roles instead",
+        ),
+        SecurityFinding(
+            title="Public Storage Bucket",
+            severity="CRITICAL",
+            explanation="Storage bucket is publicly accessible",
+            recommendation="Restrict bucket access to authorized users only",
+        ),
+        SecurityFinding(
+            title="Weak Password Policy",
+            severity="MEDIUM",
+            explanation="Password policy does not enforce complexity",
+            recommendation="Enable password complexity requirements",
+        ),
+    ]
 
-        metadata = {
-            "timestamp": "2024-01-01T00:00:00Z",
-            "project_id": "test-project",
-            "organization_id": "test-org",
-        }
 
-        report = generator.generate(findings, metadata)
+@pytest.fixture
+def sample_report(sample_findings):
+    """Create a sample audit report."""
+    severity_counts = {"CRITICAL": 1, "HIGH": 1, "MEDIUM": 1}
+    return AuditReport(
+        findings=sample_findings,
+        project_name="test-project-123",
+        audit_date="2024-01-01",
+        total_findings=3,
+        severity_counts=severity_counts,
+    )
 
-        # Verify report content
-        assert "# GCP Security Audit Report" in report
-        assert "test-project" in report
-        assert "test-org" in report
-        assert "Test High Finding" in report
-        assert "Test Medium Finding" in report
-        assert "Test Low Finding" in report
-        assert "HIGH" in report
-        assert "MEDIUM" in report
-        assert "LOW" in report
-        assert "## Executive Summary" in report
-        assert "## Severity Breakdown" in report
-        assert "## Detailed Findings" in report
 
-    def test_generate_summary(self):
-        """Test executive summary generation"""
-        generator = MarkdownReportGenerator()
+class TestSecurityFinding:
+    """Test SecurityFinding dataclass."""
 
-        findings = [
-            {"severity": "HIGH"},
-            {"severity": "HIGH"},
-            {"severity": "MEDIUM"},
-            {"severity": "LOW"},
-        ]
+    def test_security_finding_creation(self, sample_finding):
+        """Test creating a security finding."""
+        assert sample_finding.title == "Overly Permissive IAM Role"
+        assert sample_finding.severity == "HIGH"
+        assert "owner role" in sample_finding.explanation
+        assert "least privilege" in sample_finding.recommendation
 
-        summary = generator._generate_summary(findings)
 
-        assert "4 total findings" in summary
-        assert "2 HIGH" in summary
-        assert "1 MEDIUM" in summary
-        assert "1 LOW" in summary
-        assert "Action Required" in summary  # Due to HIGH severity findings
+class TestAuditReport:
+    """Test AuditReport dataclass."""
 
-    def test_generate_severity_table(self):
-        """Test severity breakdown table generation"""
-        generator = MarkdownReportGenerator()
+    def test_audit_report_creation(self, sample_report):
+        """Test creating an audit report."""
+        assert sample_report.project_name == "test-project-123"
+        assert sample_report.audit_date == "2024-01-01"
+        assert sample_report.total_findings == 3
+        assert sample_report.severity_counts["CRITICAL"] == 1
+        assert len(sample_report.findings) == 3
 
-        findings = [
-            {"severity": "HIGH"},
-            {"severity": "HIGH"},
-            {"severity": "MEDIUM"},
-            {"severity": "LOW"},
-        ]
 
-        table = generator._generate_severity_table(findings)
+class TestMarkdownGenerator:
+    """Test Markdown report generation."""
 
-        assert "| Severity | Count | Percentage |" in table
-        assert "| HIGH     | 2   | 50.0%     |" in table
-        assert "| MEDIUM   | 1 | 25.0%   |" in table
-        assert "| LOW      | 1    | 25.0%      |" in table
+    def test_generate_default_markdown(self, sample_report):
+        """Test generating default Markdown report."""
+        generator = MarkdownGenerator()
+        content = generator.generate(sample_report)
 
-    def test_generate_with_template(self):
-        """Test generating Markdown with Jinja2 template"""
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".j2", delete=False, dir=tempfile.gettempdir()
-        ) as f:
-            f.write(
-                """# Test Report
-Project: {{ metadata.project_id }}
-Findings: {{ findings | length }}
-{% for finding in findings %}
+        assert "# Security Audit Report - test-project-123" in content
+        assert "**Audit Date:** 2024-01-01" in content
+        assert "**Total Findings:** 3" in content
+        assert "## Executive Summary" in content
+        assert "### Severity Breakdown" in content
+        assert "- **CRITICAL**: 1 findings" in content
+        assert "## Detailed Findings" in content
+        assert "### 1. Overly Permissive IAM Role" in content
+        assert "**Severity:** HIGH" in content
+
+    def test_generate_markdown_with_template(self, sample_report, tmp_path):
+        """Test generating Markdown report with custom template."""
+        template_content = """# {{ report.project_name }} Report
+Total: {{ report.total_findings }}
+{% for finding in report.findings %}
 - {{ finding.title }} ({{ finding.severity }})
 {% endfor %}"""
-            )
-            template_path = Path(f.name)
 
-        try:
-            generator = MarkdownReportGenerator(template_path)
+        template_file = tmp_path / "custom.md.j2"
+        template_file.write_text(template_content)
 
-            findings = [
-                {"title": "Finding 1", "severity": "HIGH"},
-                {"title": "Finding 2", "severity": "MEDIUM"},
-            ]
-            metadata = {"project_id": "test-project"}
+        generator = MarkdownGenerator()
+        content = generator.generate(sample_report, template_file)
 
-            report = generator.generate(findings, metadata)
-
-            assert "Test Report" in report
-            assert "Project: test-project" in report
-            assert "Findings: 2" in report
-            assert "- Finding 1 (HIGH)" in report
-            assert "- Finding 2 (MEDIUM)" in report
-        finally:
-            template_path.unlink()
-
-    def test_empty_findings(self):
-        """Test handling empty findings list"""
-        generator = MarkdownReportGenerator()
-
-        findings = []
-        metadata = {"project_id": "test-project"}
-
-        report = generator.generate(findings, metadata)
-
-        assert "0 total findings" in report
-        assert "0 HIGH" in report
-        assert "| No findings | 0 | 0% |" not in report  # Should show zeros, not "No findings"
+        assert "# test-project-123 Report" in content
+        assert "Total: 3" in content
+        assert "- Overly Permissive IAM Role (HIGH)" in content
+        assert "- Public Storage Bucket (CRITICAL)" in content
 
 
-class TestHTMLReportGenerator:
-    """Test cases for HTML Report Generator"""
+class TestHTMLGenerator:
+    """Test HTML report generation."""
 
-    def test_generate_default_html(self):
-        """Test generating default HTML report without template"""
-        generator = HTMLReportGenerator()
+    def test_generate_default_html(self, sample_report):
+        """Test generating default HTML report."""
+        generator = HTMLGenerator()
+        content = generator.generate(sample_report)
 
-        findings = [
-            {
-                "title": "Test High Finding",
-                "severity": "HIGH",
-                "explanation": "This is a high severity issue",
-                "recommendation": "Fix this immediately",
-            },
-            {
-                "title": "Test Medium Finding",
-                "severity": "MEDIUM",
-                "explanation": "This is a medium severity issue",
-                "recommendation": "Fix this soon",
-            },
-        ]
+        assert "<!DOCTYPE html>" in content
+        assert "<title>Security Audit Report - test-project-123</title>" in content
+        assert "Audit Date:</strong> 2024-01-01" in content
+        assert "Total Findings:</strong> 3" in content
+        assert '<div class="summary-card">' in content
+        assert 'class="finding finding-high"' in content
+        assert "Overly Permissive IAM Role" in content
 
-        metadata = {
-            "timestamp": "2024-01-01T00:00:00Z",
-            "project_id": "test-project",
-            "organization_id": "test-org",
-        }
-
-        report = generator.generate(findings, metadata)
-
-        # Verify HTML structure
-        assert "<!DOCTYPE html>" in report
-        assert "<html lang=\"en\">" in report
-        assert "<title>GCP Security Audit Report - test-project</title>" in report
-        assert "test-project" in report
-        assert "test-org" in report
-        assert "Test High Finding" in report
-        assert "Test Medium Finding" in report
-        assert 'class="severity-high"' in report
-        assert 'class="severity-medium"' in report
-        assert "Executive Summary" in report
-        assert "Severity Breakdown" in report
-        assert "Detailed Findings" in report
-
-    def test_generate_html_summary(self):
-        """Test HTML executive summary generation"""
-        generator = HTMLReportGenerator()
-
-        findings = [
-            {"severity": "HIGH"},
-            {"severity": "HIGH"},
-            {"severity": "MEDIUM"},
-            {"severity": "LOW"},
-        ]
-
-        summary = generator._generate_html_summary(findings)
-
-        assert "<strong>4 total findings</strong>" in summary
-        assert "2 HIGH" in summary
-        assert "1 MEDIUM" in summary
-        assert "1 LOW" in summary
-        assert "Action Required" in summary
-
-    def test_generate_html_severity_table(self):
-        """Test HTML severity table generation"""
-        generator = HTMLReportGenerator()
-
-        findings = [
-            {"severity": "HIGH"},
-            {"severity": "MEDIUM"},
-            {"severity": "LOW"},
-        ]
-
-        table = generator._generate_html_severity_table(findings)
-
-        assert '<table class="severity-table">' in table
-        assert "<th>Severity</th>" in table
-        assert '<td class="severity-high">HIGH</td>' in table
-        assert "<td>33.3%</td>" in table  # Each severity is 1/3
-
-    def test_generate_with_template(self):
-        """Test generating HTML with Jinja2 template"""
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".j2", delete=False, dir=tempfile.gettempdir()
-        ) as f:
-            f.write(
-                """<html>
+    def test_generate_html_with_template(self, sample_report, tmp_path):
+        """Test generating HTML report with custom template."""
+        template_content = """<html>
 <body>
-<h1>{{ metadata.project_id }} Report</h1>
+<h1>{{ report.project_name }}</h1>
 <ul>
-{% for finding in findings %}
-<li>{{ finding.title }}</li>
+{% for finding in report.findings %}
+<li>{{ finding.title | e }}</li>
 {% endfor %}
 </ul>
 </body>
 </html>"""
-            )
-            template_path = Path(f.name)
 
-        try:
-            generator = HTMLReportGenerator(template_path)
+        template_file = tmp_path / "custom.html.j2"
+        template_file.write_text(template_content)
 
-            findings = [
-                {"title": "Finding 1"},
-                {"title": "Finding 2"},
-            ]
-            metadata = {"project_id": "test-project"}
+        generator = HTMLGenerator()
+        content = generator.generate(sample_report, template_file)
 
-            report = generator.generate(findings, metadata)
-
-            assert "<h1>test-project Report</h1>" in report
-            assert "<li>Finding 1</li>" in report
-            assert "<li>Finding 2</li>" in report
-        finally:
-            template_path.unlink()
-
-    def test_html_escaping(self):
-        """Test that special characters are handled properly"""
-        generator = HTMLReportGenerator()
-
-        findings = [
-            {
-                "title": "Test <script>alert('xss')</script> Finding",
-                "severity": "HIGH",
-                "explanation": "Contains & special characters",
-                "recommendation": "Fix > immediately",
-            }
-        ]
-
-        metadata = {"project_id": "test-project"}
-
-        report = generator.generate(findings, metadata)
-
-        # Jinja2 should auto-escape by default
-        # But our simple string concatenation needs to be careful
-        # For now, we're not explicitly escaping in the default generator
-        # This is a known limitation for the default HTML generator
-        assert "Test" in report
-        assert "Finding" in report
+        assert "<h1>test-project-123</h1>" in content
+        assert "<li>Overly Permissive IAM Role</li>" in content
+        assert "<li>Public Storage Bucket</li>" in content
 
 
-class TestAuditReportGenerator:
-    """Test cases for the main Audit Report Generator"""
+class TestReportService:
+    """Test ReportService functionality."""
 
-    @pytest.fixture
-    def temp_dirs(self, tmp_path):
-        """Create temporary directories for testing"""
-        input_dir = tmp_path / "data"
+    def test_init_creates_output_dir(self, tmp_path):
+        """Test that init creates output directory."""
         output_dir = tmp_path / "output"
-        template_dir = tmp_path / "templates"
+        service = ReportService(output_dir=output_dir)
+        assert output_dir.exists()
 
-        input_dir.mkdir()
-        output_dir.mkdir()
-        template_dir.mkdir()
-
-        return {
-            "input_dir": input_dir,
-            "output_dir": output_dir,
-            "template_dir": template_dir,
-        }
-
-    def test_initialization(self, temp_dirs):
-        """Test generator initialization"""
-        generator = AuditReportGenerator(
-            input_file=str(temp_dirs["input_dir"] / "explained.json"),
-            output_dir=str(temp_dirs["output_dir"]),
-            template_dir=str(temp_dirs["template_dir"]),
-        )
-
-        assert generator.input_file.name == "explained.json"
-        assert generator.output_dir.exists()
-        assert generator.template_dir is not None
-
-    def test_load_findings(self, temp_dirs):
-        """Test loading findings from JSON file"""
+    def test_load_findings_success(self, tmp_path):
+        """Test loading findings from JSON file."""
         findings_data = [
             {
                 "title": "Test Finding",
                 "severity": "HIGH",
-                "explanation": "Test",
-                "recommendation": "Fix",
+                "explanation": "Test explanation",
+                "recommendation": "Test recommendation",
             }
         ]
 
-        findings_file = temp_dirs["input_dir"] / "explained.json"
-        with open(findings_file, "w") as f:
-            json.dump(findings_data, f)
+        data_dir = tmp_path / "data"
+        data_dir.mkdir()
+        explained_file = data_dir / "explained.json"
+        explained_file.write_text(json.dumps(findings_data))
 
-        generator = AuditReportGenerator(
-            input_file=str(findings_file),
-            output_dir=str(temp_dirs["output_dir"]),
-        )
-
-        findings = generator.load_findings()
+        service = ReportService(input_dir=data_dir)
+        findings = service.load_findings()
 
         assert len(findings) == 1
         assert findings[0]["title"] == "Test Finding"
 
-    def test_load_findings_file_not_found(self, temp_dirs):
-        """Test error when findings file doesn't exist"""
-        generator = AuditReportGenerator(
-            input_file="nonexistent.json",
-            output_dir=str(temp_dirs["output_dir"]),
-        )
+    def test_load_findings_file_not_found(self, tmp_path):
+        """Test handling missing explained.json."""
+        service = ReportService(input_dir=tmp_path)
+        findings = service.load_findings()
+        assert findings == []
 
-        with pytest.raises(FileNotFoundError):
-            generator.load_findings()
+    def test_load_metadata_success(self, tmp_path):
+        """Test loading metadata from collected.json."""
+        metadata = {"metadata": {"project_id": "test-project-456"}}
 
-    def test_load_metadata_with_collected_file(self, temp_dirs):
-        """Test loading metadata from collected.json"""
-        # Create explained.json
-        findings_file = temp_dirs["input_dir"] / "explained.json"
-        with open(findings_file, "w") as f:
-            json.dump([], f)
+        data_dir = tmp_path / "data"
+        data_dir.mkdir()
+        collected_file = data_dir / "collected.json"
+        collected_file.write_text(json.dumps(metadata))
 
-        # Create collected.json with metadata
-        collected_data = {
-            "project_id": "test-project-123",
-            "organization_id": "test-org-456",
-            "timestamp": "2024-01-01T00:00:00Z",
-        }
-        collected_file = temp_dirs["input_dir"] / "collected.json"
-        with open(collected_file, "w") as f:
-            json.dump(collected_data, f)
+        service = ReportService(input_dir=data_dir)
+        loaded_metadata = service.load_metadata()
 
-        generator = AuditReportGenerator(
-            input_file=str(findings_file),
-            output_dir=str(temp_dirs["output_dir"]),
-        )
+        assert loaded_metadata["project_id"] == "test-project-456"
 
-        metadata = generator.load_metadata()
+    def test_load_metadata_file_not_found(self, tmp_path):
+        """Test handling missing collected.json."""
+        service = ReportService(input_dir=tmp_path)
+        metadata = service.load_metadata()
+        assert metadata["project_id"] == "unknown-project"
 
-        assert metadata["project_id"] == "test-project-123"
-        assert metadata["organization_id"] == "test-org-456"
-        assert metadata["collection_timestamp"] == "2024-01-01T00:00:00Z"
-        assert "timestamp" in metadata  # Current timestamp
-
-    def test_load_metadata_without_collected_file(self, temp_dirs):
-        """Test loading metadata when collected.json doesn't exist"""
-        findings_file = temp_dirs["input_dir"] / "explained.json"
-        with open(findings_file, "w") as f:
-            json.dump([], f)
-
-        generator = AuditReportGenerator(
-            input_file=str(findings_file),
-            output_dir=str(temp_dirs["output_dir"]),
-        )
-
-        metadata = generator.load_metadata()
-
-        assert metadata["project_id"] == "Unknown"
-        assert metadata["organization_id"] == "Unknown"
-        assert "timestamp" in metadata
-
-    def test_generate_reports(self, temp_dirs):
-        """Test generating both Markdown and HTML reports"""
-        # Prepare test data
+    def test_create_report(self, tmp_path):
+        """Test creating audit report from raw data."""
         findings_data = [
             {
-                "title": "Test Finding 1",
+                "title": "Finding 1",
                 "severity": "HIGH",
-                "explanation": "High severity issue",
-                "recommendation": "Fix immediately",
+                "explanation": "Explanation 1",
+                "recommendation": "Recommendation 1",
             },
             {
-                "title": "Test Finding 2",
-                "severity": "MEDIUM",
-                "explanation": "Medium severity issue",
-                "recommendation": "Fix soon",
+                "title": "Finding 2",
+                "severity": "HIGH",
+                "explanation": "Explanation 2",
+                "recommendation": "Recommendation 2",
+            },
+            {
+                "title": "Finding 3",
+                "severity": "LOW",
+                "explanation": "Explanation 3",
+                "recommendation": "Recommendation 3",
             },
         ]
+        metadata = {"project_id": "test-project-789"}
 
-        findings_file = temp_dirs["input_dir"] / "explained.json"
-        with open(findings_file, "w") as f:
-            json.dump(findings_data, f)
+        service = ReportService()
+        report = service.create_report(findings_data, metadata)
+
+        assert report.project_name == "test-project-789"
+        assert report.total_findings == 3
+        assert report.severity_counts["HIGH"] == 2
+        assert report.severity_counts["LOW"] == 1
+        assert len(report.findings) == 3
+
+    def test_generate_reports_success(self, tmp_path):
+        """Test generating both MD and HTML reports."""
+        # Setup test data
+        findings_data = [
+            {
+                "title": "Test Finding",
+                "severity": "CRITICAL",
+                "explanation": "Critical issue found",
+                "recommendation": "Fix immediately",
+            }
+        ]
+        metadata = {"metadata": {"project_id": "prod-project"}}
+
+        data_dir = tmp_path / "data"
+        data_dir.mkdir()
+        output_dir = tmp_path / "output"
+
+        explained_file = data_dir / "explained.json"
+        explained_file.write_text(json.dumps(findings_data))
+        collected_file = data_dir / "collected.json"
+        collected_file.write_text(json.dumps(metadata))
 
         # Generate reports
-        generator = AuditReportGenerator(
-            input_file=str(findings_file),
-            output_dir=str(temp_dirs["output_dir"]),
-        )
+        service = ReportService(input_dir=data_dir, output_dir=output_dir)
+        service.generate_reports()
 
-        md_path, html_path = generator.generate_reports()
+        # Check outputs
+        md_file = output_dir / "audit.md"
+        html_file = output_dir / "audit.html"
 
-        # Verify files were created
-        assert md_path.exists()
-        assert html_path.exists()
-        assert md_path.name == "audit.md"
-        assert html_path.name == "audit.html"
+        assert md_file.exists()
+        assert html_file.exists()
 
-        # Verify Markdown content
-        with open(md_path, "r") as f:
-            md_content = f.read()
-            assert "Test Finding 1" in md_content
-            assert "Test Finding 2" in md_content
-            assert "HIGH" in md_content
-            assert "MEDIUM" in md_content
+        md_content = md_file.read_text()
+        assert "Security Audit Report - prod-project" in md_content
+        assert "Test Finding" in md_content
+        assert "CRITICAL" in md_content
 
-        # Verify HTML content
-        with open(html_path, "r") as f:
-            html_content = f.read()
-            assert "Test Finding 1" in html_content
-            assert "Test Finding 2" in html_content
-            assert "HIGH" in html_content
-            assert "MEDIUM" in html_content
+        html_content = html_file.read_text()
+        assert "<title>Security Audit Report - prod-project</title>" in html_content
+        assert "Test Finding" in html_content
+
+    def test_generate_reports_no_findings(self, tmp_path):
+        """Test handling case with no findings."""
+        data_dir = tmp_path / "data"
+        data_dir.mkdir()
+        output_dir = tmp_path / "output"
+
+        service = ReportService(input_dir=data_dir, output_dir=output_dir)
+        service.generate_reports()
+
+        # Should not create any files
+        assert not (output_dir / "audit.md").exists()
+        assert not (output_dir / "audit.html").exists()
+
+    def test_generate_reports_with_templates(self, tmp_path):
+        """Test generating reports with custom templates."""
+        # Setup test data
+        findings_data = [{"title": "Test", "severity": "HIGH", "explanation": "Test", "recommendation": "Test"}]
+        metadata = {"metadata": {"project_id": "test-proj"}}
+
+        data_dir = tmp_path / "data"
+        data_dir.mkdir()
+        output_dir = tmp_path / "output"
+        template_dir = tmp_path / "templates"
+        template_dir.mkdir()
+
+        # Create test data files
+        (data_dir / "explained.json").write_text(json.dumps(findings_data))
+        (data_dir / "collected.json").write_text(json.dumps(metadata))
+
+        # Create custom templates
+        md_template = template_dir / "report.md.j2"
+        md_template.write_text("# Custom {{ report.project_name }}")
+
+        # Generate reports
+        service = ReportService(input_dir=data_dir, output_dir=output_dir, template_dir=template_dir)
+        service.generate_reports()
+
+        # Check custom template was used
+        md_content = (output_dir / "audit.md").read_text()
+        assert md_content == "# Custom test-proj"
 
 
 class TestMainFunction:
-    """Test cases for the main CLI function"""
+    """Test the main entry point."""
 
-    @patch("reporter.agent_reporter.AuditReportGenerator")
-    def test_main_success(self, mock_generator_class):
-        """Test successful main execution"""
+    @patch("reporter.agent_reporter.ReportService")
+    def test_main_with_defaults(self, mock_service_class):
+        """Test main function with default arguments."""
+        mock_instance = MagicMock()
+        mock_service_class.return_value = mock_instance
+
         from reporter.agent_reporter import main
 
-        # Mock the generator instance
-        mock_generator = Mock()
-        mock_generator.generate_reports.return_value = (
-            Path("output/audit.md"),
-            Path("output/audit.html"),
-        )
-        mock_generator_class.return_value = mock_generator
+        main()
 
-        # Run main
-        main(
-            input_file="data/explained.json",
-            output_dir="output",
-        )
-
-        # Verify calls
-        mock_generator_class.assert_called_once_with(
-            input_file="data/explained.json",
-            output_dir="output",
+        mock_service_class.assert_called_once_with(
+            input_dir=Path("data"),
+            output_dir=Path("output"),
             template_dir=None,
         )
-        mock_generator.generate_reports.assert_called_once()
+        mock_instance.generate_reports.assert_called_once()
 
-    @patch("reporter.agent_reporter.AuditReportGenerator")
-    def test_main_with_template_dir(self, mock_generator_class):
-        """Test main with custom template directory"""
+    @patch("reporter.agent_reporter.ReportService")
+    def test_main_with_custom_paths(self, mock_service_class):
+        """Test main function with custom paths."""
+        mock_instance = MagicMock()
+        mock_service_class.return_value = mock_instance
+
         from reporter.agent_reporter import main
 
-        # Mock the generator instance
-        mock_generator = Mock()
-        mock_generator.generate_reports.return_value = (
-            Path("output/audit.md"),
-            Path("output/audit.html"),
+        main(input_dir="custom/input", output_dir="custom/output", template_dir="custom/templates")
+
+        mock_service_class.assert_called_once_with(
+            input_dir=Path("custom/input"),
+            output_dir=Path("custom/output"),
+            template_dir=Path("custom/templates"),
         )
-        mock_generator_class.return_value = mock_generator
-
-        # Run main with template dir
-        main(
-            input_file="data/explained.json",
-            output_dir="output",
-            template_dir="custom-templates",
-        )
-
-        # Verify template_dir was passed
-        mock_generator_class.assert_called_once_with(
-            input_file="data/explained.json",
-            output_dir="output",
-            template_dir="custom-templates",
-        )
-
-    @patch("reporter.agent_reporter.AuditReportGenerator")
-    def test_main_file_not_found(self, mock_generator_class):
-        """Test main handling FileNotFoundError"""
-        from reporter.agent_reporter import main
-
-        # Mock the generator to raise FileNotFoundError
-        mock_generator = Mock()
-        mock_generator.generate_reports.side_effect = FileNotFoundError(
-            "Input file not found"
-        )
-        mock_generator_class.return_value = mock_generator
-
-        # Run main and expect exception
-        with pytest.raises(FileNotFoundError):
-            main(input_file="nonexistent.json")
-
-    @patch("reporter.agent_reporter.AuditReportGenerator")
-    @patch("reporter.agent_reporter.logger")
-    def test_main_handles_exceptions(self, mock_logger, mock_generator_class):
-        """Test that main function handles exceptions properly"""
-        from reporter.agent_reporter import main
-
-        # Mock the generator to raise a general exception
-        mock_generator = Mock()
-        mock_generator.generate_reports.side_effect = Exception("Test error")
-        mock_generator_class.return_value = mock_generator
-
-        with pytest.raises(Exception):
-            main()
-
-        mock_logger.error.assert_called_with("Report generation failed: Test error")
+        mock_instance.generate_reports.assert_called_once()
