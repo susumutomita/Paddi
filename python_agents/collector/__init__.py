@@ -1,0 +1,1 @@
+"""GCP Configuration Collector Agent."""
