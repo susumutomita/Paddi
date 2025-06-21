@@ -32,8 +32,8 @@ format:
 	black .
 	isort .
 
-.PHONY: before_commit
-before_commit: test format lint
+.PHONY: before-commit
+before-commit: test format lint
 
 # -------------------------------
 # Presentation
