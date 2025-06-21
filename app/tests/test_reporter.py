@@ -1,13 +1,10 @@
 """Unit tests for the Security Audit Report Generator."""
 
 import json
-import tempfile
-from datetime import datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from reporter.agent_reporter import (
     AuditReport,
     HTMLGenerator,
@@ -173,7 +170,7 @@ class TestReportService:
     def test_init_creates_output_dir(self, tmp_path):
         """Test that init creates output directory."""
         output_dir = tmp_path / "output"
-        service = ReportService(output_dir=output_dir)
+        ReportService(output_dir=output_dir)
         assert output_dir.exists()
 
     def test_load_findings_success(self, tmp_path):
@@ -315,7 +312,9 @@ class TestReportService:
     def test_generate_reports_with_templates(self, tmp_path):
         """Test generating reports with custom templates."""
         # Setup test data
-        findings_data = [{"title": "Test", "severity": "HIGH", "explanation": "Test", "recommendation": "Test"}]
+        findings_data = [
+            {"title": "Test", "severity": "HIGH", "explanation": "Test", "recommendation": "Test"}
+        ]
         metadata = {"metadata": {"project_id": "test-proj"}}
 
         data_dir = tmp_path / "data"
@@ -333,7 +332,9 @@ class TestReportService:
         md_template.write_text("# Custom {{ report.project_name }}")
 
         # Generate reports
-        service = ReportService(input_dir=data_dir, output_dir=output_dir, template_dir=template_dir)
+        service = ReportService(
+            input_dir=data_dir, output_dir=output_dir, template_dir=template_dir
+        )
         service.generate_reports()
 
         # Check custom template was used

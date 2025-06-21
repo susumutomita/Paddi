@@ -8,12 +8,13 @@ It supports both real GCP environments and mocked data for testing.
 
 import json
 import logging
-import os
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import fire
+
+from common.auth import check_gcp_credentials
 
 # Configure logging
 logging.basicConfig(
@@ -28,7 +29,6 @@ class CollectorInterface(ABC):
     @abstractmethod
     def collect(self) -> Dict[str, Any]:
         """Collect GCP configuration data"""
-        pass
 
 
 class IAMCollector(CollectorInterface):
@@ -47,7 +47,7 @@ class IAMCollector(CollectorInterface):
             from google.cloud import iam
 
             # Initialize IAM admin client
-            client = iam.IAMClient()
+            iam.IAMClient()
             # This would collect real IAM data
             # For now, returning mock structure
             logger.warning("Real IAM collection not fully implemented, using mock data")
@@ -56,7 +56,7 @@ class IAMCollector(CollectorInterface):
             logger.error("google-cloud-iam not installed, using mock data")
             return self._get_mock_iam_data()
         except Exception as e:
-            logger.error(f"Error collecting IAM data: {e}")
+            logger.error("Error collecting IAM data: %s", e)
             return self._get_mock_iam_data()
 
     def _get_mock_iam_data(self) -> Dict[str, Any]:
@@ -97,7 +97,7 @@ class SCCCollector(CollectorInterface):
             from google.cloud import securitycenter
 
             # Initialize SCC client
-            client = securitycenter.SecurityCenterClient()
+            securitycenter.SecurityCenterClient()
             # This would collect real SCC findings
             # For now, returning mock structure
             logger.warning("Real SCC collection not fully implemented, using mock data")
@@ -106,7 +106,7 @@ class SCCCollector(CollectorInterface):
             logger.error("google-cloud-securitycenter not installed, using mock data")
             return self._get_mock_scc_data()
         except Exception as e:
-            logger.error(f"Error collecting SCC data: {e}")
+            logger.error("Error collecting SCC data: %s", e)
             return self._get_mock_scc_data()
 
     def _get_mock_scc_data(self) -> List[Dict[str, Any]]:
@@ -115,7 +115,10 @@ class SCCCollector(CollectorInterface):
             {
                 "name": "organizations/123456/sources/789/findings/finding-1",
                 "category": "OVERPRIVILEGED_SERVICE_ACCOUNT",
-                "resource_name": "//iam.googleapis.com/projects/example-project/serviceAccounts/over-privileged-sa@example-project.iam.gserviceaccount.com",
+                "resource_name": (
+                    "//iam.googleapis.com/projects/example-project/serviceAccounts/"
+                    "over-privileged-sa@example-project.iam.gserviceaccount.com"
+                ),
                 "state": "ACTIVE",
                 "severity": "HIGH",
                 "finding_class": "VULNERABILITY",
@@ -161,7 +164,7 @@ class GCPConfigurationCollector:
 
     def collect_all(self) -> Dict[str, Any]:
         """Collect all GCP configurations"""
-        logger.info(f"Starting GCP configuration collection for project: {self.project_id}")
+        logger.info("Starting GCP configuration collection for project: %s", self.project_id)
 
         collected_data = {
             "project_id": self.project_id,
@@ -179,7 +182,7 @@ class GCPConfigurationCollector:
         output_path = self.output_dir / filename
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
-        logger.info(f"Data saved to: {output_path}")
+        logger.info("Data saved to: %s", output_path)
         return output_path
 
     def _get_timestamp(self) -> str:
@@ -206,12 +209,7 @@ def main(
     """
     try:
         # Set up Google Cloud authentication if not using mock
-        if not use_mock:
-            # Check for application default credentials
-            if not os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
-                logger.warning(
-                    "GOOGLE_APPLICATION_CREDENTIALS not set. Using application default credentials."
-                )
+        check_gcp_credentials(use_mock)
 
         # Initialize collector
         collector = GCPConfigurationCollector(
@@ -230,7 +228,7 @@ def main(
         print(f"✅ Collection successful! Data saved to: {output_path}")
 
     except Exception as e:
-        logger.error(f"Collection failed: {e}")
+        logger.error("Collection failed: %s", e)
         raise
 
 

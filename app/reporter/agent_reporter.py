@@ -15,18 +15,10 @@ from typing import Any, Dict, List, Optional
 import fire
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
+from common.models import SecurityFinding
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-
-@dataclass
-class SecurityFinding:
-    """Data class representing a security finding."""
-
-    title: str
-    severity: str
-    explanation: str
-    recommendation: str
 
 
 @dataclass
@@ -46,7 +38,6 @@ class ReportGenerator(ABC):
     @abstractmethod
     def generate(self, report: AuditReport, template_path: Optional[Path] = None) -> str:
         """Generate report content."""
-        pass
 
 
 class MarkdownGenerator(ReportGenerator):
@@ -68,7 +59,10 @@ class MarkdownGenerator(ReportGenerator):
             "",
             "## Executive Summary",
             "",
-            f"This security audit identified {report.total_findings} findings across your GCP infrastructure.",
+            (
+                f"This security audit identified {report.total_findings} findings "
+                "across your GCP infrastructure."
+            ),
             "",
             "### Severity Breakdown",
             "",
@@ -218,15 +212,16 @@ class HTMLGenerator(ReportGenerator):
 <body>
     <div class="container">
         <h1>Security Audit Report - {report.project_name}</h1>
-        
+
         <div class="metadata">
             <strong>Audit Date:</strong> {report.audit_date}<br>
             <strong>Total Findings:</strong> {report.total_findings}
         </div>
-        
+
         <h2>Executive Summary</h2>
-        <p>This security audit identified {report.total_findings} findings across your GCP infrastructure.</p>
-        
+        <p>This security audit identified {report.total_findings} findings
+        across your GCP infrastructure.</p>
+
         <h3>Severity Breakdown</h3>
         <div class="summary-grid">
 """
@@ -242,7 +237,7 @@ class HTMLGenerator(ReportGenerator):
 
         html += """
         </div>
-        
+
         <h2>Detailed Findings</h2>
 """
 
@@ -252,7 +247,8 @@ class HTMLGenerator(ReportGenerator):
             html += f"""
         <div class="finding {severity_class}">
             <h3>{i}. {finding.title}</h3>
-            <p><span class="severity-badge" style="background-color: {badge_color};">{finding.severity}</span></p>
+            <p><span class="severity-badge"
+            style="background-color: {badge_color};">{finding.severity}</span></p>
             <p><strong>Explanation:</strong> {finding.explanation}</p>
             <div class="recommendation">
                 <strong>Recommendation:</strong> {finding.recommendation}
@@ -287,12 +283,12 @@ class HonKitGenerator(ReportGenerator):
         """Generate HonKit documentation structure."""
         # Create README.md (main page)
         readme_content = self._generate_readme(report)
-        with open(self.output_dir / "README.md", "w") as f:
+        with open(self.output_dir / "README.md", "w", encoding="utf-8") as f:
             f.write(readme_content)
 
         # Create SUMMARY.md (table of contents)
         summary_content = self._generate_summary(report)
-        with open(self.output_dir / "SUMMARY.md", "w") as f:
+        with open(self.output_dir / "SUMMARY.md", "w", encoding="utf-8") as f:
             f.write(summary_content)
 
         # Create individual pages for each severity level
@@ -305,13 +301,9 @@ class HonKitGenerator(ReportGenerator):
             "description": "Automated security audit report for GCP infrastructure",
             "language": "ja",
             "plugins": ["theme-default", "search", "sharing"],
-            "pluginsConfig": {
-                "theme-default": {
-                    "showLevel": True
-                }
-            }
+            "pluginsConfig": {"theme-default": {"showLevel": True}},
         }
-        with open(self.output_dir / "book.json", "w") as f:
+        with open(self.output_dir / "book.json", "w", encoding="utf-8") as f:
             json.dump(book_config, f, indent=2)
 
         return str(self.output_dir)
@@ -322,7 +314,7 @@ class HonKitGenerator(ReportGenerator):
 
 ## 概要
 
-**監査日:** {report.audit_date}  
+**監査日:** {report.audit_date}
 **総検出数:** {report.total_findings}
 
 このセキュリティ監査レポートは、Paddiを使用してGCPインフラストラクチャの自動セキュリティ分析を実行した結果です。
@@ -371,13 +363,15 @@ class HonKitGenerator(ReportGenerator):
             if report.severity_counts.get(severity, 0) > 0:
                 lines.append(f"* [{severity}レベルの問題]({severity.lower()}.md)")
 
-        lines.extend([
-            "",
-            "## 付録",
-            "",
-            "* [監査方法について](methodology.md)",
-            "* [用語集](glossary.md)",
-        ])
+        lines.extend(
+            [
+                "",
+                "## 付録",
+                "",
+                "* [監査方法について](methodology.md)",
+                "* [用語集](glossary.md)",
+            ]
+        )
 
         return "\n".join(lines)
 
@@ -391,7 +385,7 @@ class HonKitGenerator(ReportGenerator):
 
         for severity, findings in findings_by_severity.items():
             content = self._generate_severity_page(severity, findings)
-            with open(self.output_dir / f"{severity.lower()}.md", "w") as f:
+            with open(self.output_dir / f"{severity.lower()}.md", "w", encoding="utf-8") as f:
                 f.write(content)
 
         # Generate methodology page
@@ -410,7 +404,7 @@ class HonKitGenerator(ReportGenerator):
 - **MEDIUM**: 計画的な対応が必要な中程度のリスク
 - **LOW**: 改善が推奨される低リスクの問題
 """
-        with open(self.output_dir / "methodology.md", "w") as f:
+        with open(self.output_dir / "methodology.md", "w", encoding="utf-8") as f:
             f.write(methodology)
 
         # Generate glossary page
@@ -428,7 +422,7 @@ Google Cloudのセキュリティおよびリスク管理プラットフォー�
 ## サービスアカウント
 アプリケーションやVMインスタンスが使用するGoogle Cloudのアカウント。人間のユーザーではなく、サービス間の認証に使用されます。
 """
-        with open(self.output_dir / "glossary.md", "w") as f:
+        with open(self.output_dir / "glossary.md", "w", encoding="utf-8") as f:
             f.write(glossary)
 
     def _generate_severity_page(self, severity: str, findings: List[SecurityFinding]) -> str:
@@ -437,7 +431,7 @@ Google Cloudのセキュリティおよびリスク管理プラットフォー�
             "CRITICAL": "これらの問題は、システムに重大なセキュリティリスクをもたらし、即座の対応が必要です。",
             "HIGH": "これらの問題は高いセキュリティリスクを示しており、早急な対応が推奨されます。",
             "MEDIUM": "これらの問題は中程度のリスクを示しており、計画的な対応が必要です。",
-            "LOW": "これらの問題は低リスクですが、セキュリティ体制の改善のために対処することが推奨されます。"
+            "LOW": "これらの問題は低リスクですが、セキュリティ体制の改善のために対処することが推奨されます。",
         }
 
         lines = [
@@ -452,18 +446,20 @@ Google Cloudのセキュリティおよびリスク管理プラットフォー�
         ]
 
         for i, finding in enumerate(findings, 1):
-            lines.extend([
-                f"## {i}. {finding.title}",
-                "",
-                "### 説明",
-                finding.explanation,
-                "",
-                "### 推奨事項",
-                finding.recommendation,
-                "",
-                "---",
-                "",
-            ])
+            lines.extend(
+                [
+                    f"## {i}. {finding.title}",
+                    "",
+                    "### 説明",
+                    finding.explanation,
+                    "",
+                    "### 推奨事項",
+                    finding.recommendation,
+                    "",
+                    "---",
+                    "",
+                ]
+            )
 
         return "\n".join(lines)
 
@@ -486,24 +482,26 @@ class ReportService:
         """Load security findings from explained.json."""
         explained_file = self.input_dir / "explained.json"
         if not explained_file.exists():
-            logger.error(f"Input file not found: {explained_file}")
+            logger.error("Input file not found: %s", explained_file)
             return []
 
-        with open(explained_file, "r") as f:
+        with open(explained_file, "r", encoding="utf-8") as f:
             return json.load(f)
 
     def load_metadata(self) -> Dict[str, Any]:
         """Load project metadata from collected.json."""
         collected_file = self.input_dir / "collected.json"
         if not collected_file.exists():
-            logger.warning(f"Metadata file not found: {collected_file}")
+            logger.warning("Metadata file not found: %s", collected_file)
             return {"project_id": "unknown-project"}
 
-        with open(collected_file, "r") as f:
+        with open(collected_file, "r", encoding="utf-8") as f:
             data = json.load(f)
             return data.get("metadata", {"project_id": "unknown-project"})
 
-    def create_report(self, findings_data: List[Dict[str, Any]], metadata: Dict[str, Any]) -> AuditReport:
+    def create_report(
+        self, findings_data: List[Dict[str, Any]], metadata: Dict[str, Any]
+    ) -> AuditReport:
         """Create AuditReport from raw data."""
         findings = [
             SecurityFinding(
@@ -529,14 +527,14 @@ class ReportService:
 
     def generate_reports(self, formats: Optional[List[str]] = None):
         """Generate reports in specified formats.
-        
+
         Args:
             formats: List of formats to generate. Defaults to ["markdown", "html"].
                     Supported formats: "markdown", "html", "honkit"
         """
         if formats is None:
             formats = ["markdown", "html"]
-            
+
         findings_data = self.load_findings()
         if not findings_data:
             logger.warning("No findings to report")
@@ -556,9 +554,9 @@ class ReportService:
 
             md_content = md_generator.generate(report, md_template)
             md_output = self.output_dir / "audit.md"
-            with open(md_output, "w") as f:
+            with open(md_output, "w", encoding="utf-8") as f:
                 f.write(md_content)
-            logger.info(f"Markdown report generated: {md_output}")
+            logger.info("Markdown report generated: %s", md_output)
 
         # Generate HTML report
         if "html" in formats:
@@ -571,15 +569,15 @@ class ReportService:
 
             html_content = html_generator.generate(report, html_template)
             html_output = self.output_dir / "audit.html"
-            with open(html_output, "w") as f:
+            with open(html_output, "w", encoding="utf-8") as f:
                 f.write(html_content)
-            logger.info(f"HTML report generated: {html_output}")
-            
+            logger.info("HTML report generated: %s", html_output)
+
         # Generate HonKit documentation
         if "honkit" in formats:
             honkit_generator = HonKitGenerator(self.output_dir.parent)
             docs_dir = honkit_generator.generate(report)
-            logger.info(f"HonKit documentation generated: {docs_dir}")
+            logger.info("HonKit documentation generated: %s", docs_dir)
 
 
 def main(

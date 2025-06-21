@@ -8,16 +8,22 @@ to identify security risks and provide recommendations.
 
 import json
 import logging
-import os
 import time
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import fire
-from google.cloud import aiplatform
-from google.cloud.aiplatform import models
+
+try:
+    from google.cloud import aiplatform
+    from google.cloud.aiplatform import models
+except ImportError:
+    aiplatform = None
+    models = None
+
+from common.auth import check_gcp_credentials
+from common.models import SecurityFinding
 
 # Configure logging
 logging.basicConfig(
@@ -26,54 +32,37 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class SecurityFinding:
-    """Data class for security findings"""
-
-    title: str
-    severity: str  # HIGH, MEDIUM, LOW
-    explanation: str
-    recommendation: str
-
-    def to_dict(self) -> Dict[str, str]:
-        """Convert to dictionary for JSON serialization"""
-        return {
-            "title": self.title,
-            "severity": self.severity,
-            "explanation": self.explanation,
-            "recommendation": self.recommendation,
-        }
-
-
 class LLMInterface(ABC):
     """Abstract interface for LLM interactions"""
 
     @abstractmethod
     def analyze_security_risks(self, configuration: Dict[str, Any]) -> List[SecurityFinding]:
         """Analyze security risks in the configuration"""
-        pass
 
 
 class PromptTemplate:
     """Template for generating security analysis prompts"""
 
-    SYSTEM_PROMPT = """You are a Google Cloud security expert analyzing GCP configurations for security risks.
-Your task is to identify security vulnerabilities, misconfigurations, and violations of security best practices.
-
-For each finding, provide:
-1. A clear, concise title
-2. Severity level (HIGH, MEDIUM, or LOW)
-3. Detailed explanation of the risk
-4. Specific, actionable recommendations
-
-Focus on:
-- IAM policy violations (overly permissive roles, service account misuse)
-- Security Command Center findings
-- Principle of least privilege violations
-- Public exposure risks
-- Compliance issues
-
-Respond in JSON format as an array of findings."""
+    SYSTEM_PROMPT = (
+        "You are a Google Cloud security expert analyzing GCP configurations "
+        "for security risks. Your task is to identify security vulnerabilities, "
+        "misconfigurations, and violations of security best practices."
+        "\n\n"
+        "For each finding, provide:\n"
+        "1. A clear, concise title\n"
+        "2. Severity level (HIGH, MEDIUM, or LOW)\n"
+        "3. Detailed explanation of the risk\n"
+        "4. Specific, actionable recommendations\n"
+        "\n"
+        "Focus on:\n"
+        "- IAM policy violations (overly permissive roles, service account misuse)\n"
+        "- Security Command Center findings\n"
+        "- Principle of least privilege violations\n"
+        "- Public exposure risks\n"
+        "- Compliance issues\n"
+        "\n"
+        "Respond in JSON format as an array of findings."
+    )
 
     IAM_ANALYSIS_PROMPT = """Analyze the following IAM policy configuration for security risks:
 
@@ -143,12 +132,17 @@ class GeminiSecurityAnalyzer(LLMInterface):
 
     def _initialize_vertex_ai(self):
         """Initialize Vertex AI with project settings"""
+        if aiplatform is None or models is None:
+            logger.warning("google-cloud-aiplatform not installed, using mock mode")
+            self.use_mock = True
+            return
+
         try:
             aiplatform.init(project=self.project_id, location=self.location)
             self._model = models.GenerativeModel(self.model_name)
-            logger.info(f"Initialized Vertex AI with model: {self.model_name}")
+            logger.info("Initialized Vertex AI with model: %s", self.model_name)
         except Exception as e:
-            logger.error(f"Failed to initialize Vertex AI: {e}")
+            logger.error("Failed to initialize Vertex AI: %s", e)
             raise
 
     def analyze_security_risks(self, configuration: Dict[str, Any]) -> List[SecurityFinding]:
@@ -181,7 +175,7 @@ class GeminiSecurityAnalyzer(LLMInterface):
             findings_data = self._parse_llm_response(response)
             return [SecurityFinding(**finding) for finding in findings_data]
         except Exception as e:
-            logger.error(f"Error analyzing IAM policies: {e}")
+            logger.error("Error analyzing IAM policies: %s", e)
             return self._get_mock_iam_findings()
 
     def _analyze_scc_findings(self, scc_findings: List[Dict[str, Any]]) -> List[SecurityFinding]:
@@ -198,7 +192,7 @@ class GeminiSecurityAnalyzer(LLMInterface):
             findings_data = self._parse_llm_response(response)
             return [SecurityFinding(**finding) for finding in findings_data]
         except Exception as e:
-            logger.error(f"Error analyzing SCC findings: {e}")
+            logger.error("Error analyzing SCC findings: %s", e)
             return self._get_mock_scc_findings()
 
     def _call_llm_with_retry(self, prompt: str, max_retries: int = 3) -> str:
@@ -224,12 +218,14 @@ class GeminiSecurityAnalyzer(LLMInterface):
                 return response.text
 
             except Exception as e:
-                logger.warning(f"LLM call failed (attempt {attempt + 1}/{max_retries}): {e}")
+                logger.warning("LLM call failed (attempt %d/%d): %s", attempt + 1, max_retries, e)
                 if attempt < max_retries - 1:
                     # Exponential backoff
                     time.sleep((2**attempt) * self._rate_limit_delay)
                 else:
                     raise
+        # This should never be reached, but satisfies the linter
+        raise RuntimeError("Failed to get LLM response after all retries")
 
     def _parse_llm_response(self, response: str) -> List[Dict[str, Any]]:
         """Parse LLM response to extract findings"""
@@ -241,12 +237,11 @@ class GeminiSecurityAnalyzer(LLMInterface):
             if json_start != -1 and json_end > json_start:
                 json_str = response[json_start:json_end]
                 return json.loads(json_str)
-            else:
-                logger.error("No valid JSON found in LLM response")
-                return []
+            logger.error("No valid JSON found in LLM response")
+            return []
         except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse LLM response as JSON: {e}")
-            logger.debug(f"Response: {response}")
+            logger.error("Failed to parse LLM response as JSON: %s", e)
+            logger.debug("Response: %s", response)
             return []
 
     def _get_mock_iam_findings(self) -> List[SecurityFinding]:
@@ -255,22 +250,33 @@ class GeminiSecurityAnalyzer(LLMInterface):
             SecurityFinding(
                 title="Overly Permissive Owner Role Assignment",
                 severity="HIGH",
-                explanation="Multiple users have been granted the 'roles/owner' role, which provides "
-                "full administrative access to all resources. This violates the principle of "
-                "least privilege and poses a significant security risk.",
-                recommendation="Remove the owner role from non-essential users. Instead, grant "
-                "specific roles that provide only the necessary permissions for their tasks. "
-                "Consider using roles like 'roles/editor' or custom roles with limited scope.",
+                explanation=(
+                    "Multiple users have been granted the 'roles/owner' role, "
+                    "which provides full administrative access to all resources. "
+                    "This violates the principle of least privilege and poses a "
+                    "significant security risk."
+                ),
+                recommendation=(
+                    "Remove the owner role from non-essential users. Instead, "
+                    "grant specific roles that provide only the necessary "
+                    "permissions for their tasks. Consider using roles like "
+                    "'roles/editor' or custom roles with limited scope."
+                ),
             ),
             SecurityFinding(
                 title="Service Account with Editor Role",
                 severity="MEDIUM",
-                explanation="The service account 'app-sa@project.iam.gserviceaccount.com' has been "
-                "granted 'roles/editor', which includes broad modification permissions across "
-                "the project.",
-                recommendation="Replace the editor role with more specific roles that match the "
-                "service account's actual needs. Consider using predefined roles like "
-                "'roles/storage.objectAdmin' or create a custom role with minimal permissions.",
+                explanation=(
+                    "The service account 'app-sa@project.iam.gserviceaccount.com' "
+                    "has been granted 'roles/editor', which includes broad "
+                    "modification permissions across the project."
+                ),
+                recommendation=(
+                    "Replace the editor role with more specific roles that match "
+                    "the service account's actual needs. Consider using predefined "
+                    "roles like 'roles/storage.objectAdmin' or create a custom "
+                    "role with minimal permissions."
+                ),
             ),
         ]
 
@@ -280,22 +286,32 @@ class GeminiSecurityAnalyzer(LLMInterface):
             SecurityFinding(
                 title="Over-Privileged Service Account Detected",
                 severity="HIGH",
-                explanation="Security Command Center detected a service account with excessive "
-                "permissions. This account has project-wide access that exceeds its operational "
-                "requirements, creating a potential attack vector.",
-                recommendation="Review and reduce the permissions of the identified service account. "
-                "Implement the principle of least privilege by granting only the minimum "
-                "permissions required for its specific functions.",
+                explanation=(
+                    "Security Command Center detected a service account with "
+                    "excessive permissions. This account has project-wide access "
+                    "that exceeds its operational requirements, creating a "
+                    "potential attack vector."
+                ),
+                recommendation=(
+                    "Review and reduce the permissions of the identified service "
+                    "account. Implement the principle of least privilege by "
+                    "granting only the minimum permissions required for its "
+                    "specific functions."
+                ),
             ),
             SecurityFinding(
                 title="Publicly Accessible Storage Bucket",
                 severity="MEDIUM",
-                explanation="A Cloud Storage bucket has been configured with public access. "
-                "This could lead to unintended data exposure if sensitive information is "
-                "stored in this bucket.",
-                recommendation="Review the bucket's access controls and remove public access unless "
-                "explicitly required. Implement bucket-level IAM policies and use signed URLs "
-                "for temporary access when needed.",
+                explanation=(
+                    "A Cloud Storage bucket has been configured with public "
+                    "access. This could lead to unintended data exposure if "
+                    "sensitive information is stored in this bucket."
+                ),
+                recommendation=(
+                    "Review the bucket's access controls and remove public access "
+                    "unless explicitly required. Implement bucket-level IAM "
+                    "policies and use signed URLs for temporary access when needed."
+                ),
             ),
         ]
 
@@ -335,13 +351,13 @@ class SecurityRiskExplainer:
 
     def analyze(self) -> List[SecurityFinding]:
         """Perform security analysis on collected configuration"""
-        logger.info(f"Loading configuration from: {self.input_file}")
+        logger.info("Loading configuration from: %s", self.input_file)
         configuration = self.load_configuration()
 
         logger.info("Starting security risk analysis...")
         findings = self.analyzer.analyze_security_risks(configuration)
 
-        logger.info(f"Analysis complete. Found {len(findings)} security issues.")
+        logger.info("Analysis complete. Found %d security issues.", len(findings))
         return findings
 
     def save_findings(
@@ -356,7 +372,7 @@ class SecurityRiskExplainer:
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump(findings_data, f, indent=2, ensure_ascii=False)
 
-        logger.info(f"Findings saved to: {output_path}")
+        logger.info("Findings saved to: %s", output_path)
         return output_path
 
 
@@ -379,11 +395,7 @@ def main(
     """
     try:
         # Set up Google Cloud authentication if not using mock
-        if not use_mock:
-            if not os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
-                logger.warning(
-                    "GOOGLE_APPLICATION_CREDENTIALS not set. Using application default credentials."
-                )
+        check_gcp_credentials(use_mock)
 
         # Initialize explainer
         explainer = SecurityRiskExplainer(
@@ -408,17 +420,17 @@ def main(
         medium_severity = sum(1 for f in findings if f.severity == "MEDIUM")
         low_severity = sum(1 for f in findings if f.severity == "LOW")
 
-        print(f"\nSeverity summary:")
+        print("\nSeverity summary:")
         print(f"  HIGH: {high_severity}")
         print(f"  MEDIUM: {medium_severity}")
         print(f"  LOW: {low_severity}")
 
     except FileNotFoundError as e:
-        logger.error(f"Input file not found: {e}")
+        logger.error("Input file not found: %s", e)
         logger.info("Please run agent_collector.py first to generate configuration data.")
         raise
     except Exception as e:
-        logger.error(f"Analysis failed: {e}")
+        logger.error("Analysis failed: %s", e)
         raise
 
 

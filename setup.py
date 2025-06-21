@@ -13,6 +13,9 @@ setup(
     entry_points={
         "console_scripts": [
             "paddi=app.main:main",
+            "paddi-collector=app.collector.main:main",
+            "paddi-explainer=app.explainer.main:main",
+            "paddi-reporter=app.reporter.main:main",
         ],
     },
 )

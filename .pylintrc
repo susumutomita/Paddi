@@ -1,0 +1,18 @@
+[MASTER]
+# Add the app directory to the Python path
+init-hook='import sys; import os; sys.path.insert(0, os.path.abspath("app"))'
+
+[MESSAGES CONTROL]
+# Disable some checks that are too strict for this project
+disable=
+    too-few-public-methods,
+    too-many-instance-attributes,
+    too-many-arguments,
+    too-many-positional-arguments,
+    too-many-locals,
+    import-outside-toplevel,
+    broad-exception-caught,
+    import-error
+
+# Ignored modules for import errors (these are valid but pylint can't find them)
+ignored-modules=common.auth,common.models
