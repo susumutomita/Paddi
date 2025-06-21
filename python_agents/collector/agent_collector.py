@@ -1,19 +1,24 @@
 #!/usr/bin/env python3
 """
-Agent A: GCP Configuration Collector
+Agent A: Multi-Cloud Configuration Collector
 
-This agent collects Google Cloud Platform configurations for security audits.
-It supports both real GCP environments and mocked data for testing.
+This agent collects cloud configurations from GCP, AWS, and Azure for security audits.
+It supports both real cloud environments and mocked data for testing.
+
+This file provides backward compatibility for the original GCP-only collector
+while leveraging the new multi-cloud architecture.
 """
 
 import json
 import logging
-import os
-from abc import ABC, abstractmethod
+from typing import Dict, Any, Optional, List
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from datetime import datetime, timezone
 
 import fire
+
+from .multi_cloud_collector import MultiCloudConfigurationCollector
+from .cloud_provider import CloudConfig, CloudProvider
 
 # Configure logging
 logging.basicConfig(
@@ -22,213 +27,265 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-class CollectorInterface(ABC):
-    """Abstract interface for GCP collectors"""
-
-    @abstractmethod
-    def collect(self) -> Dict[str, Any]:
-        """Collect GCP configuration data"""
-        pass
-
-
-class IAMCollector(CollectorInterface):
-    """Collector for IAM policies and roles"""
-
-    def __init__(self, project_id: str, use_mock: bool = False):
+# Backward compatibility classes for existing tests
+class IAMCollector:
+    """Legacy IAM Collector for backward compatibility."""
+    
+    def __init__(self, project_id: str, use_mock: bool = True):
         self.project_id = project_id
         self.use_mock = use_mock
-
+    
     def collect(self) -> Dict[str, Any]:
-        """Collect IAM policies"""
+        """Collect IAM data in legacy format."""
         if self.use_mock:
             return self._get_mock_iam_data()
-
+        
         try:
+            # Try to import and use real Google Cloud IAM
             from google.cloud import iam
-
-            # Initialize IAM admin client
-            client = iam.IAMClient()
-            # This would collect real IAM data
-            # For now, returning mock structure
-            logger.warning("Real IAM collection not fully implemented, using mock data")
+            # This would be the real implementation
+            logger.warning("Real GCP IAM collection not implemented, falling back to mock data")
             return self._get_mock_iam_data()
         except ImportError:
-            logger.error("google-cloud-iam not installed, using mock data")
+            logger.warning("google-cloud-iam not installed, using mock data")
             return self._get_mock_iam_data()
         except Exception as e:
-            logger.error(f"Error collecting IAM data: {e}")
+            logger.error(f"Error collecting IAM data: {e}, falling back to mock data")
             return self._get_mock_iam_data()
-
+    
     def _get_mock_iam_data(self) -> Dict[str, Any]:
-        """Return mock IAM data for testing"""
+        """Get mock IAM data in legacy format."""
         return {
             "bindings": [
                 {
                     "role": "roles/owner",
-                    "members": ["user:admin@example.com", "user:developer@example.com"],
-                },
-                {
-                    "role": "roles/editor",
-                    "members": ["serviceAccount:app-sa@project.iam.gserviceaccount.com"],
+                    "members": ["user:admin@example.com"]
                 },
                 {
                     "role": "roles/viewer",
-                    "members": ["user:auditor@example.com"],
-                },
+                    "members": ["user:viewer@example.com", "serviceAccount:sa@project.iam.gserviceaccount.com"]
+                }
             ],
             "etag": "BwXqWz123456",
-            "version": 1,
+            "version": 1
         }
 
 
-class SCCCollector(CollectorInterface):
-    """Collector for Security Command Center findings"""
-
-    def __init__(self, organization_id: str, use_mock: bool = False):
+class SCCCollector:
+    """Legacy Security Command Center Collector for backward compatibility."""
+    
+    def __init__(self, organization_id: str, use_mock: bool = True):
         self.organization_id = organization_id
         self.use_mock = use_mock
-
+    
     def collect(self) -> List[Dict[str, Any]]:
-        """Collect SCC findings"""
+        """Collect SCC findings in legacy format."""
         if self.use_mock:
             return self._get_mock_scc_data()
-
+        
         try:
+            # Try to import and use real Google Cloud Security Command Center
             from google.cloud import securitycenter
-
-            # Initialize SCC client
-            client = securitycenter.SecurityCenterClient()
-            # This would collect real SCC findings
-            # For now, returning mock structure
-            logger.warning("Real SCC collection not fully implemented, using mock data")
+            # This would be the real implementation
+            logger.warning("Real GCP SCC collection not implemented, falling back to mock data")
             return self._get_mock_scc_data()
         except ImportError:
-            logger.error("google-cloud-securitycenter not installed, using mock data")
+            logger.warning("google-cloud-securitycenter not installed, using mock data")
             return self._get_mock_scc_data()
         except Exception as e:
-            logger.error(f"Error collecting SCC data: {e}")
+            logger.error(f"Error collecting SCC data: {e}, falling back to mock data")
             return self._get_mock_scc_data()
-
+    
     def _get_mock_scc_data(self) -> List[Dict[str, Any]]:
-        """Return mock SCC findings for testing"""
+        """Get mock SCC findings in legacy format."""
         return [
             {
-                "name": "organizations/123456/sources/789/findings/finding-1",
+                "name": f"organizations/{self.organization_id}/sources/1234567890/findings/finding1",
                 "category": "OVERPRIVILEGED_SERVICE_ACCOUNT",
-                "resource_name": "//iam.googleapis.com/projects/example-project/serviceAccounts/over-privileged-sa@example-project.iam.gserviceaccount.com",
+                "resource_name": "//iam.googleapis.com/projects/example-project/serviceAccounts/overpriv-sa@example-project.iam.gserviceaccount.com",
                 "state": "ACTIVE",
                 "severity": "HIGH",
-                "finding_class": "VULNERABILITY",
-                "indicator": {
-                    "domains": [],
-                    "ip_addresses": [],
-                },
+                "finding_class": "MISCONFIGURATION",
+                "indicator": {"domains": [], "ip_addresses": []}
             },
             {
-                "name": "organizations/123456/sources/789/findings/finding-2",
+                "name": f"organizations/{self.organization_id}/sources/1234567890/findings/finding2",
                 "category": "PUBLIC_BUCKET",
-                "resource_name": "//storage.googleapis.com/example-public-bucket",
+                "resource_name": "//storage.googleapis.com/buckets/public-data-bucket",
                 "state": "ACTIVE",
                 "severity": "MEDIUM",
                 "finding_class": "MISCONFIGURATION",
-                "indicator": {
-                    "domains": [],
-                    "ip_addresses": [],
-                },
-            },
+                "indicator": {"domains": [], "ip_addresses": []}
+            }
         ]
 
 
 class GCPConfigurationCollector:
-    """Main orchestrator for collecting GCP configurations"""
-
+    """Legacy GCP Configuration Collector for backward compatibility."""
+    
     def __init__(
         self,
         project_id: str,
         organization_id: Optional[str] = None,
-        use_mock: bool = False,
-        output_dir: str = "data",
+        use_mock: bool = True,
+        output_dir: str = "data"
     ):
         self.project_id = project_id
-        self.organization_id = organization_id or "123456"  # Default for mock
+        self.organization_id = organization_id or "123456"
         self.use_mock = use_mock
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True)
-
-        # Initialize collectors
+        
+        # Initialize sub-collectors
         self.iam_collector = IAMCollector(project_id, use_mock)
         self.scc_collector = SCCCollector(self.organization_id, use_mock)
-
+    
     def collect_all(self) -> Dict[str, Any]:
-        """Collect all GCP configurations"""
+        """Collect all GCP configurations in legacy format."""
         logger.info(f"Starting GCP configuration collection for project: {self.project_id}")
-
-        collected_data = {
+        
+        data = {
             "project_id": self.project_id,
             "organization_id": self.organization_id,
             "timestamp": self._get_timestamp(),
             "iam_policies": self.iam_collector.collect(),
-            "scc_findings": self.scc_collector.collect(),
+            "scc_findings": self.scc_collector.collect()
         }
-
-        logger.info("Collection completed successfully")
-        return collected_data
-
+        
+        logger.info("GCP configuration collection completed")
+        return data
+    
     def save_to_file(self, data: Dict[str, Any], filename: str = "collected.json") -> Path:
-        """Save collected data to JSON file"""
+        """Save collected data to file."""
         output_path = self.output_dir / filename
+        
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
+        
         logger.info(f"Data saved to: {output_path}")
         return output_path
-
+    
     def _get_timestamp(self) -> str:
-        """Get current timestamp in ISO format"""
-        from datetime import datetime, timezone
-
+        """Get current timestamp in ISO format."""
         return datetime.now(timezone.utc).isoformat()
 
 
 def main(
+    # Multi-cloud parameters
+    providers: Optional[str] = None,
+    # Legacy GCP-specific parameters
     project_id: str = "example-project",
     organization_id: Optional[str] = None,
     use_mock: bool = True,
     output_dir: str = "data",
+    # Additional cloud parameters
+    provider: Optional[str] = None,
+    account_id: Optional[str] = None,
+    subscription_id: Optional[str] = None,
+    region: Optional[str] = None,
 ):
     """
-    Collect GCP configuration data for security audit.
+    Collect cloud configuration data for security audit.
+    
+    Supports both legacy GCP-only mode and new multi-cloud mode.
 
     Args:
-        project_id: GCP project ID to audit
-        organization_id: GCP organization ID for SCC findings
-        use_mock: Use mock data instead of real GCP APIs
+        providers: JSON string or file path for multi-cloud configurations
+        project_id: GCP project ID (legacy parameter)
+        organization_id: GCP organization ID (legacy parameter)
+        use_mock: Use mock data instead of real cloud APIs
         output_dir: Directory to save collected data
+        provider: Cloud provider for single-cloud mode ('gcp', 'aws', 'azure')
+        account_id: AWS account ID
+        subscription_id: Azure subscription ID
+        region: Cloud region
+    
+    Examples:
+        # Legacy GCP-only mode
+        python agent_collector.py --project_id=my-project
+        
+        # Single cloud mode
+        python agent_collector.py --provider=aws --account_id=123456789012
+        
+        # Multi-cloud mode
+        python agent_collector.py --providers='[{"provider": "gcp", "project_id": "my-project"}, {"provider": "aws", "account_id": "123456789012"}]'
     """
     try:
-        # Set up Google Cloud authentication if not using mock
-        if not use_mock:
-            # Check for application default credentials
-            if not os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
-                logger.warning(
-                    "GOOGLE_APPLICATION_CREDENTIALS not set. Using application default credentials."
-                )
-
-        # Initialize collector
-        collector = GCPConfigurationCollector(
-            project_id=project_id,
-            organization_id=organization_id,
-            use_mock=use_mock,
-            output_dir=output_dir,
-        )
-
-        # Collect data
-        data = collector.collect_all()
-
-        # Save to file
-        output_path = collector.save_to_file(data)
-
-        print(f"✅ Collection successful! Data saved to: {output_path}")
-
+        # Check if we're in legacy GCP-only mode
+        if not providers and not provider:
+            # Legacy mode - convert to new format but maintain backward compatibility
+            logger.info("Running in legacy GCP-only mode for backward compatibility")
+            provider_configs = [{
+                "provider": "gcp",
+                "project_id": project_id
+            }]
+            
+            # Initialize multi-cloud collector with GCP-only config
+            collector = MultiCloudConfigurationCollector(
+                providers=provider_configs,
+                use_mock=use_mock,
+                output_dir=output_dir,
+            )
+            
+            # Collect data
+            multi_cloud_data = collector.collect_all()
+            
+            # Convert back to legacy format for backward compatibility
+            if "gcp" in multi_cloud_data["providers"]:
+                gcp_data = multi_cloud_data["providers"]["gcp"]
+                legacy_data = {
+                    "project_id": project_id,
+                    "organization_id": organization_id or "123456",
+                    "timestamp": multi_cloud_data["timestamp"],
+                    "iam_policies": {
+                        "bindings": [
+                            {
+                                "role": role,
+                                "members": members
+                            }
+                            for policy in gcp_data["iam"]["policies"]
+                            for binding in policy.get("bindings", [])
+                            for role, members in [(binding["role"], binding["members"])]
+                        ] if gcp_data["iam"]["policies"] else [],
+                        "etag": "BwXqWz123456",
+                        "version": 1
+                    },
+                    "scc_findings": [
+                        {
+                            "name": f"organizations/123456/sources/789/findings/{f['id']}",
+                            "category": f.get("category", "UNKNOWN"),
+                            "resource_name": f.get("resource", ""),
+                            "state": f.get("status", "ACTIVE"),
+                            "severity": f.get("severity", "MEDIUM"),
+                            "finding_class": f.get("finding_type", "MISCONFIGURATION").upper(),
+                            "indicator": {"domains": [], "ip_addresses": []}
+                        }
+                        for f in gcp_data["security"]["findings"]
+                    ]
+                }
+                
+                # Save in legacy format
+                output_path = Path(output_dir) / "collected.json"
+                with open(output_path, "w", encoding="utf-8") as f:
+                    json.dump(legacy_data, f, indent=2, ensure_ascii=False)
+                
+                print(f"✅ Collection successful! Data saved to: {output_path}")
+            else:
+                raise Exception("Failed to collect GCP data")
+        else:
+            # New multi-cloud mode - delegate to multi_cloud_collector
+            from .multi_cloud_collector import main as multi_cloud_main
+            multi_cloud_main(
+                providers=providers,
+                use_mock=use_mock,
+                output_dir=output_dir,
+                provider=provider,
+                project_id=project_id,
+                account_id=account_id,
+                subscription_id=subscription_id,
+                region=region
+            )
+            
     except Exception as e:
         logger.error(f"Collection failed: {e}")
         raise

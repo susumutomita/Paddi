@@ -3,6 +3,17 @@ google-cloud-iam>=2.0.0
 google-cloud-securitycenter>=1.0.0
 google-cloud-aiplatform>=1.0.0
 
+# AWS SDKs
+boto3>=1.26.0
+botocore>=1.29.0
+
+# Azure SDKs
+azure-identity>=1.14.0
+azure-mgmt-resource>=23.0.0
+azure-mgmt-authorization>=4.0.0
+azure-mgmt-security>=5.0.0
+azure-mgmt-monitor>=6.0.0
+
 # CLI and templating
 fire>=0.5.0
 jinja2>=3.0.0

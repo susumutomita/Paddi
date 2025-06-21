@@ -1,0 +1,145 @@
+---
+title: Multi-Cloud Security Audit Report
+date: {{ report.audit_date }}
+tags: [security, audit, multi-cloud{% for provider in report.providers %}, {{ provider }}{% endfor %}]
+severity_counts:
+{% for severity, count in report.severity_counts.items() %}
+  {{ severity }}: {{ count }}
+{% endfor %}
+---
+
+# Multi-Cloud Security Audit Report
+
+**Generated Date:** {{ report.audit_date }}  
+**Total Security Findings:** {{ report.total_findings }}  
+**Cloud Providers Analyzed:** {{ report.providers | join(', ') | upper }}
+
+## 📊 Executive Summary
+
+This automated security audit has identified **{{ report.total_findings }}** security findings across your multi-cloud infrastructure. This report provides detailed explanations and actionable recommendations for each finding across all analyzed cloud providers.
+
+### Cloud Provider Coverage
+
+{% if report.provider_summary %}
+| Cloud Provider | Total Findings | High | Medium | Low |
+|----------------|----------------|------|--------|-----|
+{% for provider, counts in report.provider_summary.items() %}
+| {{ provider | upper }} | {{ counts.total }} | {{ counts.HIGH }} | {{ counts.MEDIUM }} | {{ counts.LOW }} |
+{% endfor %}
+{% endif %}
+
+### Overall Severity Distribution
+
+```mermaid
+pie title Security Findings by Severity
+{% for severity, count in report.severity_counts.items() %}
+    "{{ severity }}" : {{ count }}
+{% endfor %}
+```
+
+### Key Metrics
+
+| Metric | Value |
+|--------|-------|
+| Total Findings | {{ report.total_findings }} |
+| Cloud Providers | {{ report.providers | length }} |
+{% for severity, count in report.severity_counts.items() %}
+| {{ severity }} Severity | {{ count }} |
+{% endfor %}
+
+## 🔍 Detailed Security Findings
+
+{% for provider in report.providers %}
+## {{ provider | upper }} Findings
+
+{% set provider_findings = report.findings | selectattr("provider", "equalto", provider) | list %}
+{% if provider_findings %}
+{% for finding in provider_findings %}
+### {{ loop.index }}. {{ finding.title }}
+
+**Severity Level:** `{{ finding.severity }}`  
+**Cloud Provider:** `{{ finding.provider | upper }}`  
+{% if finding.resource %}**Affected Resource:** `{{ finding.resource }}`{% endif %}
+
+#### Issue Description
+{{ finding.explanation }}
+
+#### Recommended Action
+> {{ finding.recommendation }}
+
+{% if finding.severity in ['CRITICAL', 'HIGH'] %}
+⚠️ **Priority:** This is a {{ finding.severity }} severity issue and should be addressed immediately.
+{% endif %}
+
+---
+
+{% endfor %}
+{% else %}
+*No security findings for {{ provider | upper }}*
+{% endif %}
+
+{% endfor %}
+
+## 🔄 Cross-Cloud Security Insights
+
+{% if report.cross_cloud_insights %}
+{{ report.cross_cloud_insights }}
+{% else %}
+### Common Patterns Across Clouds
+
+Based on the findings, consider implementing these cross-cloud best practices:
+
+1. **Consistent IAM/Identity Management** - Ensure least privilege principles are applied uniformly across all cloud providers
+2. **Unified Security Monitoring** - Implement centralized security monitoring across all cloud environments
+3. **Standardized Compliance Controls** - Apply consistent security controls to meet compliance requirements across clouds
+4. **Cross-Cloud Encryption Standards** - Ensure data encryption at rest and in transit across all providers
+{% endif %}
+
+## 📋 Remediation Priority
+
+Based on the severity of findings, we recommend addressing issues in the following order:
+
+### By Severity
+1. **Critical Issues** - Immediate action required (0-24 hours)
+2. **High Severity** - Address within 7 days
+3. **Medium Severity** - Address within 30 days
+4. **Low Severity** - Address within 90 days
+
+### By Cloud Provider
+{% for provider, counts in report.provider_summary.items() %}
+{% if counts.HIGH > 0 %}
+- **{{ provider | upper }}**: {{ counts.HIGH }} high severity issues requiring immediate attention
+{% endif %}
+{% endfor %}
+
+## 🛡️ Next Steps
+
+1. **Immediate Actions**
+   - Address all CRITICAL and HIGH severity findings across all cloud providers
+   - Review and revoke excessive permissions identified in IAM findings
+
+2. **Short-term Actions (1-4 weeks)**
+   - Implement recommended security controls for MEDIUM severity findings
+   - Establish consistent security policies across all cloud providers
+   - Enable additional security monitoring and alerting
+
+3. **Long-term Actions (1-3 months)**
+   - Address LOW severity findings
+   - Implement automated compliance scanning
+   - Establish regular security audit schedule
+   - Consider implementing a Cloud Security Posture Management (CSPM) solution
+
+## 📈 Compliance Summary
+
+{% if report.compliance_summary %}
+| Standard | GCP | AWS | Azure | Overall |
+|----------|-----|-----|-------|---------|
+{% for standard, scores in report.compliance_summary.items() %}
+| {{ standard }} | {{ scores.gcp or 'N/A' }} | {{ scores.aws or 'N/A' }} | {{ scores.azure or 'N/A' }} | {{ scores.overall }} |
+{% endfor %}
+{% endif %}
+
+---
+
+*This report was generated by Paddi - Multi-Agent Cloud Security Auditor*  
+*Report Version: Multi-Cloud Support v1.0*
