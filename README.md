@@ -7,113 +7,397 @@
 ![Code size](https://img.shields.io/github/languages/code-size/susumutomita/Paddi)
 ![Repo size](https://img.shields.io/github/repo-size/susumutomita/Paddi)
 
-**Paddi** is a multi-agent system that automates cloud security audits using Google Cloud AI and CLI.
-It uses three lightweight agents to collect configurations and analyze risks.
-These agents work together to generate human-readable reports.
+**Paddi** is a multi-agent system that automates cloud security audits using Google Cloud AI and a unified CLI interface. It orchestrates three specialized agents that work together to collect configurations, analyze security risks with AI, and generate comprehensive audit reports.
 
-Built for the [Google Cloud AI Hackathon: Multi-Agent Edition](https://googlecloudmultiagents.devpost.com/).
-This project demonstrates how AI agents can assist security workflows by reducing manual effort.
+Built for the [Google Cloud AI Hackathon: Multi-Agent Edition](https://googlecloudmultiagents.devpost.com/). This project demonstrates how AI agents can transform security workflows by automating manual audit processes while maintaining enterprise-grade quality.
 
 ---
 
-## 🚀 Features
+## 🚀 Quick Start
 
-- ✅ **Google Cloud native** (uses IAM, SCC, and Gemini via Vertex AI)
-- 🧠 **Multi-agent architecture**: modular and composable
-- 📝 **Report generation** in Markdown and HTML
-- 💡 CLI-first, no frontend dependencies
-- 🐍 Python for rapid iteration (will migrate to Rust CLI later)
-- 🔐 Ideal for internal auditors and DevSecOps teams
+Get started with Paddi in less than a minute:
+
+```bash
+# Install Paddi (future Homebrew support)
+# brew install paddi
+
+# Try Paddi with sample data - zero configuration needed!
+paddi init
+
+# Output:
+# ✅ Paddi init 完了:
+#   • Markdown: output/audit.md
+#   • HTML: output/audit.html（ブラウザで開けます）
+#   • サイトプレビュー: npx honkit serve docs/
+```
+
+That's it! Paddi automatically runs the full audit pipeline with sample GCP data, demonstrating its capabilities without requiring any GCP credentials or setup.
 
 ---
 
-## 🧩 Architecture
+## 🏗️ Architecture
 
-```text
-+----------------+       +----------------+       +-----------------+
-| Agent A:       | --->  | Agent B:       | --->  | Agent C:        |
-|  Collector     |       |  Explainer     |       |  Reporter       |
-|  (GCP config)  |       |  (Gemini LLM)  |       |  (Markdown/HTML)|
-+----------------+       +----------------+       +-----------------+
+Paddi implements a **three-agent pipeline** architecture, where each agent has a single, well-defined responsibility:
 
-Each agent is an independent Python script and can be run locally or integrated into automation pipelines.
+```mermaid
+graph LR
+    A[Collector Agent] -->|collected.json| B[Explainer Agent]
+    B -->|explained.json| C[Reporter Agent]
+    C --> D[Audit Reports]
+    
+    style A fill:#4285f4,stroke:#1a73e8,stroke-width:2px,color:#fff
+    style B fill:#ea4335,stroke:#d33b27,stroke-width:2px,color:#fff
+    style C fill:#34a853,stroke:#1e8e3e,stroke-width:2px,color:#fff
+    style D fill:#fbbc04,stroke:#f9ab00,stroke-width:2px,color:#000
+```
 
-⸻
+### Agent Details
 
-📁 Repository Layout
+#### 1. **Collector Agent** (`python_agents/collector/`)
+- **Purpose**: Gather GCP configuration data
+- **Input**: GCP project ID or mock data flag
+- **Output**: `data/collected.json` containing IAM policies and Security Command Center findings
+- **Key Features**:
+  - Real GCP API integration via `google-cloud-iam` and `google-cloud-securitycenter`
+  - Mock data support for testing and demos
+  - Extensible to support multiple cloud providers
 
-paddi/
-├── python_agents/
-│   ├── collector/         # Agent A: GCP config retriever
-│   ├── explainer/         # Agent B: Gemini-based LLM analyzer
-│   ├── reporter/          # Agent C: Markdown/HTML renderer
-│   └── requirements.txt   # Shared dependencies
-├── cli/                   # Future Rust-based CLI
-├── templates/             # Jinja2 templates for output
-├── examples/              # Example IAM and SCC data
-└── README.md              # This file
+#### 2. **Explainer Agent** (`python_agents/explainer/`)
+- **Purpose**: Analyze security risks using AI
+- **Input**: `data/collected.json` from Collector
+- **Output**: `data/explained.json` with AI-generated security insights
+- **Key Features**:
+  - Powered by Google's Gemini AI (via Vertex AI)
+  - Categorizes findings by severity (CRITICAL, HIGH, MEDIUM, LOW)
+  - Provides actionable recommendations in natural language
+  - Mock mode for offline development
 
+#### 3. **Reporter Agent** (`python_agents/reporter/`)
+- **Purpose**: Generate human-readable audit reports
+- **Input**: `data/explained.json` from Explainer
+- **Output**: Multiple report formats:
+  - `output/audit.md` - Markdown for documentation tools
+  - `output/audit.html` - Interactive HTML report
+  - `docs/` - HonKit site structure for web hosting
+- **Key Features**:
+  - Jinja2 templating for customizable reports
+  - Multiple output formats
+  - Severity-based organization
+  - Japanese and English support
 
-⸻
+### Orchestration Layer
 
-⚙️ How to Run
+The **Rust CLI** (`cli/`) provides a unified interface to orchestrate the Python agents:
 
-1. Set up
+```rust
+// Simplified orchestration flow
+orchestrator.run_collector()?;
+orchestrator.run_explainer()?;
+orchestrator.run_reporter(formats)?;
+```
 
-cd paddi/python_agents
-python3 -m venv venv
+---
+
+## 📚 CLI Usage Guide
+
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/susumutomita/Paddi.git
+cd Paddi
+
+# Build the Rust CLI
+cd cli
+cargo build --release
+
+# Add to PATH (or use cargo install)
+export PATH=$PATH:$(pwd)/target/release
+```
+
+### Core Commands
+
+#### `paddi init` - Zero-Setup Trial
+```bash
+# Run a complete audit with sample data
+paddi init
+
+# Skip the automatic pipeline run
+paddi init --skip-run
+
+# Specify output directory
+paddi init --output custom-output/
+```
+
+#### `paddi audit` - Full Pipeline
+```bash
+# Run complete audit pipeline
+paddi audit
+
+# Use mock data instead of real GCP
+paddi audit --use-mock
+
+# Specify GCP project
+paddi audit --project-id my-gcp-project
+
+# Verbose output
+paddi audit -v
+```
+
+#### `paddi collect` - Data Collection Only
+```bash
+# Collect from real GCP project
+paddi collect --project-id my-gcp-project
+
+# Collect mock data for testing
+paddi collect --use-mock
+```
+
+#### `paddi analyze` - AI Analysis Only
+```bash
+# Analyze collected data with AI
+paddi analyze
+
+# Use mock AI responses
+paddi analyze --use-mock
+```
+
+#### `paddi report` - Generate Reports
+```bash
+# Generate default reports (Markdown + HTML)
+paddi report
+
+# Generate specific formats
+paddi report --format markdown,html,honkit
+
+# Custom input/output directories
+paddi report --input-dir data/ --output-dir reports/
+```
+
+#### `paddi config` - Configuration Management
+```bash
+# Show current configuration
+paddi config show
+
+# Validate configuration
+paddi config validate
+
+# Initialize new configuration
+paddi config init
+```
+
+### Configuration
+
+Paddi uses TOML configuration files. Create `paddi.toml`:
+
+```toml
+[gcp]
+project_id = "my-gcp-project"
+use_mock = false
+
+[paths]
+data_dir = "data"
+output_dir = "output"
+
+[python]
+command = "python3"
+agents_path = "python_agents"
+
+[execution]
+timeout_seconds = 300
+```
+
+### Environment Variables
+
+- `PADDI_CONFIG` - Path to configuration file
+- `GOOGLE_APPLICATION_CREDENTIALS` - GCP service account key
+- `RUST_LOG` - Logging level (info, debug, trace)
+
+---
+
+## 🎯 Use Cases
+
+### 1. **Development & Testing**
+```bash
+# Quick start with sample data
+paddi init
+
+# Test individual agents
+paddi collect --use-mock
+paddi analyze --use-mock
+paddi report
+```
+
+### 2. **Real GCP Audits**
+```bash
+# Authenticate with GCP
+gcloud auth application-default login
+
+# Run full audit
+paddi audit --project-id production-project
+```
+
+### 3. **CI/CD Integration**
+```yaml
+# GitHub Actions example
+- name: Run Security Audit
+  run: |
+    paddi audit --project-id ${{ secrets.GCP_PROJECT }}
+    
+- name: Upload Reports
+  uses: actions/upload-artifact@v3
+  with:
+    name: audit-reports
+    path: output/
+```
+
+### 4. **Scheduled Audits**
+```bash
+# Cron job for weekly audits
+0 0 * * 0 paddi audit --project-id prod && \
+  gsutil cp output/audit.html gs://audit-reports/$(date +%Y%m%d).html
+```
+
+---
+
+## 📊 Sample Output
+
+### Markdown Report (`output/audit.md`)
+```markdown
+# Security Audit Report - example-project-123
+
+**Audit Date:** 2024-01-21
+**Total Findings:** 4
+
+## Executive Summary
+
+This security audit identified 4 findings across your GCP infrastructure.
+
+### Severity Breakdown
+- **CRITICAL**: 1 findings
+- **HIGH**: 1 findings
+- **MEDIUM**: 1 findings
+- **LOW**: 1 findings
+
+## Detailed Findings
+
+### 1. Public Bucket Access
+**Severity:** CRITICAL
+**Explanation:** The bucket 'sensitive-data-bucket' has public access enabled...
+**Recommendation:** Remove allUsers and allAuthenticatedUsers from bucket IAM policy
+```
+
+### HonKit Documentation (`docs/`)
+- Interactive web documentation
+- Severity-based navigation
+- Japanese localization
+- Searchable content
+- Export to PDF capability
+
+---
+
+## 🛠️ Development
+
+### Prerequisites
+- Python 3.10+
+- Rust 1.70+
+- Google Cloud SDK (for real GCP audits)
+
+### Setup Development Environment
+```bash
+# Python agents
+cd python_agents
+python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 
-Ensure gcloud auth application-default login is configured if using Gemini (Vertex AI).
+# Rust CLI
+cd ../cli
+cargo build
+cargo test
 
-2. Run Agents
+# Run quality checks
+cd ../python_agents
+make before-commit
+```
 
-# Step 1: Collect GCP configs (mocked for now)
-python collector/agent_collector.py
+### Testing
+```bash
+# Python tests
+pytest --cov=. --cov-report=term-missing
 
-# Step 2: Explain security risks using Gemini
-python explainer/agent_explainer.py
+# Rust tests
+cargo test
 
-# Step 3: Generate Markdown and HTML reports
-python reporter/agent_reporter.py
+# Integration tests
+./scripts/integration_test.sh
+```
 
+---
 
-⸻
+## 🌐 Tech Stack
 
-📄 Sample Output
-- output/audit.md: Markdown-formatted audit report
-- output/audit.html: Web-friendly version
-- YAML frontmatter includes metadata
+- **Python 3.10+**: Agent implementation
+- **Rust**: CLI and orchestration
+- **Google Vertex AI**: Gemini Pro for AI analysis
+- **Google Cloud APIs**: IAM, Security Command Center
+- **Jinja2**: Report templating
+- **HonKit**: Documentation generation
+- **Tokio**: Async runtime for Rust
 
-⸻
+---
 
-🌐 Tech Stack
-- Python 3.10+
-- Google Vertex AI (Gemini Pro via google-cloud-aiplatform)
-- Jinja2 templating
-- CLI integration planned with Rust (via cargo build --release)
-- Markdown + HTML output for compatibility with tools like Obsidian
+## 🚀 Roadmap
 
-⸻
+- [ ] Homebrew formula for easy installation
+- [ ] Support for AWS and Azure
+- [ ] Custom rule definitions
+- [ ] Slack/Teams notifications
+- [ ] Compliance frameworks (SOC2, ISO27001)
+- [ ] Web UI dashboard
+- [ ] Agent marketplace
 
-🧠 Vision
+---
 
-While this project is a prototype, it is designed with extensibility and enterprise adoption in mind:
-- Replace manual cloud audits with reproducible, code-based checks
-- Allow pluggable rules, agent chaining, and version-controlled evidence
-- Future-proof CLI for multi-platform distribution (macOS/Linux/Windows)
+## 👥 Contributors
 
-⸻
+- **Strategy & Architecture**: [Susumu Tomita](https://susumutomita.netlify.app/) - Full Stack Developer
+- **Implementation**: Claude Code + AI collaboration
 
-👥 Authors
-- Strategy & Architecture: [Susumu Tomita](https://susumutomita.netlify.app/) - Full Stack Developer
-- Implementation: Claude Code + AI collaboration
+## 🤝 Contributing
 
-## Contribution
+We welcome contributions! Please see our [Contributing Guide](docs/contributing/development.md) for details.
 
-We welcome contributions. Please submit proposals via pull requests or issues.
+```bash
+# Fork and clone
+git clone https://github.com/YOUR-USERNAME/Paddi.git
 
-## License
+# Create feature branch
+git checkout -b feature/amazing-feature
 
-MissionChain is licensed under the [MIT License](LICENSE).
+# Make changes and test
+make test
+
+# Submit PR
+git push origin feature/amazing-feature
+```
+
+---
+
+## 📄 License
+
+Paddi is licensed under the [MIT License](LICENSE).
+
+---
+
+## 🙏 Acknowledgments
+
+- Google Cloud AI Hackathon organizers
+- The open-source community
+- Early adopters and testers
+
+---
+
+<p align="center">
+  Made with ❤️ for the security community
+</p>

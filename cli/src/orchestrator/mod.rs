@@ -73,7 +73,7 @@ impl AgentOrchestrator {
         self.run_python_agent("explainer/agent_explainer.py", &args).await
     }
 
-    pub async fn run_reporter(&self, input_dir: Option<PathBuf>, output_dir: Option<PathBuf>) -> Result<AgentResult> {
+    pub async fn run_reporter(&self, input_dir: Option<PathBuf>, output_dir: Option<PathBuf>, formats: Option<Vec<String>>) -> Result<AgentResult> {
         self.set_progress_message("Running reporter agent...");
         
         let mut args = vec![];
@@ -84,6 +84,10 @@ impl AgentOrchestrator {
         
         if let Some(output_dir) = output_dir.or(Some(self.config.paths.output_dir.clone())) {
             args.push(format!("--output_dir={}", output_dir.display()));
+        }
+        
+        if let Some(formats) = formats {
+            args.push(format!("--formats=[{}]", formats.join(",")));
         }
         
         self.run_python_agent("reporter/agent_reporter.py", &args).await
@@ -116,7 +120,7 @@ impl AgentOrchestrator {
         info!("Explainer agent completed successfully");
         
         // Run reporter
-        let reporter_result = self.run_reporter(None, None).await?;
+        let reporter_result = self.run_reporter(None, None, None).await?;
         if !reporter_result.success {
             error!("Reporter agent failed: {}", reporter_result.error);
             anyhow::bail!("Reporter agent failed");

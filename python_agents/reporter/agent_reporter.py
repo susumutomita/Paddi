@@ -276,6 +276,198 @@ class HTMLGenerator(ReportGenerator):
         return template.render(report=report)
 
 
+class HonKitGenerator(ReportGenerator):
+    """Generates HonKit documentation structure."""
+
+    def __init__(self, output_dir: Path):
+        self.output_dir = output_dir / "docs"
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+
+    def generate(self, report: AuditReport, template_path: Optional[Path] = None) -> str:
+        """Generate HonKit documentation structure."""
+        # Create README.md (main page)
+        readme_content = self._generate_readme(report)
+        with open(self.output_dir / "README.md", "w") as f:
+            f.write(readme_content)
+
+        # Create SUMMARY.md (table of contents)
+        summary_content = self._generate_summary(report)
+        with open(self.output_dir / "SUMMARY.md", "w") as f:
+            f.write(summary_content)
+
+        # Create individual pages for each severity level
+        self._generate_severity_pages(report)
+
+        # Create book.json for HonKit configuration
+        book_config = {
+            "title": f"Security Audit Report - {report.project_name}",
+            "author": "Paddi Security Audit Tool",
+            "description": "Automated security audit report for GCP infrastructure",
+            "language": "ja",
+            "plugins": ["theme-default", "search", "sharing"],
+            "pluginsConfig": {
+                "theme-default": {
+                    "showLevel": True
+                }
+            }
+        }
+        with open(self.output_dir / "book.json", "w") as f:
+            json.dump(book_config, f, indent=2)
+
+        return str(self.output_dir)
+
+    def _generate_readme(self, report: AuditReport) -> str:
+        """Generate main README.md page."""
+        return f"""# Security Audit Report - {report.project_name}
+
+## 概要
+
+**監査日:** {report.audit_date}  
+**総検出数:** {report.total_findings}
+
+このセキュリティ監査レポートは、Paddiを使用してGCPインフラストラクチャの自動セキュリティ分析を実行した結果です。
+
+## エグゼクティブサマリー
+
+このセキュリティ監査では、GCPインフラストラクチャ全体で{report.total_findings}件の問題を特定しました。
+
+### 重要度別の内訳
+
+| 重要度 | 検出数 | 説明 |
+|--------|--------|------|
+| CRITICAL | {report.severity_counts.get('CRITICAL', 0)} | 即座の対応が必要な重大なセキュリティリスク |
+| HIGH | {report.severity_counts.get('HIGH', 0)} | 早急な対応が推奨される高リスクの問題 |
+| MEDIUM | {report.severity_counts.get('MEDIUM', 0)} | 計画的な対応が必要な中程度のリスク |
+| LOW | {report.severity_counts.get('LOW', 0)} | 改善が推奨される低リスクの問題 |
+
+## レポートの構成
+
+このレポートは重要度別に整理されています。各セクションでは、検出された問題の詳細な説明と推奨される対策を提供しています。
+
+## 次のステップ
+
+1. **CRITICAL**および**HIGH**の問題から優先的に対処してください
+2. 各推奨事項を実装する際は、変更による影響を慎重に評価してください
+3. 修正後は再度監査を実行して、問題が解決されたことを確認してください
+
+---
+
+*このレポートは[Paddi](https://github.com/susumutomita/Paddi)によって自動生成されました。*
+"""
+
+    def _generate_summary(self, report: AuditReport) -> str:
+        """Generate SUMMARY.md for HonKit."""
+        lines = [
+            "# Summary",
+            "",
+            "* [はじめに](README.md)",
+            "",
+            "## 重要度別の検出事項",
+            "",
+        ]
+
+        severity_order = ["CRITICAL", "HIGH", "MEDIUM", "LOW"]
+        for severity in severity_order:
+            if report.severity_counts.get(severity, 0) > 0:
+                lines.append(f"* [{severity}レベルの問題]({severity.lower()}.md)")
+
+        lines.extend([
+            "",
+            "## 付録",
+            "",
+            "* [監査方法について](methodology.md)",
+            "* [用語集](glossary.md)",
+        ])
+
+        return "\n".join(lines)
+
+    def _generate_severity_pages(self, report: AuditReport) -> None:
+        """Generate individual pages for each severity level."""
+        findings_by_severity = {}
+        for finding in report.findings:
+            if finding.severity not in findings_by_severity:
+                findings_by_severity[finding.severity] = []
+            findings_by_severity[finding.severity].append(finding)
+
+        for severity, findings in findings_by_severity.items():
+            content = self._generate_severity_page(severity, findings)
+            with open(self.output_dir / f"{severity.lower()}.md", "w") as f:
+                f.write(content)
+
+        # Generate methodology page
+        methodology = """# 監査方法について
+
+## 監査プロセス
+
+1. **データ収集**: GCP APIを使用してIAMポリシーとSecurity Command Centerの検出事項を収集
+2. **AI分析**: Gemini AIを使用してセキュリティリスクを分析
+3. **レポート生成**: 検出事項を重要度別に整理し、推奨事項を提供
+
+## 重要度の定義
+
+- **CRITICAL**: 即座の対応が必要な重大なセキュリティリスク
+- **HIGH**: 早急な対応が推奨される高リスクの問題
+- **MEDIUM**: 計画的な対応が必要な中程度のリスク
+- **LOW**: 改善が推奨される低リスクの問題
+"""
+        with open(self.output_dir / "methodology.md", "w") as f:
+            f.write(methodology)
+
+        # Generate glossary page
+        glossary = """# 用語集
+
+## IAM (Identity and Access Management)
+Google Cloudのアクセス管理サービス。ユーザー、グループ、サービスアカウントに対する権限を管理します。
+
+## Security Command Center (SCC)
+Google Cloudのセキュリティおよびリスク管理プラットフォーム。セキュリティの脅威を検出し、対処するための中央管理ツールです。
+
+## 最小権限の原則
+ユーザーやサービスアカウントには、タスクを実行するために必要な最小限の権限のみを付与するというセキュリティの基本原則。
+
+## サービスアカウント
+アプリケーションやVMインスタンスが使用するGoogle Cloudのアカウント。人間のユーザーではなく、サービス間の認証に使用されます。
+"""
+        with open(self.output_dir / "glossary.md", "w") as f:
+            f.write(glossary)
+
+    def _generate_severity_page(self, severity: str, findings: List[SecurityFinding]) -> str:
+        """Generate a page for a specific severity level."""
+        severity_descriptions = {
+            "CRITICAL": "これらの問題は、システムに重大なセキュリティリスクをもたらし、即座の対応が必要です。",
+            "HIGH": "これらの問題は高いセキュリティリスクを示しており、早急な対応が推奨されます。",
+            "MEDIUM": "これらの問題は中程度のリスクを示しており、計画的な対応が必要です。",
+            "LOW": "これらの問題は低リスクですが、セキュリティ体制の改善のために対処することが推奨されます。"
+        }
+
+        lines = [
+            f"# {severity}レベルの問題",
+            "",
+            severity_descriptions.get(severity, ""),
+            "",
+            f"**検出数:** {len(findings)}",
+            "",
+            "---",
+            "",
+        ]
+
+        for i, finding in enumerate(findings, 1):
+            lines.extend([
+                f"## {i}. {finding.title}",
+                "",
+                "### 説明",
+                finding.explanation,
+                "",
+                "### 推奨事項",
+                finding.recommendation,
+                "",
+                "---",
+                "",
+            ])
+
+        return "\n".join(lines)
+
+
 class ReportService:
     """Service class for generating reports."""
 
@@ -335,8 +527,16 @@ class ReportService:
             severity_counts=severity_counts,
         )
 
-    def generate_reports(self):
-        """Generate both Markdown and HTML reports."""
+    def generate_reports(self, formats: Optional[List[str]] = None):
+        """Generate reports in specified formats.
+        
+        Args:
+            formats: List of formats to generate. Defaults to ["markdown", "html"].
+                    Supported formats: "markdown", "html", "honkit"
+        """
+        if formats is None:
+            formats = ["markdown", "html"]
+            
         findings_data = self.load_findings()
         if not findings_data:
             logger.warning("No findings to report")
@@ -346,38 +546,47 @@ class ReportService:
         report = self.create_report(findings_data, metadata)
 
         # Generate Markdown report
-        md_generator = MarkdownGenerator()
-        md_template = None
-        if self.template_dir:
-            md_template_path = self.template_dir / "report.md.j2"
-            if md_template_path.exists():
-                md_template = md_template_path
+        if "markdown" in formats:
+            md_generator = MarkdownGenerator()
+            md_template = None
+            if self.template_dir:
+                md_template_path = self.template_dir / "report.md.j2"
+                if md_template_path.exists():
+                    md_template = md_template_path
 
-        md_content = md_generator.generate(report, md_template)
-        md_output = self.output_dir / "audit.md"
-        with open(md_output, "w") as f:
-            f.write(md_content)
-        logger.info(f"Markdown report generated: {md_output}")
+            md_content = md_generator.generate(report, md_template)
+            md_output = self.output_dir / "audit.md"
+            with open(md_output, "w") as f:
+                f.write(md_content)
+            logger.info(f"Markdown report generated: {md_output}")
 
         # Generate HTML report
-        html_generator = HTMLGenerator()
-        html_template = None
-        if self.template_dir:
-            html_template_path = self.template_dir / "report.html.j2"
-            if html_template_path.exists():
-                html_template = html_template_path
+        if "html" in formats:
+            html_generator = HTMLGenerator()
+            html_template = None
+            if self.template_dir:
+                html_template_path = self.template_dir / "report.html.j2"
+                if html_template_path.exists():
+                    html_template = html_template_path
 
-        html_content = html_generator.generate(report, html_template)
-        html_output = self.output_dir / "audit.html"
-        with open(html_output, "w") as f:
-            f.write(html_content)
-        logger.info(f"HTML report generated: {html_output}")
+            html_content = html_generator.generate(report, html_template)
+            html_output = self.output_dir / "audit.html"
+            with open(html_output, "w") as f:
+                f.write(html_content)
+            logger.info(f"HTML report generated: {html_output}")
+            
+        # Generate HonKit documentation
+        if "honkit" in formats:
+            honkit_generator = HonKitGenerator(self.output_dir.parent)
+            docs_dir = honkit_generator.generate(report)
+            logger.info(f"HonKit documentation generated: {docs_dir}")
 
 
 def main(
     input_dir: str = "data",
     output_dir: str = "output",
     template_dir: Optional[str] = None,
+    formats: Optional[List[str]] = None,
 ):
     """Generate security audit reports from explained findings.
 
@@ -385,13 +594,14 @@ def main(
         input_dir: Directory containing explained.json
         output_dir: Directory to save generated reports
         template_dir: Optional directory containing custom templates
+        formats: List of formats to generate (markdown, html, honkit)
     """
     service = ReportService(
         input_dir=Path(input_dir),
         output_dir=Path(output_dir),
         template_dir=Path(template_dir) if template_dir else None,
     )
-    service.generate_reports()
+    service.generate_reports(formats)
 
 
 if __name__ == "__main__":

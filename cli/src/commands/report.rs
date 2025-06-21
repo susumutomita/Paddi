@@ -14,6 +14,9 @@ pub struct ReportArgs {
     #[arg(long, help = "Output directory for reports")]
     output_dir: Option<PathBuf>,
     
+    #[arg(long, help = "Report formats to generate", value_delimiter = ',')]
+    format: Option<Vec<String>>,
+    
     #[arg(long, help = "Skip validation checks")]
     skip_validation: bool,
 }
@@ -45,7 +48,7 @@ pub async fn run(args: ReportArgs, config: Config) -> Result<()> {
     tokio::fs::create_dir_all(output_dir).await?;
     
     // Run reporter
-    let result = orchestrator.run_reporter(args.input_dir, args.output_dir).await?;
+    let result = orchestrator.run_reporter(args.input_dir.clone(), args.output_dir.clone(), args.format).await?;
     
     if result.success {
         info!("Report generation completed successfully");
@@ -53,6 +56,14 @@ pub async fn run(args: ReportArgs, config: Config) -> Result<()> {
         println!("📄 Reports generated:");
         println!("   - {}/audit.md", output_dir.display());
         println!("   - {}/audit.html", output_dir.display());
+        
+        // Check if HonKit docs were generated
+        let docs_dir = output_dir.parent().unwrap_or(output_dir).join("docs");
+        if tokio::fs::try_exists(&docs_dir).await.unwrap_or(false) {
+            println!("   - {}/", docs_dir.display());
+            println!("\n📚 To preview HonKit documentation:");
+            println!("   npx honkit serve {}", docs_dir.display());
+        }
     } else {
         anyhow::bail!("Report generation failed: {}", result.error);
     }
