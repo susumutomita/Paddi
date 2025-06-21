@@ -358,7 +358,7 @@ class TestMainFunction:
         mock_service_class.assert_called_once_with(
             input_dir=Path("data"),
             output_dir=Path("output"),
-            template_dir=None,
+            template_dir=Path("app/templates"),
         )
         mock_instance.generate_reports.assert_called_once()
 

@@ -583,7 +583,7 @@ class ReportService:
 def main(
     input_dir: str = "data",
     output_dir: str = "output",
-    template_dir: Optional[str] = None,
+    template_dir: Optional[str] = "app/templates",
     formats: Optional[List[str]] = None,
 ):
     """Generate security audit reports from explained findings.
