@@ -15,3 +15,9 @@ python-dateutil
 setuptools>=65.5.1
 requests_toolbelt
 PyGithub
+google-cloud-aiplatform
+google-cloud-iam
+google-cloud-securitycenter
+google-cloud-storage
+fire
+jinja2

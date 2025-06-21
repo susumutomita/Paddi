@@ -5,10 +5,9 @@ Unit tests for Agent B: Security Risk Explainer
 import json
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
-
 from explainer.agent_explainer import (
     GeminiSecurityAnalyzer,
     SecurityFinding,
@@ -68,19 +67,20 @@ class TestGeminiSecurityAnalyzer:
         assert analyzer._model is None
 
     @patch("explainer.agent_explainer.aiplatform")
-    @patch("explainer.agent_explainer.models.GenerativeModel")
-    def test_initialization_without_mock(self, mock_model, mock_aiplatform):
+    @patch("explainer.agent_explainer.models")
+    def test_initialization_without_mock(self, mock_models, mock_aiplatform):
         """Test initializing analyzer without mock mode"""
-        analyzer = GeminiSecurityAnalyzer(
+        # Mock GenerativeModel
+        mock_models.GenerativeModel = Mock()
+
+        GeminiSecurityAnalyzer(
             project_id="test-project",
             location="us-central1",
             use_mock=False,
         )
 
-        mock_aiplatform.init.assert_called_once_with(
-            project="test-project", location="us-central1"
-        )
-        mock_model.assert_called_once_with("gemini-1.5-flash")
+        mock_aiplatform.init.assert_called_once_with(project="test-project", location="us-central1")
+        mock_models.GenerativeModel.assert_called_once_with("gemini-1.5-flash")
 
     def test_analyze_security_risks_with_mock(self):
         """Test analyzing security risks with mock data"""
@@ -138,7 +138,10 @@ class TestGeminiSecurityAnalyzer:
 
         # Mock the model
         mock_response = Mock()
-        mock_response.text = '[{"title": "Test", "severity": "HIGH", "explanation": "Test", "recommendation": "Test"}]'
+        mock_response.text = (
+            '[{"title": "Test", "severity": "HIGH", '
+            '"explanation": "Test", "recommendation": "Test"}]'
+        )
         analyzer._model = Mock()
         analyzer._model.generate_content.return_value = mock_response
 
@@ -162,8 +165,8 @@ class TestGeminiSecurityAnalyzer:
         with pytest.raises(Exception, match="API Error"):
             analyzer._call_llm_with_retry("test prompt", max_retries=2)
 
-        # Should have tried twice with exponential backoff
-        assert mock_sleep.call_count == 2
+        # Should have tried twice: 2 rate limit delays + 1 exponential backoff
+        assert mock_sleep.call_count == 3
 
     def test_parse_llm_response_valid_json(self):
         """Test parsing valid JSON from LLM response"""
@@ -385,7 +388,7 @@ class TestMainFunction:
                 use_mock=True,
             )
 
-    @patch("explainer.agent_explainer.os.getenv")
+    @patch("common.auth.os.getenv")
     def test_main_without_credentials_warning(self, mock_getenv):
         """Test warning when GOOGLE_APPLICATION_CREDENTIALS not set"""
         from explainer.agent_explainer import main

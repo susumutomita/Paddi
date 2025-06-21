@@ -10,29 +10,29 @@ backgroundImage: url('https://marp.app/assets/hero-background.svg')
 
 # 🩹 **Paddi**
 
-## AI-Powered Multi-Agent Cloud Audit System
+## AI駆動型マルチエージェントクラウド監査システム
 
-**Google Cloud AI Hackathon: Multi-Agent Edition**
+**第2回 AI Agent Hackathon with Google Cloud**
 
-Susumu Tomita
+冨田 晋
 2025-06-21
 
 ---
 
-# 📋 **Agenda**
+# 📋 **アジェンダ**
 
-1. **Problem Statement** - クラウドセキュリティの課題
-2. **Solution Overview** - Paddiの提案
-3. **Architecture** - マルチエージェントシステム
-4. **Demo** - 実際の動作
-5. **Technical Details** - 実装の詳細
-6. **Future Vision** - 今後の展望
+1. **問題提起** - クラウドセキュリティの課題
+2. **ソリューション概要** - Paddiの提案
+3. **アーキテクチャ** - マルチエージェントシステム
+4. **デモ** - 実際の動作
+5. **技術詳細** - 実装の詳細
+6. **将来ビジョン** - 今後の展望
 
 ---
 
 <!-- _class: lead -->
 
-# 🔥 **Problem Statement**
+# 🔥 **問題提起**
 
 ---
 
@@ -55,7 +55,7 @@ Susumu Tomita
 
 <!-- _class: lead -->
 
-# 💡 **Solution: Paddi**
+# 💡 **ソリューション: Paddi**
 
 ---
 
@@ -69,7 +69,7 @@ Susumu Tomita
    - GCP設定を自動収集
 
 2. **Explainer Agent** 🧠
-   - Gemini LLMでリスクを分析
+   - Gemini AIでリスクを分析
 
 3. **Reporter Agent** 📝
    - 人間が読みやすいレポートを生成
@@ -78,16 +78,16 @@ Susumu Tomita
 
 # **なぜマルチエージェント？**
 
-## 🎯 **Single Responsibility Principle**
+## 🎯 **単一責任の原則**
 
 各エージェントが**専門的なタスク**に集中
 
-## 🔄 **Modularity & Scalability**
+## 🔄 **モジュール性とスケーラビリティ**
 
 - エージェントの**独立した開発・テスト**が可能
 - 新しいクラウドプロバイダーの**追加が容易**
 
-## 🚀 **Performance**
+## 🚀 **パフォーマンス**
 
 - **並列処理**による高速化
 - エージェント間の**効率的なデータパイプライン**
@@ -96,7 +96,7 @@ Susumu Tomita
 
 <!-- _class: lead -->
 
-# 🏗️ **Architecture**
+# 🏗️ **アーキテクチャ**
 
 ---
 
@@ -108,19 +108,20 @@ Susumu Tomita
 │   Collector     │────▶│   Explainer     │────▶│   Reporter      │
 │                 │     │                 │     │                 │
 │ ・GCP IAM       │     │ ・Gemini Pro    │     │ ・Markdown      │
-│ ・Security      │     │ ・Risk Analysis │     │ ・HTML          │
-│   Command Center│     │ ・Best Practice │     │ ・Visualizations│
+│ ・Security      │     │ ・リスク分析    │     │ ・HTML          │
+│   Command Center│     │ ・ベスト        │     │ ・可視化        │
+│                 │     │   プラクティス  │     │                 │
 └─────────────────┘     └─────────────────┘     └─────────────────┘
          │                       │                       │
          ▼                       ▼                       ▼
-    JSON/YAML             Analysis Results         Audit Reports
+    JSON/YAML              分析結果              監査レポート
 ```
 
 ---
 
 # **技術スタック**
 
-## 🐍 **Python Agents**
+## 🐍 **Pythonエージェント**
 - `google-cloud-iam`
 - `google-cloud-securitycenter`
 - `google-cloud-aiplatform` (Vertex AI)
@@ -129,51 +130,64 @@ Susumu Tomita
 - 高速な実行
 - クロスプラットフォーム対応
 
-## 📊 **Output Formats**
+## 📊 **出力形式**
 - Markdown (Obsidian対応)
-- HTML with CSS
-- YAML frontmatter
+- CSS付きHTML
+- HonKitサイト
+
+---
+
+# **Google Cloud サービスの活用**
+
+## 🖥️ **コンピューティングサービス**
+- **Cloud Run**: エージェントのデプロイとスケーリング（予定）
+- **Cloud Build**: CI/CDパイプライン
+
+## 🤖 **AIサービス**
+- **Vertex AI (Gemini Pro)**: セキュリティリスクの分析
+- **IAM API**: ポリシー情報の収集
+- **Security Command Center API**: セキュリティfindingsの取得
 
 ---
 
 <!-- _class: lead -->
 
-# 🎬 **Demo**
+# 🎬 **デモ**
 
 ---
 
 # **デモシナリオ**
 
-## 1️⃣ **Configuration Collection**
+## 1️⃣ **設定の収集**
 ```bash
 $ paddi collect --project my-gcp-project
-✓ IAM policies collected: 47
-✓ SCC findings retrieved: 12
+✓ IAMポリシーを収集: 47件
+✓ SCC findingsを取得: 12件
 ```
 
-## 2️⃣ **AI Analysis**
+## 2️⃣ **AI分析**
 ```bash
 $ paddi analyze
-✓ Analyzing with Gemini Pro...
-✓ Risk score calculated: 7.3/10
+✓ Gemini Proで分析中...
+✓ リスクスコア計算: 7.3/10
 ```
 
-## 3️⃣ **Report Generation**
+## 3️⃣ **レポート生成**
 ```bash
 $ paddi report --format html
-✓ Report generated: audit-2025-06-21.html
+✓ レポート生成完了: audit-2025-06-21.html
 ```
 
 ---
 
 # **生成されるレポート例**
 
-## 📊 **Executive Summary**
-- Overall Risk Score: **7.3/10**
-- Critical Findings: **3**
-- Recommendations: **15**
+## 📊 **エグゼクティブサマリー**
+- 総合リスクスコア: **7.3/10**
+- 重大な発見事項: **3件**
+- 推奨事項: **15件**
 
-## 🔍 **Key Findings**
+## 🔍 **主な発見事項**
 1. **過剰な権限**: 5つのサービスアカウントにOwner権限
 2. **未使用のIAMメンバー**: 90日以上アクセスなし
 3. **暗号化の欠如**: 3つのストレージバケット
@@ -182,7 +196,7 @@ $ paddi report --format html
 
 <!-- _class: lead -->
 
-# 🔧 **Technical Details**
+# 🔧 **技術詳細**
 
 ---
 
@@ -192,17 +206,17 @@ $ paddi report --format html
 
 ```python
 prompt = f"""
-As a cloud security expert, analyze the following
-GCP IAM configuration:
+クラウドセキュリティ専門家として、以下の
+GCP IAM設定を分析してください：
 
 {iam_config}
 
-Identify:
-1. Security risks and severity
-2. Best practice violations
-3. Specific remediation steps
+以下を特定してください：
+1. セキュリティリスクと重要度
+2. ベストプラクティス違反
+3. 具体的な修正手順
 
-Format: JSON with risk_score, findings, recommendations
+形式: リスクスコア、発見事項、推奨事項を含むJSON
 """
 ```
 
@@ -213,7 +227,7 @@ Format: JSON with risk_score, findings, recommendations
 ## 📨 **データフロー**
 
 ```yaml
-# Agent A Output
+# Agent A 出力
 collector_output:
   timestamp: "2025-06-21T10:00:00Z"
   project_id: "my-project"
@@ -229,23 +243,23 @@ collector_output:
 
 <!-- _class: lead -->
 
-# 🚀 **Future Vision**
+# 🚀 **将来ビジョン**
 
 ---
 
 # **ロードマップ**
 
-## 🌐 **Multi-Cloud Support**
+## 🌐 **マルチクラウド対応**
 - AWS (IAM, Security Hub)
 - Azure (AD, Security Center)
 - クロスクラウド比較レポート
 
-## 🤖 **Advanced AI Features**
+## 🤖 **高度なAI機能**
 - 予測的リスク分析
 - 自動修復提案
 - カスタムポリシー学習
 
-## 🔌 **Integrations**
+## 🔌 **統合**
 - Slack/Teams通知
 - SIEM連携
 - CI/CDパイプライン統合
@@ -270,20 +284,20 @@ collector_output:
 
 <!-- _class: lead -->
 
-# 🙏 **Thank You!**
+# 🙏 **ありがとうございました！**
 
-## **Questions?**
+## **ご質問はありますか？**
 
-### 🔗 Links
+### 🔗 リンク
 - GitHub: [github.com/susumutomita/Paddi](https://github.com/susumutomita/Paddi)
 - Website: [susumutomita.netlify.app](https://susumutomita.netlify.app/)
 
-### 📧 Contact
-- Email: (your-email@example.com)
+### 📧 連絡先
+- Email: (メールアドレス)
 
 ---
 
-# **Appendix: 実装の詳細**
+# **付録: 実装の詳細**
 
 ## 🔐 **セキュリティ考慮事項**
 
