@@ -8,7 +8,7 @@ mod commands;
 mod config;
 mod orchestrator;
 
-use commands::{analyze, audit, collect, config as config_cmd, report};
+use commands::{analyze, audit, collect, config as config_cmd, init, report};
 use config::Config;
 
 #[derive(Parser)]
@@ -44,6 +44,9 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    #[command(about = "Initialize Paddi with sample data for quick trial")]
+    Init(init::InitArgs),
+
     #[command(about = "Run full audit pipeline")]
     Audit(audit::AuditArgs),
 
@@ -98,6 +101,7 @@ async fn main() -> Result<()> {
 
     // Execute command
     match cli.command {
+        Commands::Init(args) => init::run(args, config).await,
         Commands::Audit(args) => audit::run(args, config).await,
         Commands::Collect(args) => collect::run(args, config).await,
         Commands::Analyze(args) => analyze::run(args, config).await,
