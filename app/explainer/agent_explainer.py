@@ -141,7 +141,7 @@ class GeminiSecurityAnalyzer(LLMInterface):
 
         try:
             aiplatform.init(project=self.project_id, location=self.location)
-            self._model = models.GenerativeModel(self.model_name)
+            self._model = models.GenerativeModel(self.model_name)  # pylint: disable=no-member
             logger.info("Initialized Vertex AI with model: %s", self.model_name)
         except Exception as e:
             logger.error("Failed to initialize Vertex AI: %s", e)
