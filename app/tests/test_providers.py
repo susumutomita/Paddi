@@ -46,13 +46,14 @@ class TestGCPProvider:
 
     def test_init(self):
         """Test GCP provider initialization."""
-        provider = GCPProvider(project_id="test-project")
+        provider = GCPProvider(project_id="test-project", use_mock=True)
         assert provider.project_id == "test-project"
         assert provider.get_name() == "gcp"
+        assert provider.use_mock is True
 
     def test_get_iam_policies(self):
         """Test getting IAM policies."""
-        provider = GCPProvider()
+        provider = GCPProvider(use_mock=True)
         policies = provider.get_iam_policies()
         assert "project" in policies
         assert "bindings" in policies
@@ -60,7 +61,7 @@ class TestGCPProvider:
 
     def test_get_security_findings(self):
         """Test getting security findings."""
-        provider = GCPProvider()
+        provider = GCPProvider(use_mock=True)
         findings = provider.get_security_findings()
         assert isinstance(findings, list)
         assert len(findings) > 0
@@ -68,7 +69,7 @@ class TestGCPProvider:
 
     def test_get_audit_logs(self):
         """Test getting audit logs."""
-        provider = GCPProvider()
+        provider = GCPProvider(use_mock=True)
         logs = provider.get_audit_logs()
         assert isinstance(logs, list)
         assert len(logs) > 0
@@ -76,7 +77,7 @@ class TestGCPProvider:
 
     def test_collect_all(self):
         """Test collecting all data."""
-        provider = GCPProvider(project_id="test-project")
+        provider = GCPProvider(project_id="test-project", use_mock=True)
         data = provider.collect_all()
         assert data["provider"] == "gcp"
         assert data["project_id"] == "test-project"
