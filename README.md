@@ -1,15 +1,23 @@
 # 🩹 Paddi: AI駆動型マルチエージェントクラウド監査システム
 
-[![CI](https://github.com/susumutomita/Paddi/actions/workflows/ci.yml/badge.svg)](https://github.com/susumutomita/Paddi)
+[![CI](https://github.com/susumutomita/Paddi/actions/workflows/ci.yml/badge.svg)](https://github.com/susumutomita/Paddi/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/susumutomita/Paddi/branch/main/graph/badge.svg)](https://codecov.io/gh/susumutomita/Paddi)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
+
 ![Last commit](https://img.shields.io/github/last-commit/susumutomita/Paddi)
 ![Top language](https://img.shields.io/github/languages/top/susumutomita/Paddi)
 ![Pull requests](https://img.shields.io/github/issues-pr/susumutomita/Paddi)
 ![Code size](https://img.shields.io/github/languages/code-size/susumutomita/Paddi)
 ![Repo size](https://img.shields.io/github/repo-size/susumutomita/Paddi)
 
-**Paddi（パディ）** は、Google Cloud AIと統一されたCLIインタフェースを使用してクラウドセキュリティ監査を自動化するマルチエージェントシステムです。設定を収集し、AIでセキュリティリスクを分析し、包括的な監査レポートを生成する3つの専門エージェントを協調させます。
+**Paddi（パディ）** は、Google Cloud AIと統一されたCLIインタフェースを使用して
+クラウドセキュリティ監査を自動化するマルチエージェントシステムです。
 
-[第2回 AI Agent Hackathon with Google Cloud](https://zenn.dev/hackathons/google-cloud-japan-ai-hackathon-vol2) 向けに開発。本プロジェクトは、AIエージェントが手動の監査プロセスを自動化しながらエンタープライズグレードの品質を維持することで、セキュリティワークフローを変革する方法を実証します。
+[第2回 AI Agent Hackathon with Google Cloud](https://zenn.dev/hackathons/google-cloud-japan-ai-hackathon-vol2)
+向けに開発しました。
 
 ---
 

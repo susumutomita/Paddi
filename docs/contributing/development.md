@@ -1,6 +1,7 @@
 # Development Guide
 
-Welcome to the Paddi development guide! This document will help you set up your development environment and contribute to the project.
+Welcome to the Paddi development guide! This document will help you set up
+your development environment and contribute to the project.
 
 ## Development Setup
 
@@ -32,11 +33,7 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 #### 2. Install Dependencies
 
 ```bash
-# Install production dependencies
 pip install -r requirements.txt
-
-# Install development dependencies
-pip install -r requirements-dev.txt
 ```
 
 #### 3. Install in Development Mode
@@ -78,7 +75,7 @@ rustup component add rustfmt clippy
 
 ## Project Structure
 
-```
+```text
 Paddi/
 ├── python_agents/          # Python agent implementations
 │   ├── collector/         # Data collection agent
@@ -118,7 +115,7 @@ from dataclasses import dataclass
 @dataclass
 class SecurityFinding:
     """Represents a security finding.
-    
+
     Attributes:
         title: Brief description of the finding
         severity: Severity level (CRITICAL, HIGH, MEDIUM, LOW)
@@ -128,7 +125,7 @@ class SecurityFinding:
     severity: str
     explanation: str
     recommendation: Optional[str] = None
-    
+
     def is_critical(self) -> bool:
         """Check if finding is critical severity."""
         return self.severity == "CRITICAL"
@@ -176,7 +173,7 @@ def mock_collector():
 def test_collect_iam_policies(mock_collector):
     """Test IAM policy collection."""
     result = mock_collector.collect()
-    
+
     assert len(result.iam_policies) > 0
     assert all(p.resource.startswith("projects/") for p in result.iam_policies)
 
@@ -184,7 +181,7 @@ def test_collect_with_filters(mock_collector):
     """Test collection with resource filters."""
     mock_collector.config.resource_types = ["iam"]
     result = mock_collector.collect()
-    
+
     assert len(result.iam_policies) > 0
     assert len(result.scc_findings) == 0
 ```
@@ -198,7 +195,7 @@ use paddi::config::Config;
 #[test]
 fn test_config_loading() {
     let config = Config::load("tests/fixtures/test_config.toml").unwrap();
-    
+
     assert_eq!(config.project_id, "test-project");
     assert!(config.use_mock);
 }
@@ -206,7 +203,7 @@ fn test_config_loading() {
 #[tokio::test]
 async fn test_audit_command() {
     let result = run_audit_command("--use-mock").await;
-    
+
     assert!(result.is_ok());
     assert!(result.unwrap().findings.len() > 0);
 }
@@ -264,6 +261,7 @@ git push origin feature/your-feature-name
 ```
 
 Create a pull request on GitHub with:
+
 - Clear description of changes
 - Link to related issue
 - Test results
@@ -279,14 +277,14 @@ Test individual components in isolation:
 # Example: Testing a specific analyzer
 def test_iam_analyzer():
     analyzer = IAMAnalyzer()
-    
+
     policy = {
         "bindings": [{
             "role": "roles/owner",
             "members": ["user:test@example.com"]
         }]
     }
-    
+
     findings = analyzer.analyze(policy)
     assert len(findings) == 1
     assert findings[0].severity == "CRITICAL"
@@ -302,15 +300,15 @@ def test_full_audit_pipeline():
     # Collect
     collector = CollectorAgent({"use_mock": True})
     collected = collector.collect()
-    
+
     # Analyze
     explainer = ExplainerAgent({"use_mock": True})
     findings = explainer.analyze(collected.to_dict())
-    
+
     # Report
     reporter = ReporterAgent({})
     reports = reporter.generate_reports(findings)
-    
+
     assert "audit.md" in reports
     assert "audit.html" in reports
 ```
@@ -339,14 +337,14 @@ from .base import BaseCollector
 
 class StorageCollector(BaseCollector):
     """Collect Cloud Storage bucket configurations."""
-    
+
     def collect(self) -> List[Dict]:
         """Collect storage bucket data."""
         # Implementation
         pass
 ```
 
-2. Register in the agent:
+1. Register in the agent:
 
 ```python
 # collector/agent_collector.py
@@ -357,7 +355,7 @@ COLLECTORS = {
 }
 ```
 
-3. Add tests:
+1. Add tests:
 
 ```python
 # tests/test_storage_collector.py
@@ -377,14 +375,14 @@ from .base import BaseFormat
 
 class PDFFormat(BaseFormat):
     """Generate PDF reports."""
-    
+
     def generate(self, findings: List[Finding]) -> bytes:
         """Generate PDF report."""
         # Implementation
         pass
 ```
 
-2. Register format:
+1. Register format:
 
 ```python
 # reporter/agent_reporter.py
@@ -431,15 +429,17 @@ RUST_LOG=debug cargo run
 ### Common Issues
 
 1. **Import Errors**
+
    ```bash
    # Ensure you're in virtual environment
    which python  # Should show venv path
-   
+
    # Reinstall in development mode
    pip install -e .
    ```
 
 2. **Rust Compilation Errors**
+
    ```bash
    # Clean and rebuild
    cargo clean
@@ -447,10 +447,11 @@ RUST_LOG=debug cargo run
    ```
 
 3. **Test Failures**
+
    ```bash
    # Run specific test with output
    pytest -xvs tests/test_specific.py::test_function
-   
+
    # Rust test with output
    cargo test -- --nocapture test_name
    ```
@@ -535,8 +536,10 @@ Update `CHANGELOG.md`:
 
 ## Code of Conduct
 
-Please read and follow our [Code of Conduct](../CODE_OF_CONDUCT.md) to ensure a welcoming environment for all contributors.
+Please read and follow our [Code of Conduct](../CODE_OF_CONDUCT.md) to ensure
+a welcoming environment for all contributors.
 
 ## License
 
-By contributing to Paddi, you agree that your contributions will be licensed under the project's MIT License.
+By contributing to Paddi, you agree that your contributions will be licensed
+under the project's MIT License.
