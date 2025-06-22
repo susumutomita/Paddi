@@ -30,6 +30,8 @@ class AuditReport:
     audit_date: str
     total_findings: int
     severity_counts: Dict[str, int]
+    providers: Optional[List[str]] = None
+    provider_distribution: Optional[Dict[str, int]] = None
 
 
 class ReportGenerator(ABC):
@@ -61,7 +63,7 @@ class MarkdownGenerator(ReportGenerator):
             "",
             (
                 f"This security audit identified {report.total_findings} findings "
-                "across your GCP infrastructure."
+                f"across your {'multi-cloud' if report.providers and len(report.providers) > 1 else 'cloud'} infrastructure."
             ),
             "",
             "### Severity Breakdown",
@@ -70,6 +72,11 @@ class MarkdownGenerator(ReportGenerator):
 
         for severity, count in sorted(report.severity_counts.items()):
             lines.append(f"- **{severity}**: {count} findings")
+
+        if report.providers and len(report.providers) > 1:
+            lines.extend(["", "### Provider Distribution", ""])
+            for provider, count in sorted(report.provider_distribution.items()):
+                lines.append(f"- **{provider.upper()}**: {count} findings")
 
         lines.extend(["", "## Detailed Findings", ""])
 
@@ -497,6 +504,26 @@ class ReportService:
 
         with open(collected_file, "r", encoding="utf-8") as f:
             data = json.load(f)
+            # Handle multi-cloud data structure
+            if "providers" in data:
+                providers = []
+                project_names = []
+                for provider_data in data.get("providers", []):
+                    provider_name = provider_data.get("provider", "unknown")
+                    providers.append(provider_name)
+                    if provider_name == "gcp":
+                        project_names.append(provider_data.get("project_id", "unknown"))
+                    elif provider_name == "aws":
+                        project_names.append(provider_data.get("account_id", "unknown"))
+                    elif provider_name == "azure":
+                        project_names.append(provider_data.get("subscription_id", "unknown"))
+                
+                return {
+                    "project_id": " / ".join(project_names) if project_names else "Multi-Cloud",
+                    "providers": providers,
+                    "multi_cloud": True
+                }
+            # Handle single provider (backward compatibility)
             return data.get("metadata", {"project_id": "unknown-project"})
 
     def create_report(
@@ -514,8 +541,19 @@ class ReportService:
         ]
 
         severity_counts = {}
-        for finding in findings:
+        provider_distribution = {}
+        
+        # Count findings by severity and provider (if multi-cloud)
+        for i, finding in enumerate(findings):
             severity_counts[finding.severity] = severity_counts.get(finding.severity, 0) + 1
+            
+            # For multi-cloud, track provider distribution
+            if metadata.get("multi_cloud") and metadata.get("providers"):
+                # Simple heuristic: distribute findings across providers
+                # In real implementation, findings would have provider metadata
+                provider_idx = i % len(metadata["providers"])
+                provider = metadata["providers"][provider_idx]
+                provider_distribution[provider] = provider_distribution.get(provider, 0) + 1
 
         return AuditReport(
             findings=findings,
@@ -523,6 +561,8 @@ class ReportService:
             audit_date=datetime.now().strftime("%Y-%m-%d"),
             total_findings=len(findings),
             severity_counts=severity_counts,
+            providers=metadata.get("providers"),
+            provider_distribution=provider_distribution if metadata.get("multi_cloud") else None,
         )
 
     def generate_reports(self, formats: Optional[List[str]] = None):

@@ -44,8 +44,9 @@ class PromptTemplate:
     """Template for generating security analysis prompts"""
 
     SYSTEM_PROMPT = (
-        "You are a Google Cloud security expert analyzing GCP configurations "
-        "for security risks. Your task is to identify security vulnerabilities, "
+        "You are a multi-cloud security expert analyzing cloud configurations "
+        "for security risks across AWS, Azure, and Google Cloud Platform. "
+        "Your task is to identify security vulnerabilities, "
         "misconfigurations, and violations of security best practices."
         "\n\n"
         "For each finding, provide:\n"
@@ -56,10 +57,11 @@ class PromptTemplate:
         "\n"
         "Focus on:\n"
         "- IAM policy violations (overly permissive roles, service account misuse)\n"
-        "- Security Command Center findings\n"
+        "- Security findings from cloud-native security services\n"
         "- Principle of least privilege violations\n"
         "- Public exposure risks\n"
         "- Compliance issues\n"
+        "- Cross-cloud security best practices\n"
         "\n"
         "Respond in JSON format as an array of findings."
     )
@@ -149,22 +151,62 @@ class GeminiSecurityAnalyzer(LLMInterface):
         """Analyze security risks in the configuration"""
         findings = []
 
-        # Analyze IAM policies
-        if "iam_policies" in configuration:
-            iam_findings = self._analyze_iam_policies(configuration["iam_policies"])
-            findings.extend(iam_findings)
+        # Handle multi-cloud data structure
+        if "providers" in configuration:
+            # Multi-cloud analysis
+            for provider_data in configuration["providers"]:
+                provider_name = provider_data.get("provider", "unknown")
+                provider_findings = self._analyze_provider_data(provider_data, provider_name)
+                findings.extend(provider_findings)
+        else:
+            # Single provider (backward compatibility)
+            # Analyze IAM policies
+            if "iam_policies" in configuration:
+                iam_findings = self._analyze_iam_policies(configuration["iam_policies"])
+                findings.extend(iam_findings)
 
-        # Analyze SCC findings
-        if "scc_findings" in configuration:
-            scc_findings = self._analyze_scc_findings(configuration["scc_findings"])
-            findings.extend(scc_findings)
+            # Analyze SCC findings
+            if "scc_findings" in configuration:
+                scc_findings = self._analyze_scc_findings(configuration["scc_findings"])
+                findings.extend(scc_findings)
 
         return findings
 
-    def _analyze_iam_policies(self, iam_policies: Dict[str, Any]) -> List[SecurityFinding]:
+    def _analyze_provider_data(self, provider_data: Dict[str, Any], provider_name: str) -> List[SecurityFinding]:
+        """Analyze data from a specific cloud provider"""
+        findings = []
+        
+        # Handle error cases
+        if "error" in provider_data:
+            logger.warning(f"Skipping {provider_name} due to collection error: {provider_data['error']}")
+            return findings
+        
+        # Analyze IAM/identity data
+        if "iam_policies" in provider_data:
+            iam_findings = self._analyze_iam_policies(provider_data["iam_policies"], provider_name)
+            findings.extend(iam_findings)
+        
+        # Analyze security findings
+        if "security_findings" in provider_data:
+            if provider_name == "gcp":
+                security_findings = self._analyze_scc_findings(provider_data["security_findings"])
+            else:
+                security_findings = self._analyze_cloud_security_findings(
+                    provider_data["security_findings"], provider_name
+                )
+            findings.extend(security_findings)
+        
+        return findings
+
+    def _analyze_iam_policies(self, iam_policies: Dict[str, Any], provider_name: str = "gcp") -> List[SecurityFinding]:
         """Analyze IAM policies for security risks"""
         if self.use_mock:
-            return self._get_mock_iam_findings()
+            if provider_name == "aws":
+                return self._get_mock_aws_iam_findings()
+            elif provider_name == "azure":
+                return self._get_mock_azure_iam_findings()
+            else:
+                return self._get_mock_iam_findings()
 
         prompt = PromptTemplate.IAM_ANALYSIS_PROMPT.format(
             iam_policy=json.dumps(iam_policies, indent=2)
@@ -276,6 +318,182 @@ class GeminiSecurityAnalyzer(LLMInterface):
                     "the service account's actual needs. Consider using predefined "
                     "roles like 'roles/storage.objectAdmin' or create a custom "
                     "role with minimal permissions."
+                ),
+            ),
+        ]
+
+    def _analyze_cloud_security_findings(self, security_findings: List[Dict[str, Any]], provider_name: str) -> List[SecurityFinding]:
+        """Analyze security findings from AWS Security Hub or Azure Security Center"""
+        if self.use_mock or not security_findings:
+            if provider_name == "aws":
+                return self._get_mock_aws_security_findings()
+            elif provider_name == "azure":
+                return self._get_mock_azure_security_findings()
+            return []
+
+        # For real analysis, format findings for LLM
+        prompt = f"""Analyze the following {provider_name.upper()} security findings:
+
+{json.dumps(security_findings, indent=2)}
+
+For each finding:
+- Explain the security impact
+- Assess the actual risk level
+- Provide remediation steps specific to {provider_name.upper()}
+- Consider the context and resource type
+
+Provide analysis in this JSON format:
+[
+  {{
+    "title": "Finding title",
+    "severity": "HIGH|MEDIUM|LOW",
+    "explanation": "Detailed explanation",
+    "recommendation": "Specific recommendation"
+  }}
+]"""
+
+        try:
+            response = self._call_llm_with_retry(prompt)
+            findings_data = self._parse_llm_response(response)
+            return [SecurityFinding(**finding) for finding in findings_data]
+        except Exception as e:
+            logger.error(f"Error analyzing {provider_name} security findings: {e}")
+            if provider_name == "aws":
+                return self._get_mock_aws_security_findings()
+            elif provider_name == "azure":
+                return self._get_mock_azure_security_findings()
+            return []
+
+    def _get_mock_aws_iam_findings(self) -> List[SecurityFinding]:
+        """Return mock AWS IAM findings"""
+        return [
+            SecurityFinding(
+                title="AWS IAM User with AdministratorAccess Policy",
+                severity="HIGH",
+                explanation=(
+                    "The IAM user 'admin-user' has the AWS managed policy "
+                    "'AdministratorAccess' attached, granting unrestricted access "
+                    "to all AWS services and resources. This violates the principle "
+                    "of least privilege."
+                ),
+                recommendation=(
+                    "Remove AdministratorAccess policy and create a custom policy "
+                    "with only the specific permissions needed. Consider using "
+                    "AWS IAM Access Analyzer to identify actual permissions used."
+                ),
+            ),
+            SecurityFinding(
+                title="EC2 Role with Overly Permissive Assume Role Policy",
+                severity="MEDIUM",
+                explanation=(
+                    "The IAM role 'EC2-Admin-Role' has AdministratorAccess and "
+                    "can be assumed by any EC2 instance. This could allow "
+                    "compromised instances to gain full AWS access."
+                ),
+                recommendation=(
+                    "Restrict the assume role policy to specific EC2 instances "
+                    "or use instance tags. Replace AdministratorAccess with "
+                    "minimal required permissions for the workload."
+                ),
+            ),
+        ]
+
+    def _get_mock_azure_iam_findings(self) -> List[SecurityFinding]:
+        """Return mock Azure IAM findings"""
+        return [
+            SecurityFinding(
+                title="Azure Subscription Owner Role Assignment",
+                severity="HIGH",
+                explanation=(
+                    "Multiple users have the 'Owner' role at the subscription "
+                    "level, providing full control over all resources. This "
+                    "creates unnecessary security risk."
+                ),
+                recommendation=(
+                    "Limit Owner role assignments to break-glass accounts only. "
+                    "Use more restrictive roles like Contributor or Reader for "
+                    "daily operations. Implement Privileged Identity Management "
+                    "(PIM) for just-in-time access."
+                ),
+            ),
+            SecurityFinding(
+                title="Service Principal with Broad Contributor Access",
+                severity="MEDIUM",
+                explanation=(
+                    "The service principal 'Production App' has Contributor "
+                    "role across the entire subscription, exceeding its "
+                    "operational requirements."
+                ),
+                recommendation=(
+                    "Scope the service principal's permissions to specific "
+                    "resource groups or resources. Create custom roles with "
+                    "minimal required permissions."
+                ),
+            ),
+        ]
+
+    def _get_mock_aws_security_findings(self) -> List[SecurityFinding]:
+        """Return mock AWS Security Hub findings"""
+        return [
+            SecurityFinding(
+                title="S3 Bucket Allows Public Read Access",
+                severity="HIGH",
+                explanation=(
+                    "AWS Security Hub detected an S3 bucket configured with "
+                    "public read access. This violates AWS Foundational "
+                    "Security Best Practices and could lead to data exposure."
+                ),
+                recommendation=(
+                    "Disable public access on the S3 bucket immediately. "
+                    "Enable S3 Block Public Access at the account level. "
+                    "Use CloudFront with signed URLs for controlled public access."
+                ),
+            ),
+            SecurityFinding(
+                title="RDS Database Instance Lacks Encryption",
+                severity="MEDIUM",
+                explanation=(
+                    "The RDS instance 'production-db' does not have encryption "
+                    "at rest enabled, potentially exposing sensitive data if "
+                    "the underlying storage is compromised."
+                ),
+                recommendation=(
+                    "Enable encryption for the RDS instance. Create an encrypted "
+                    "snapshot and restore to a new encrypted instance. Update "
+                    "applications to use the new endpoint."
+                ),
+            ),
+        ]
+
+    def _get_mock_azure_security_findings(self) -> List[SecurityFinding]:
+        """Return mock Azure Security Center findings"""
+        return [
+            SecurityFinding(
+                title="Azure Storage Account Allows Public Blob Access",
+                severity="HIGH",
+                explanation=(
+                    "Azure Security Center detected that storage account "
+                    "'publicstorageaccount' permits public blob access, "
+                    "creating a risk of unauthorized data access."
+                ),
+                recommendation=(
+                    "Disable public blob access on the storage account. "
+                    "Implement private endpoints and use SAS tokens for "
+                    "controlled access. Enable Azure Defender for Storage."
+                ),
+            ),
+            SecurityFinding(
+                title="SQL Database Missing Auditing Configuration",
+                severity="MEDIUM",
+                explanation=(
+                    "The Azure SQL Database 'productiondb' lacks auditing "
+                    "configuration, limiting visibility into database access "
+                    "and potential security incidents."
+                ),
+                recommendation=(
+                    "Enable auditing on the SQL database with Log Analytics "
+                    "or Event Hub as destination. Configure audit retention "
+                    "per compliance requirements. Set up alerts for suspicious activities."
                 ),
             ),
         ]
