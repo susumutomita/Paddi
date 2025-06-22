@@ -21,7 +21,7 @@ tokio = { version = "1.40", features = ["full"] }
 
 # Error handling
 anyhow = "1.0"
-thiserror = "1.0"
+thiserror = "2.0"
 
 # Configuration
 serde = { version = "1.0", features = ["derive"] }
@@ -36,7 +36,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 indicatif = "0.17"
 
 # Process management
-which = "6.0"
+which = "8.0"
 
 # Path handling
 dirs = "6.0"
