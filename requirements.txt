@@ -46,18 +46,3 @@ azure-identity>=1.12.0
 azure-mgmt-authorization>=3.0.0
 azure-mgmt-security>=5.0.0
 azure-mgmt-monitor>=6.0.0
-
-# Additional development tools
-pre-commit>=3.5.0
-pytest-watch==4.2.0
-
-# Documentation tools
-marp-cli>=3.0.0
-honkit>=5.0.0
-
-# Type checking
-mypy>=1.5.0
-types-requests>=2.31.0
-
-# Performance testing
-hyperfine>=1.18.0
