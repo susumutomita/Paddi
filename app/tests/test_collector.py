@@ -106,9 +106,10 @@ class TestGCPConfigurationCollector:
 
         data = collector.collect_all()
 
-        assert data["project_id"] == "test-project"
-        assert data["organization_id"] == "test-org"
-        assert "timestamp" in data
+        assert "metadata" in data
+        assert data["metadata"]["project_id"] == "test-project"
+        assert data["metadata"]["organization_id"] == "test-org"
+        assert "timestamp" in data["metadata"]
         assert "iam_policies" in data
         assert "scc_findings" in data
         assert isinstance(data["iam_policies"], dict)
@@ -133,8 +134,9 @@ class TestGCPConfigurationCollector:
         with open(output_path, "r") as f:
             saved_data = json.load(f)
 
-        assert saved_data["project_id"] == "test-project"
-        assert saved_data["organization_id"] == "test-org"
+        assert "metadata" in saved_data
+        assert saved_data["metadata"]["project_id"] == "test-project"
+        assert saved_data["metadata"]["organization_id"] == "test-org"
 
     def test_save_to_file_custom_filename(self, temp_output_dir):
         """Test saving with custom filename"""
