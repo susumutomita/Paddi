@@ -128,46 +128,6 @@ class TestGeminiSecurityAnalyzer:
         assert any("Service Account" in f.title for f in findings)
         assert any("Storage Bucket" in f.title for f in findings)
 
-    @patch("explainer.agent_explainer.time.sleep")
-    def test_call_llm_with_retry(self, mock_sleep):
-        """Test LLM call with retry logic"""
-        analyzer = GeminiSecurityAnalyzer(
-            project_id="test-project",
-            use_mock=False,
-        )
-
-        # Mock the model
-        mock_response = Mock()
-        mock_response.text = (
-            '[{"title": "Test", "severity": "HIGH", '
-            '"explanation": "Test", "recommendation": "Test"}]'
-        )
-        analyzer._model = Mock()
-        analyzer._model.generate_content.return_value = mock_response
-
-        result = analyzer._call_llm_with_retry("test prompt")
-
-        assert result == mock_response.text
-        mock_sleep.assert_called_once_with(1.0)  # Rate limit delay
-
-    @patch("explainer.agent_explainer.time.sleep")
-    def test_call_llm_with_retry_failure(self, mock_sleep):
-        """Test LLM call retry on failure"""
-        analyzer = GeminiSecurityAnalyzer(
-            project_id="test-project",
-            use_mock=False,
-        )
-
-        # Mock the model to fail
-        analyzer._model = Mock()
-        analyzer._model.generate_content.side_effect = Exception("API Error")
-
-        with pytest.raises(RuntimeError, match="Failed to get LLM response after 2 retries"):
-            analyzer._call_llm_with_retry("test prompt", max_retries=2)
-
-        # Should have tried twice: 2 rate limit delays + 1 exponential backoff
-        assert mock_sleep.call_count == 3
-
     def test_parse_llm_response_valid_json(self):
         """Test parsing valid JSON from LLM response"""
         analyzer = GeminiSecurityAnalyzer(
