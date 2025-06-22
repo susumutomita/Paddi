@@ -1,168 +1,45 @@
-name: Release
+name: CI
 
 on:
   push:
-    tags:
-      - 'v*'
+  pull_request:
+    branches: ['main']
 
 permissions:
-  contents: write
-  packages: write
+  contents: read
 
 jobs:
-  create-release:
-    name: Create Release
+  build:
     runs-on: ubuntu-latest
-    outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
-      release_version: ${{ steps.get_version.outputs.version }}
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Get version from tag
-        id: get_version
-        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          draft: false
-          prerelease: false
-
-  build-python:
-    name: Build Python Package
-    runs-on: ubuntu-latest
-    needs: create-release
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Install build dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install build twine
-
-      - name: Build package
-        run: python -m build
-
-      - name: Upload to PyPI
-        if: false  # Enable when ready to publish
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-        run: twine upload dist/*
-
-  build-rust:
-    name: Build Rust Binaries
-    needs: create-release
     strategy:
       matrix:
-        include:
-          - target: x86_64-pc-windows-gnu
-            os: windows-latest
-            ext: .exe
-          - target: x86_64-apple-darwin
-            os: macos-latest
-            ext: ''
-          - target: x86_64-unknown-linux-gnu
-            os: ubuntu-latest
-            ext: ''
-          - target: aarch64-apple-darwin
-            os: macos-latest
-            ext: ''
-
-    runs-on: ${{ matrix.os }}
+        python-version: ['3.10.13']
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
         with:
-          targets: ${{ matrix.target }}
+          python-version: ${{ matrix.python-version }}
 
-      - name: Build release binary
-        working-directory: ./cli
-        run: cargo build --release --target ${{ matrix.target }}
+      - name: Display the current timezone
+        run: date
 
-      - name: Package binary
-        shell: bash
+      - name: Cache Python dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
         run: |
-          cd cli/target/${{ matrix.target }}/release
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            7z a paddi-${{ needs.create-release.outputs.release_version }}-${{ matrix.target }}.zip paddi${{ matrix.ext }}
-          else
-            tar czf paddi-${{ needs.create-release.outputs.release_version }}-${{ matrix.target }}.tar.gz paddi${{ matrix.ext }}
-          fi
+          python -m pip install --upgrade pip
+          make install
 
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./cli/target/${{ matrix.target }}/release/paddi-${{ needs.create-release.outputs.release_version }}-${{ matrix.target }}.${{ matrix.os == 'windows-latest' && 'zip' || 'tar.gz' }}
-          asset_name: paddi-${{ needs.create-release.outputs.release_version }}-${{ matrix.target }}.${{ matrix.os == 'windows-latest' && 'zip' || 'tar.gz' }}
-          asset_content_type: ${{ matrix.os == 'windows-latest' && 'application/zip' || 'application/gzip' }}
+      - name: Test
+        run: make test_coverage
 
-  docker-release:
-    name: Build and Push Docker Image
-    runs-on: ubuntu-latest
-    needs: create-release
-    if: false  # Enable when Dockerfile is added
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository }}:latest
-            ghcr.io/${{ github.repository }}:${{ needs.create-release.outputs.release_version }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  create-changelog:
-    name: Generate Changelog
-    runs-on: ubuntu-latest
-    needs: [build-python, build-rust]
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Generate changelog
-        run: |
-          echo "## What's Changed" > changelog.md
-          git log $(git describe --tags --abbrev=0 HEAD^)..HEAD --pretty=format:"* %s by @%an" >> changelog.md
-
-      - name: Update release with changelog
-        uses: softprops/action-gh-release@v2
-        with:
-          body_path: changelog.md
-          append_body: true
+      - name: Lint
+        run: make lint
