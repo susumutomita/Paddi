@@ -167,9 +167,11 @@ class GCPConfigurationCollector:
         logger.info("Starting GCP configuration collection for project: %s", self.project_id)
 
         collected_data = {
-            "project_id": self.project_id,
-            "organization_id": self.organization_id,
-            "timestamp": self._get_timestamp(),
+            "metadata": {
+                "project_id": self.project_id,
+                "organization_id": self.organization_id,
+                "timestamp": self._get_timestamp(),
+            },
             "iam_policies": self.iam_collector.collect(),
             "scc_findings": self.scc_collector.collect(),
         }
