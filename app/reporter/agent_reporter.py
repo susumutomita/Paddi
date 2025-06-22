@@ -63,7 +63,9 @@ class MarkdownGenerator(ReportGenerator):
             "",
             (
                 f"This security audit identified {report.total_findings} findings "
-                f"across your {'multi-cloud' if report.providers and len(report.providers) > 1 else 'cloud'} infrastructure."
+                f"across your "
+                f"{'multi-cloud' if report.providers and len(report.providers) > 1 else 'cloud'} "
+                f"infrastructure."
             ),
             "",
             "### Severity Breakdown",
@@ -517,11 +519,11 @@ class ReportService:
                         project_names.append(provider_data.get("account_id", "unknown"))
                     elif provider_name == "azure":
                         project_names.append(provider_data.get("subscription_id", "unknown"))
-                
+
                 return {
                     "project_id": " / ".join(project_names) if project_names else "Multi-Cloud",
                     "providers": providers,
-                    "multi_cloud": True
+                    "multi_cloud": True,
                 }
             # Handle single provider (backward compatibility)
             return data.get("metadata", {"project_id": "unknown-project"})
@@ -542,11 +544,11 @@ class ReportService:
 
         severity_counts = {}
         provider_distribution = {}
-        
+
         # Count findings by severity and provider (if multi-cloud)
         for i, finding in enumerate(findings):
             severity_counts[finding.severity] = severity_counts.get(finding.severity, 0) + 1
-            
+
             # For multi-cloud, track provider distribution
             if metadata.get("multi_cloud") and metadata.get("providers"):
                 # Simple heuristic: distribute findings across providers

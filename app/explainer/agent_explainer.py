@@ -172,20 +172,24 @@ class GeminiSecurityAnalyzer(LLMInterface):
 
         return findings
 
-    def _analyze_provider_data(self, provider_data: Dict[str, Any], provider_name: str) -> List[SecurityFinding]:
+    def _analyze_provider_data(
+        self, provider_data: Dict[str, Any], provider_name: str
+    ) -> List[SecurityFinding]:
         """Analyze data from a specific cloud provider"""
         findings = []
-        
+
         # Handle error cases
         if "error" in provider_data:
-            logger.warning(f"Skipping {provider_name} due to collection error: {provider_data['error']}")
+            logger.warning(
+                "Skipping %s due to collection error: %s", provider_name, provider_data["error"]
+            )
             return findings
-        
+
         # Analyze IAM/identity data
         if "iam_policies" in provider_data:
             iam_findings = self._analyze_iam_policies(provider_data["iam_policies"], provider_name)
             findings.extend(iam_findings)
-        
+
         # Analyze security findings
         if "security_findings" in provider_data:
             if provider_name == "gcp":
@@ -195,18 +199,19 @@ class GeminiSecurityAnalyzer(LLMInterface):
                     provider_data["security_findings"], provider_name
                 )
             findings.extend(security_findings)
-        
+
         return findings
 
-    def _analyze_iam_policies(self, iam_policies: Dict[str, Any], provider_name: str = "gcp") -> List[SecurityFinding]:
+    def _analyze_iam_policies(
+        self, iam_policies: Dict[str, Any], provider_name: str = "gcp"
+    ) -> List[SecurityFinding]:
         """Analyze IAM policies for security risks"""
         if self.use_mock:
             if provider_name == "aws":
                 return self._get_mock_aws_iam_findings()
-            elif provider_name == "azure":
+            if provider_name == "azure":
                 return self._get_mock_azure_iam_findings()
-            else:
-                return self._get_mock_iam_findings()
+            return self._get_mock_iam_findings()
 
         prompt = PromptTemplate.IAM_ANALYSIS_PROMPT.format(
             iam_policy=json.dumps(iam_policies, indent=2)
@@ -239,6 +244,8 @@ class GeminiSecurityAnalyzer(LLMInterface):
 
     def _call_llm_with_retry(self, prompt: str, max_retries: int = 3) -> str:
         """Call LLM with retry logic and rate limiting"""
+        last_exception = None
+
         for attempt in range(max_retries):
             try:
                 # Rate limiting
@@ -260,14 +267,16 @@ class GeminiSecurityAnalyzer(LLMInterface):
                 return response.text
 
             except Exception as e:
+                last_exception = e
                 logger.warning("LLM call failed (attempt %d/%d): %s", attempt + 1, max_retries, e)
                 if attempt < max_retries - 1:
                     # Exponential backoff
                     time.sleep((2**attempt) * self._rate_limit_delay)
-                else:
-                    raise
-        # This should never be reached, but satisfies the linter
-        raise RuntimeError("Failed to get LLM response after all retries")
+
+        # If we get here, all retries failed
+        raise RuntimeError(
+            f"Failed to get LLM response after {max_retries} retries"
+        ) from last_exception
 
     def _parse_llm_response(self, response: str) -> List[Dict[str, Any]]:
         """Parse LLM response to extract findings"""
@@ -322,14 +331,12 @@ class GeminiSecurityAnalyzer(LLMInterface):
             ),
         ]
 
-    def _analyze_cloud_security_findings(self, security_findings: List[Dict[str, Any]], provider_name: str) -> List[SecurityFinding]:
+    def _analyze_cloud_security_findings(
+        self, security_findings: List[Dict[str, Any]], provider_name: str
+    ) -> List[SecurityFinding]:
         """Analyze security findings from AWS Security Hub or Azure Security Center"""
         if self.use_mock or not security_findings:
-            if provider_name == "aws":
-                return self._get_mock_aws_security_findings()
-            elif provider_name == "azure":
-                return self._get_mock_azure_security_findings()
-            return []
+            return self._get_mock_findings_for_provider(provider_name)
 
         # For real analysis, format findings for LLM
         prompt = f"""Analyze the following {provider_name.upper()} security findings:
@@ -357,12 +364,16 @@ Provide analysis in this JSON format:
             findings_data = self._parse_llm_response(response)
             return [SecurityFinding(**finding) for finding in findings_data]
         except Exception as e:
-            logger.error(f"Error analyzing {provider_name} security findings: {e}")
-            if provider_name == "aws":
-                return self._get_mock_aws_security_findings()
-            elif provider_name == "azure":
-                return self._get_mock_azure_security_findings()
-            return []
+            logger.error("Error analyzing %s security findings: %s", provider_name, e)
+            return self._get_mock_findings_for_provider(provider_name)
+
+    def _get_mock_findings_for_provider(self, provider_name: str) -> List[SecurityFinding]:
+        """Get mock findings for the specified provider"""
+        if provider_name == "aws":
+            return self._get_mock_aws_security_findings()
+        if provider_name == "azure":
+            return self._get_mock_azure_security_findings()
+        return []
 
     def _get_mock_aws_iam_findings(self) -> List[SecurityFinding]:
         """Return mock AWS IAM findings"""

@@ -225,9 +225,7 @@ def main(
 
         # Handle multi-cloud collection
         if providers:
-            import json as json_lib
-
-            provider_configs = json_lib.loads(providers)
+            provider_configs = json.loads(providers)
             multi_collector = MultiCloudCollector(output_dir=output_dir)
             data = multi_collector.collect_from_multiple_providers(provider_configs)
             output_path = multi_collector.save_data(data)

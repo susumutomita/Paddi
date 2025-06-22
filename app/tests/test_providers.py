@@ -144,10 +144,7 @@ class TestAzureProvider:
 
     def test_init(self):
         """Test Azure provider initialization."""
-        provider = AzureProvider(
-            subscription_id="test-sub-id",
-            tenant_id="test-tenant-id"
-        )
+        provider = AzureProvider(subscription_id="test-sub-id", tenant_id="test-tenant-id")
         assert provider.subscription_id == "test-sub-id"
         assert provider.tenant_id == "test-tenant-id"
         assert provider.get_name() == "azure"

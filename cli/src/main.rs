@@ -1,5 +1,5 @@
 use anyhow::Result;
-use clap::{Command, CommandFactory, Parser, Subcommand};
+use clap::{CommandFactory, Parser, Subcommand};
 use clap_complete::{generate, Shell};
 use std::io;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -87,9 +87,10 @@ async fn main() -> Result<()> {
                 .with_thread_ids(false)
                 .with_thread_names(false),
         )
-        .with(tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-            tracing_subscriber::EnvFilter::new(log_level)
-        }))
+        .with(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new(log_level)),
+        )
         .init();
 
     // Load configuration
