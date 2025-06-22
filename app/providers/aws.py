@@ -1,4 +1,7 @@
-from typing import Dict, List, Any
+"""Amazon Web Services provider implementation."""
+
+from typing import Any, Dict, List
+
 from .base import CloudProvider
 
 
@@ -24,14 +27,20 @@ class AWSProvider(CloudProvider):
                     "UserName": "admin-user",
                     "Arn": f"arn:aws:iam::{self.account_id}:user/admin-user",
                     "AttachedPolicies": [
-                        {"PolicyName": "AdministratorAccess", "PolicyArn": "arn:aws:iam::aws:policy/AdministratorAccess"}
+                        {
+                            "PolicyName": "AdministratorAccess",
+                            "PolicyArn": "arn:aws:iam::aws:policy/AdministratorAccess",
+                        }
                     ],
                 },
                 {
                     "UserName": "developer-user",
                     "Arn": f"arn:aws:iam::{self.account_id}:user/developer-user",
                     "AttachedPolicies": [
-                        {"PolicyName": "PowerUserAccess", "PolicyArn": "arn:aws:iam::aws:policy/PowerUserAccess"}
+                        {
+                            "PolicyName": "PowerUserAccess",
+                            "PolicyArn": "arn:aws:iam::aws:policy/PowerUserAccess",
+                        }
                     ],
                 },
             ],
@@ -49,7 +58,10 @@ class AWSProvider(CloudProvider):
                         ]
                     },
                     "AttachedPolicies": [
-                        {"PolicyName": "AdministratorAccess", "PolicyArn": "arn:aws:iam::aws:policy/AdministratorAccess"}
+                        {
+                            "PolicyName": "AdministratorAccess",
+                            "PolicyArn": "arn:aws:iam::aws:policy/AdministratorAccess",
+                        }
                     ],
                 }
             ],
@@ -85,7 +97,7 @@ class AWSProvider(CloudProvider):
                 "Resources": [
                     {
                         "Type": "AwsS3Bucket",
-                        "Id": f"arn:aws:s3:::public-bucket",
+                        "Id": "arn:aws:s3:::public-bucket",
                         "Region": self.region,
                     }
                 ],
@@ -159,7 +171,10 @@ class AWSProvider(CloudProvider):
                     "userName": "developer-user",
                 },
                 "sourceIPAddress": "192.168.1.2",
-                "requestParameters": {"bucketName": "public-bucket", "bucketPolicy": {"Statement": [{"Effect": "Allow", "Principal": "*"}]}},
+                "requestParameters": {
+                    "bucketName": "public-bucket",
+                    "bucketPolicy": {"Statement": [{"Effect": "Allow", "Principal": "*"}]},
+                },
             },
             {
                 "eventTime": "2024-01-01T12:00:00Z",
@@ -173,7 +188,9 @@ class AWSProvider(CloudProvider):
                     "userName": "admin-user",
                 },
                 "sourceIPAddress": "192.168.1.1",
-                "responseElements": {"accessKey": {"userName": "developer-user", "status": "Active"}},
+                "responseElements": {
+                    "accessKey": {"userName": "developer-user", "status": "Active"}
+                },
             },
         ]
 

@@ -1,4 +1,7 @@
-from typing import Dict, List, Any
+"""Microsoft Azure provider implementation."""
+
+from typing import Any, Dict, List
+
 from .base import CloudProvider
 
 
@@ -88,7 +91,10 @@ class AzureProvider(CloudProvider):
                     "severity": "High",
                     "status": "Active",
                     "description": "Storage account 'publicstorageaccount' allows public blob access",
-                    "remediationSteps": ["Navigate to the storage account", "Disable public blob access"],
+                    "remediationSteps": [
+                        "Navigate to the storage account",
+                        "Disable public blob access",
+                    ],
                     "affectedResourceType": "Microsoft.Storage/storageAccounts",
                     "affectedResourceName": "publicstorageaccount",
                 },
@@ -101,7 +107,10 @@ class AzureProvider(CloudProvider):
                     "severity": "Medium",
                     "status": "Active",
                     "description": "SQL Database 'productiondb' does not have auditing enabled",
-                    "remediationSteps": ["Enable auditing on the SQL database", "Configure audit log retention"],
+                    "remediationSteps": [
+                        "Enable auditing on the SQL database",
+                        "Configure audit log retention",
+                    ],
                     "affectedResourceType": "Microsoft.Sql/servers/databases",
                     "affectedResourceName": "productiondb",
                 },

@@ -39,6 +39,9 @@ format:
 .PHONY: before-commit
 before-commit: test_coverage_check format lint
 
+.PHONY: before_commit
+before_commit: before-commit
+
 # -------------------------------
 # Presentation
 # -------------------------------

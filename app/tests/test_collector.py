@@ -249,32 +249,34 @@ class TestMainFunction:
 class TestMultiCloudSupport:
     """Test cases for multi-cloud support in main function"""
 
-    @patch("collector.agent_collector.MultiCloudCollector")
+    @patch("collector.multi_cloud_collector.MultiCloudCollector")
     def test_main_with_aws_provider(self, mock_multi_collector_class):
         """Test main function with AWS provider"""
         mock_instance = MagicMock()
         mock_multi_collector_class.return_value = mock_instance
         mock_instance.collect_from_provider.return_value = {"provider": "aws"}
-        
+        mock_instance.save_data.return_value = "data/collected.json"
+
         main(provider="aws", account_id="123456789012")
-        
+
         mock_multi_collector_class.assert_called_with(output_dir="data")
         expected_config = {"provider": "aws", "account_id": "123456789012"}
         mock_instance.collect_from_provider.assert_called()
-        
-    @patch("collector.agent_collector.MultiCloudCollector")
+
+    @patch("collector.multi_cloud_collector.MultiCloudCollector")
     def test_main_with_azure_provider(self, mock_multi_collector_class):
         """Test main function with Azure provider"""
         mock_instance = MagicMock()
         mock_multi_collector_class.return_value = mock_instance
         mock_instance.collect_from_provider.return_value = {"provider": "azure"}
-        
+        mock_instance.save_data.return_value = "data/collected.json"
+
         main(provider="azure", subscription_id="test-sub-id")
-        
+
         mock_multi_collector_class.assert_called_with(output_dir="data")
         mock_instance.collect_from_provider.assert_called()
-        
-    @patch("collector.agent_collector.MultiCloudCollector")
+
+    @patch("collector.multi_cloud_collector.MultiCloudCollector")
     def test_main_with_multiple_providers(self, mock_multi_collector_class):
         """Test main function with multiple providers"""
         mock_instance = MagicMock()
@@ -282,22 +284,25 @@ class TestMultiCloudSupport:
         mock_instance.collect_from_multiple_providers.return_value = {
             "providers": [{"provider": "gcp"}, {"provider": "aws"}]
         }
-        
-        providers_json = json.dumps([
-            {"provider": "gcp", "project_id": "test-project"},
-            {"provider": "aws", "account_id": "123456789012"}
-        ])
-        
+        mock_instance.save_data.return_value = "data/collected.json"
+
+        providers_json = json.dumps(
+            [
+                {"provider": "gcp", "project_id": "test-project"},
+                {"provider": "aws", "account_id": "123456789012"},
+            ]
+        )
+
         main(providers=providers_json)
-        
+
         mock_multi_collector_class.assert_called_with(output_dir="data")
         mock_instance.collect_from_multiple_providers.assert_called()
-        
+
     def test_backward_compatibility_gcp(self):
         """Test backward compatibility with GCP-only mode"""
         # This test verifies that the original GCP collection still works
         from collector.agent_collector import main
-        
+
         # Should not raise any errors when called with GCP project_id
         # (actual execution will be mocked in integration tests)
         assert callable(main)

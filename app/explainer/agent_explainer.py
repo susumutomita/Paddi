@@ -172,20 +172,24 @@ class GeminiSecurityAnalyzer(LLMInterface):
 
         return findings
 
-    def _analyze_provider_data(self, provider_data: Dict[str, Any], provider_name: str) -> List[SecurityFinding]:
+    def _analyze_provider_data(
+        self, provider_data: Dict[str, Any], provider_name: str
+    ) -> List[SecurityFinding]:
         """Analyze data from a specific cloud provider"""
         findings = []
-        
+
         # Handle error cases
         if "error" in provider_data:
-            logger.warning(f"Skipping {provider_name} due to collection error: {provider_data['error']}")
+            logger.warning(
+                "Skipping %s due to collection error: %s", provider_name, provider_data["error"]
+            )
             return findings
-        
+
         # Analyze IAM/identity data
         if "iam_policies" in provider_data:
             iam_findings = self._analyze_iam_policies(provider_data["iam_policies"], provider_name)
             findings.extend(iam_findings)
-        
+
         # Analyze security findings
         if "security_findings" in provider_data:
             if provider_name == "gcp":
@@ -195,10 +199,12 @@ class GeminiSecurityAnalyzer(LLMInterface):
                     provider_data["security_findings"], provider_name
                 )
             findings.extend(security_findings)
-        
+
         return findings
 
-    def _analyze_iam_policies(self, iam_policies: Dict[str, Any], provider_name: str = "gcp") -> List[SecurityFinding]:
+    def _analyze_iam_policies(
+        self, iam_policies: Dict[str, Any], provider_name: str = "gcp"
+    ) -> List[SecurityFinding]:
         """Analyze IAM policies for security risks"""
         if self.use_mock:
             if provider_name == "aws":
@@ -322,7 +328,9 @@ class GeminiSecurityAnalyzer(LLMInterface):
             ),
         ]
 
-    def _analyze_cloud_security_findings(self, security_findings: List[Dict[str, Any]], provider_name: str) -> List[SecurityFinding]:
+    def _analyze_cloud_security_findings(
+        self, security_findings: List[Dict[str, Any]], provider_name: str
+    ) -> List[SecurityFinding]:
         """Analyze security findings from AWS Security Hub or Azure Security Center"""
         if self.use_mock or not security_findings:
             if provider_name == "aws":
@@ -357,7 +365,7 @@ Provide analysis in this JSON format:
             findings_data = self._parse_llm_response(response)
             return [SecurityFinding(**finding) for finding in findings_data]
         except Exception as e:
-            logger.error(f"Error analyzing {provider_name} security findings: {e}")
+            logger.error("Error analyzing %s security findings: %s", provider_name, e)
             if provider_name == "aws":
                 return self._get_mock_aws_security_findings()
             elif provider_name == "azure":

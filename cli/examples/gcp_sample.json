@@ -1,0 +1,93 @@
+{
+  "iam_policies": [
+    {
+      "resource": "projects/example-project-123",
+      "bindings": [
+        {
+          "role": "roles/owner",
+          "members": [
+            "user:admin@example.com",
+            "serviceAccount:test-sa@example-project-123.iam.gserviceaccount.com"
+          ]
+        },
+        {
+          "role": "roles/editor",
+          "members": [
+            "user:developer@example.com",
+            "group:dev-team@example.com"
+          ]
+        },
+        {
+          "role": "roles/viewer",
+          "members": [
+            "allUsers"
+          ]
+        },
+        {
+          "role": "roles/storage.admin",
+          "members": [
+            "user:storage-admin@example.com",
+            "serviceAccount:storage-sa@example-project-123.iam.gserviceaccount.com"
+          ]
+        }
+      ]
+    },
+    {
+      "resource": "buckets/sensitive-data-bucket",
+      "bindings": [
+        {
+          "role": "roles/storage.objectViewer",
+          "members": [
+            "allAuthenticatedUsers"
+          ]
+        }
+      ]
+    }
+  ],
+  "scc_findings": [
+    {
+      "name": "organizations/123456789/sources/1234567890/findings/finding-1",
+      "category": "PUBLIC_BUCKET_ACL",
+      "resourceName": "//storage.googleapis.com/sensitive-data-bucket",
+      "state": "ACTIVE",
+      "severity": "CRITICAL",
+      "finding": {
+        "description": "Bucket has public access enabled",
+        "recommendation": "Remove allUsers and allAuthenticatedUsers from bucket IAM policy"
+      }
+    },
+    {
+      "name": "organizations/123456789/sources/1234567890/findings/finding-2",
+      "category": "OVER_PRIVILEGED_SERVICE_ACCOUNT",
+      "resourceName": "//iam.googleapis.com/projects/example-project-123/serviceAccounts/test-sa@example-project-123.iam.gserviceaccount.com",
+      "state": "ACTIVE",
+      "severity": "HIGH",
+      "finding": {
+        "description": "Service account has owner role",
+        "recommendation": "Follow least privilege principle and grant only necessary permissions"
+      }
+    },
+    {
+      "name": "organizations/123456789/sources/1234567890/findings/finding-3",
+      "category": "WEAK_SSL_POLICY",
+      "resourceName": "//compute.googleapis.com/projects/example-project-123/global/sslPolicies/weak-ssl-policy",
+      "state": "ACTIVE",
+      "severity": "MEDIUM",
+      "finding": {
+        "description": "SSL policy allows TLS 1.0 and TLS 1.1",
+        "recommendation": "Update SSL policy to use minimum TLS 1.2"
+      }
+    },
+    {
+      "name": "organizations/123456789/sources/1234567890/findings/finding-4",
+      "category": "UNUSED_IAM_ROLE",
+      "resourceName": "//iam.googleapis.com/projects/example-project-123/roles/customRole123",
+      "state": "ACTIVE",
+      "severity": "LOW",
+      "finding": {
+        "description": "Custom role has not been used in 90 days",
+        "recommendation": "Review and remove unused custom roles"
+      }
+    }
+  ]
+}

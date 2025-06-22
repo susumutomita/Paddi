@@ -431,7 +431,7 @@ class TestMultiCloudAnalysis:
             project_id="test-project",
             use_mock=True,
         )
-        
+
         # Multi-cloud data structure
         multi_cloud_data = {
             "providers": [
@@ -439,88 +439,88 @@ class TestMultiCloudAnalysis:
                     "provider": "gcp",
                     "project_id": "gcp-project",
                     "iam_policies": {"bindings": []},
-                    "security_findings": []
+                    "security_findings": [],
                 },
                 {
-                    "provider": "aws", 
+                    "provider": "aws",
                     "account_id": "123456789012",
                     "iam_policies": {"users": [], "roles": []},
-                    "security_findings": []
+                    "security_findings": [],
                 },
                 {
                     "provider": "azure",
                     "subscription_id": "test-sub",
                     "iam_policies": {"users": [], "service_principals": []},
-                    "security_findings": []
-                }
+                    "security_findings": [],
+                },
             ]
         }
-        
+
         findings = analyzer.analyze_security_risks(multi_cloud_data)
-        
+
         assert isinstance(findings, list)
         assert len(findings) > 0
-        
+
         # Should have findings from all providers
         finding_titles = [f.title for f in findings]
         assert any("AWS" in title for title in finding_titles)
         assert any("Azure" in title for title in finding_titles)
-        
+
     def test_analyze_single_provider_backward_compatibility(self):
         """Test backward compatibility with single provider data"""
         analyzer = GeminiSecurityAnalyzer(
             project_id="test-project",
             use_mock=True,
         )
-        
+
         # Single provider (GCP) data structure
         single_provider_data = {
             "metadata": {"project_id": "test-project"},
             "iam_policies": {"bindings": []},
-            "scc_findings": []
+            "scc_findings": [],
         }
-        
+
         findings = analyzer.analyze_security_risks(single_provider_data)
-        
+
         assert isinstance(findings, list)
         assert len(findings) > 0
-        
+
     def test_provider_specific_mock_findings(self):
         """Test provider-specific mock findings"""
         analyzer = GeminiSecurityAnalyzer(
             project_id="test-project",
             use_mock=True,
         )
-        
+
         # Test AWS IAM findings
         aws_iam_findings = analyzer._get_mock_aws_iam_findings()
         assert len(aws_iam_findings) > 0
         assert any("AWS" in f.title for f in aws_iam_findings)
         assert any("AdministratorAccess" in f.explanation for f in aws_iam_findings)
-        
+
         # Test Azure IAM findings
         azure_iam_findings = analyzer._get_mock_azure_iam_findings()
         assert len(azure_iam_findings) > 0
         assert any("Azure" in f.title for f in azure_iam_findings)
         assert any("Owner" in f.explanation for f in azure_iam_findings)
-        
+
         # Test AWS security findings
         aws_security_findings = analyzer._get_mock_aws_security_findings()
         assert len(aws_security_findings) > 0
         assert any("S3" in f.title for f in aws_security_findings)
-        
+
         # Test Azure security findings
         azure_security_findings = analyzer._get_mock_azure_security_findings()
         assert len(azure_security_findings) > 0
         assert any("Storage Account" in f.title for f in azure_security_findings)
-        
+
     def test_analyze_provider_with_error(self):
         """Test handling provider with collection error"""
         analyzer = GeminiSecurityAnalyzer(
             project_id="test-project",
             use_mock=True,
         )
-        
+
         data_with_error = {
             "providers": [
                 {
@@ -528,16 +528,12 @@ class TestMultiCloudAnalysis:
                     "project_id": "gcp-project",
                     "iam_policies": {"bindings": []},
                 },
-                {
-                    "provider": "aws",
-                    "error": "Failed to connect to AWS",
-                    "status": "failed"
-                }
+                {"provider": "aws", "error": "Failed to connect to AWS", "status": "failed"},
             ]
         }
-        
+
         findings = analyzer.analyze_security_risks(data_with_error)
-        
+
         # Should still get findings from successful provider
         assert isinstance(findings, list)
         assert len(findings) > 0

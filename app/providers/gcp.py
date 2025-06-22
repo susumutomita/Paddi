@@ -1,6 +1,7 @@
-import json
-from typing import Dict, List, Any
-from pathlib import Path
+"""Google Cloud Platform provider implementation."""
+
+from typing import Any, Dict, List
+
 from .base import CloudProvider
 
 
@@ -82,7 +83,10 @@ class GCPProvider(CloudProvider):
             },
             {
                 "insertId": "log2",
-                "resource": {"type": "gcs_bucket", "labels": {"bucket_name": f"{self.project_id}-public"}},
+                "resource": {
+                    "type": "gcs_bucket",
+                    "labels": {"bucket_name": f"{self.project_id}-public"},
+                },
                 "protoPayload": {
                     "methodName": "storage.buckets.setIamPolicy",
                     "authenticationInfo": {"principalEmail": "developer@example.com"},

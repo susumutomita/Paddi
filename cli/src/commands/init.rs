@@ -17,10 +17,7 @@ pub struct InitArgs {
     )]
     output: String,
 
-    #[arg(
-        long,
-        help = "Skip running the full pipeline after initialization"
-    )]
+    #[arg(long, help = "Skip running the full pipeline after initialization")]
     skip_run: bool,
 }
 
@@ -34,36 +31,45 @@ pub async fn run(args: InitArgs, mut config: Config) -> Result<()> {
     setup_sample_data()?;
 
     // Update config to use the sample data
-    config.collector.use_mock = true;
-    config.explainer.mock_mode = true;
-    
+    config.gcp.use_mock = true;
+
     if !args.skip_run {
         info!("🔄 Running full audit pipeline with sample data...");
-        
+
         // Create orchestrator and run the full pipeline
         let orchestrator = AgentOrchestrator::new(config);
-        
+
         // Run collector
         info!("📊 Collecting sample GCP configuration data...");
-        orchestrator.run_collector(Some(true), None).await
+        orchestrator
+            .run_collector(Some(true), None)
+            .await
             .context("Failed to run collector")?;
-        
+
         // Run explainer
         info!("🧠 Analyzing security risks with AI...");
-        orchestrator.run_explainer(Some(true), None).await
+        orchestrator
+            .run_explainer(Some(true), None)
+            .await
             .context("Failed to run explainer")?;
-        
+
         // Run reporter with both markdown and html formats
         info!("📝 Generating audit reports...");
-        let formats = vec!["markdown".to_string(), "html".to_string(), "honkit".to_string()];
-        orchestrator.run_reporter(None, None, Some(formats)).await
+        let formats = vec![
+            "markdown".to_string(),
+            "html".to_string(),
+            "honkit".to_string(),
+        ];
+        orchestrator
+            .run_reporter(None, None, Some(formats))
+            .await
             .context("Failed to run reporter")?;
-        
+
         // Print success message with file locations
         println!("\n✅ Paddi init 完了:");
         println!("  • Markdown: {}/audit.md", args.output);
         println!("  • HTML: {}/audit.html（ブラウザで開けます）", args.output);
-        
+
         // Check if honkit is available and provide guidance
         if which::which("honkit").is_ok() || which::which("npx").is_ok() {
             println!("  • サイトプレビュー: npx honkit serve docs/");
@@ -80,32 +86,31 @@ pub async fn run(args: InitArgs, mut config: Config) -> Result<()> {
 
 fn create_directories(output_dir: &str) -> Result<()> {
     let dirs = vec!["data", output_dir, "docs"];
-    
+
     for dir in dirs {
-        fs::create_dir_all(dir)
-            .with_context(|| format!("Failed to create directory: {}", dir))?;
+        fs::create_dir_all(dir).with_context(|| format!("Failed to create directory: {}", dir))?;
         info!("📁 Created directory: {}", dir);
     }
-    
+
     Ok(())
 }
 
 fn setup_sample_data() -> Result<()> {
     let sample_file = "examples/gcp_sample.json";
     let target_file = "data/collected.json";
-    
+
     // Check if sample file exists
     if !Path::new(sample_file).exists() {
         // If not, create it with embedded sample data
         create_sample_file(sample_file)?;
     }
-    
+
     // Copy sample data to data directory
     fs::copy(sample_file, target_file)
         .with_context(|| format!("Failed to copy {} to {}", sample_file, target_file))?;
-    
+
     info!("📋 Sample GCP configuration data copied to {}", target_file);
-    
+
     Ok(())
 }
 
@@ -114,7 +119,7 @@ fn create_sample_file(path: &str) -> Result<()> {
     if let Some(parent) = Path::new(path).parent() {
         fs::create_dir_all(parent)?;
     }
-    
+
     // Embedded sample data
     let sample_data = r#"{
   "iam_policies": [
@@ -209,9 +214,9 @@ fn create_sample_file(path: &str) -> Result<()> {
     }
   ]
 }"#;
-    
+
     fs::write(path, sample_data)
         .with_context(|| format!("Failed to create sample file: {}", path))?;
-    
+
     Ok(())
 }

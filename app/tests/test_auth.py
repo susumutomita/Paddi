@@ -15,7 +15,7 @@ class TestCheckGCPCredentials:
     def test_with_credentials_set(self, caplog):
         """Test when GOOGLE_APPLICATION_CREDENTIALS is set."""
         check_gcp_credentials(use_mock=False)
-        
+
         # Should not log any warning
         assert len([r for r in caplog.records if r.levelname == "WARNING"]) == 0
 
@@ -25,9 +25,9 @@ class TestCheckGCPCredentials:
         # Ensure the env var is not set
         if "GOOGLE_APPLICATION_CREDENTIALS" in os.environ:
             del os.environ["GOOGLE_APPLICATION_CREDENTIALS"]
-            
+
         check_gcp_credentials(use_mock=False)
-        
+
         # Should log a warning
         warning_records = [r for r in caplog.records if r.levelname == "WARNING"]
         assert len(warning_records) == 1
@@ -39,10 +39,10 @@ class TestCheckGCPCredentials:
         env_backup = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
         if "GOOGLE_APPLICATION_CREDENTIALS" in os.environ:
             del os.environ["GOOGLE_APPLICATION_CREDENTIALS"]
-        
+
         try:
             check_gcp_credentials(use_mock=True)
-            
+
             # Should not log any warning in mock mode
             assert len([r for r in caplog.records if r.levelname == "WARNING"]) == 0
         finally:
@@ -54,7 +54,7 @@ class TestCheckGCPCredentials:
     def test_with_empty_credentials(self, caplog):
         """Test when GOOGLE_APPLICATION_CREDENTIALS is empty string."""
         check_gcp_credentials(use_mock=False)
-        
+
         # Empty string should be treated as not set
         warning_records = [r for r in caplog.records if r.levelname == "WARNING"]
         assert len(warning_records) == 1

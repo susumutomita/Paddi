@@ -1,8 +1,11 @@
-from typing import Dict, Any
-from .base import CloudProvider
-from .gcp import GCPProvider
+"""Factory module for creating cloud provider instances."""
+
+from typing import Any, Dict
+
 from .aws import AWSProvider
 from .azure import AzureProvider
+from .base import CloudProvider
+from .gcp import GCPProvider
 
 
 class CloudProviderFactory:
@@ -31,7 +34,9 @@ class CloudProviderFactory:
         """
         provider_name = provider_name.lower()
         if provider_name not in cls._providers:
-            raise ValueError(f"Unsupported provider: {provider_name}. Supported providers: {list(cls._providers.keys())}")
+            raise ValueError(
+                f"Unsupported provider: {provider_name}. Supported providers: {list(cls._providers.keys())}"
+            )
 
         provider_class = cls._providers[provider_name]
         return provider_class(**kwargs)
@@ -40,3 +45,19 @@ class CloudProviderFactory:
     def get_supported_providers(cls) -> list:
         """Get list of supported cloud providers."""
         return list(cls._providers.keys())
+
+    def create_provider(self, provider_config: Dict[str, Any]) -> CloudProvider:
+        """
+        Create a cloud provider instance from configuration.
+
+        This is an instance method for compatibility with the multi-cloud collector.
+
+        Args:
+            provider_config: Configuration dict with 'provider' key
+
+        Returns:
+            CloudProvider instance
+        """
+        provider_name = provider_config.get("provider", "").lower()
+        provider_params = {k: v for k, v in provider_config.items() if k != "provider"}
+        return self.create(provider_name, **provider_params)
