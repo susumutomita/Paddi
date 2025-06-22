@@ -9,13 +9,13 @@ mod tests;
 pub struct Config {
     #[serde(default)]
     pub python: PythonConfig,
-    
+
     #[serde(default)]
     pub gcp: GcpConfig,
-    
+
     #[serde(default)]
     pub paths: PathsConfig,
-    
+
     #[serde(default)]
     pub execution: ExecutionConfig,
 }
@@ -24,7 +24,7 @@ pub struct Config {
 pub struct PythonConfig {
     #[serde(default = "default_python_command")]
     pub command: String,
-    
+
     #[serde(default = "default_agents_path")]
     pub agents_path: PathBuf,
 }
@@ -39,7 +39,7 @@ pub struct GcpConfig {
 pub struct PathsConfig {
     #[serde(default = "default_data_dir")]
     pub data_dir: PathBuf,
-    
+
     #[serde(default = "default_output_dir")]
     pub output_dir: PathBuf,
 }
@@ -48,7 +48,7 @@ pub struct PathsConfig {
 pub struct ExecutionConfig {
     #[serde(default = "default_parallel")]
     pub parallel: bool,
-    
+
     #[serde(default = "default_timeout")]
     pub timeout_seconds: u64,
 }
@@ -149,28 +149,28 @@ impl Config {
         let path = path.as_ref();
         let content = std::fs::read_to_string(path)
             .with_context(|| format!("Failed to read config file: {}", path.display()))?;
-        
+
         let config: Config = toml::from_str(&content)
             .with_context(|| format!("Failed to parse config file: {}", path.display()))?;
-        
+
         Ok(config)
     }
 
     pub fn save(&self, path: impl AsRef<Path>) -> Result<()> {
         let path = path.as_ref();
-        
+
         // Create parent directories if they don't exist
         if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent)
-                .with_context(|| format!("Failed to create config directory: {}", parent.display()))?;
+            std::fs::create_dir_all(parent).with_context(|| {
+                format!("Failed to create config directory: {}", parent.display())
+            })?;
         }
-        
-        let content = toml::to_string_pretty(self)
-            .context("Failed to serialize config")?;
-        
+
+        let content = toml::to_string_pretty(self).context("Failed to serialize config")?;
+
         std::fs::write(path, content)
             .with_context(|| format!("Failed to write config file: {}", path.display()))?;
-        
+
         Ok(())
     }
 }

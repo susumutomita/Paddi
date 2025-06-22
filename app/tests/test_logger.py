@@ -4,7 +4,6 @@ import logging
 import os
 from unittest.mock import patch
 
-import pytest
 from log.logger import Logger
 
 

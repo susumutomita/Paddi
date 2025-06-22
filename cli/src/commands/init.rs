@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use clap::Args;
 use std::fs;
 use std::path::Path;
-use tracing::{info, warn};
+use tracing::info;
 
 use crate::config::Config;
 use crate::orchestrator::AgentOrchestrator;

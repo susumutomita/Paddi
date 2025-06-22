@@ -162,7 +162,7 @@ class TestGeminiSecurityAnalyzer:
         analyzer._model = Mock()
         analyzer._model.generate_content.side_effect = Exception("API Error")
 
-        with pytest.raises(Exception, match="API Error"):
+        with pytest.raises(RuntimeError, match="Failed to get LLM response after 2 retries"):
             analyzer._call_llm_with_retry("test prompt", max_retries=2)
 
         # Should have tried twice: 2 rate limit delays + 1 exponential backoff

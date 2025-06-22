@@ -34,8 +34,9 @@ class CloudProviderFactory:
         """
         provider_name = provider_name.lower()
         if provider_name not in cls._providers:
+            supported = list(cls._providers.keys())
             raise ValueError(
-                f"Unsupported provider: {provider_name}. Supported providers: {list(cls._providers.keys())}"
+                f"Unsupported provider: {provider_name}. " f"Supported providers: {supported}"
             )
 
         provider_class = cls._providers[provider_name]

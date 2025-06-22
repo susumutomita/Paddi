@@ -1,7 +1,5 @@
 """Tests for common data models."""
 
-import pytest
-
 from common.models import SecurityFinding
 
 

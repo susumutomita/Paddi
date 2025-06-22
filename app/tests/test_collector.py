@@ -260,7 +260,6 @@ class TestMultiCloudSupport:
         main(provider="aws", account_id="123456789012")
 
         mock_multi_collector_class.assert_called_with(output_dir="data")
-        expected_config = {"provider": "aws", "account_id": "123456789012"}
         mock_instance.collect_from_provider.assert_called()
 
     @patch("collector.multi_cloud_collector.MultiCloudCollector")

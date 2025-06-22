@@ -1,7 +1,6 @@
 """Tests for multi-cloud collector."""
 
 import json
-from pathlib import Path
 
 import pytest
 

@@ -32,7 +32,10 @@ class AzureProvider(CloudProvider):
                         {
                             "roleDefinitionName": "Owner",
                             "scope": f"/subscriptions/{self.subscription_id}",
-                            "roleDefinitionId": "/providers/Microsoft.Authorization/roleDefinitions/owner-role-id",
+                            "roleDefinitionId": (
+                                "/providers/Microsoft.Authorization/"
+                                "roleDefinitions/owner-role-id"
+                            ),
                         }
                     ],
                 },
@@ -44,7 +47,10 @@ class AzureProvider(CloudProvider):
                         {
                             "roleDefinitionName": "Contributor",
                             "scope": f"/subscriptions/{self.subscription_id}",
-                            "roleDefinitionId": "/providers/Microsoft.Authorization/roleDefinitions/contributor-role-id",
+                            "roleDefinitionId": (
+                                "/providers/Microsoft.Authorization/"
+                                "roleDefinitions/contributor-role-id"
+                            ),
                         }
                     ],
                 },
@@ -57,7 +63,10 @@ class AzureProvider(CloudProvider):
                     "roles": [
                         {
                             "roleDefinitionName": "Contributor",
-                            "scope": f"/subscriptions/{self.subscription_id}/resourceGroups/production",
+                            "scope": (
+                                f"/subscriptions/{self.subscription_id}"
+                                "/resourceGroups/production"
+                            ),
                         }
                     ],
                 }
@@ -65,7 +74,7 @@ class AzureProvider(CloudProvider):
             "custom_roles": [
                 {
                     "roleName": "Custom Admin Role",
-                    "id": "/providers/Microsoft.Authorization/roleDefinitions/custom-role-id",
+                    "id": ("/providers/Microsoft.Authorization/" "roleDefinitions/custom-role-id"),
                     "permissions": [
                         {
                             "actions": ["*"],
@@ -84,13 +93,18 @@ class AzureProvider(CloudProvider):
         # Mock implementation
         return [
             {
-                "id": f"/subscriptions/{self.subscription_id}/providers/Microsoft.Security/alerts/alert1",
+                "id": (
+                    f"/subscriptions/{self.subscription_id}/providers/"
+                    "Microsoft.Security/alerts/alert1"
+                ),
                 "name": "alert1",
                 "properties": {
                     "alertDisplayName": "Storage account allows public access",
                     "severity": "High",
                     "status": "Active",
-                    "description": "Storage account 'publicstorageaccount' allows public blob access",
+                    "description": (
+                        "Storage account 'publicstorageaccount' " "allows public blob access"
+                    ),
                     "remediationSteps": [
                         "Navigate to the storage account",
                         "Disable public blob access",
@@ -100,13 +114,18 @@ class AzureProvider(CloudProvider):
                 },
             },
             {
-                "id": f"/subscriptions/{self.subscription_id}/providers/Microsoft.Security/alerts/alert2",
+                "id": (
+                    f"/subscriptions/{self.subscription_id}/providers/"
+                    "Microsoft.Security/alerts/alert2"
+                ),
                 "name": "alert2",
                 "properties": {
                     "alertDisplayName": "SQL Database has no auditing enabled",
                     "severity": "Medium",
                     "status": "Active",
-                    "description": "SQL Database 'productiondb' does not have auditing enabled",
+                    "description": (
+                        "SQL Database 'productiondb' does not " "have auditing enabled"
+                    ),
                     "remediationSteps": [
                         "Enable auditing on the SQL database",
                         "Configure audit log retention",
@@ -116,13 +135,16 @@ class AzureProvider(CloudProvider):
                 },
             },
             {
-                "id": f"/subscriptions/{self.subscription_id}/providers/Microsoft.Security/alerts/alert3",
+                "id": (
+                    f"/subscriptions/{self.subscription_id}/providers/"
+                    "Microsoft.Security/alerts/alert3"
+                ),
                 "name": "alert3",
                 "properties": {
                     "alertDisplayName": "Virtual Machine has unmanaged disks",
                     "severity": "Low",
                     "status": "Active",
-                    "description": "Virtual Machine 'legacy-vm' is using unmanaged disks",
+                    "description": ("Virtual Machine 'legacy-vm' is using " "unmanaged disks"),
                     "remediationSteps": ["Convert unmanaged disks to managed disks"],
                     "affectedResourceType": "Microsoft.Compute/virtualMachines",
                     "affectedResourceName": "legacy-vm",
@@ -135,7 +157,10 @@ class AzureProvider(CloudProvider):
         # Mock implementation
         return [
             {
-                "id": f"/subscriptions/{self.subscription_id}/providers/Microsoft.Insights/eventtypes/management/values/log1",
+                "id": (
+                    f"/subscriptions/{self.subscription_id}/providers/"
+                    "Microsoft.Insights/eventtypes/management/values/log1"
+                ),
                 "eventTimestamp": "2024-01-01T10:00:00Z",
                 "operationName": {
                     "value": "Microsoft.Authorization/roleAssignments/write",
@@ -155,20 +180,30 @@ class AzureProvider(CloudProvider):
                 },
             },
             {
-                "id": f"/subscriptions/{self.subscription_id}/providers/Microsoft.Insights/eventtypes/management/values/log2",
+                "id": (
+                    f"/subscriptions/{self.subscription_id}/providers/"
+                    "Microsoft.Insights/eventtypes/management/values/log2"
+                ),
                 "eventTimestamp": "2024-01-01T11:00:00Z",
                 "operationName": {
-                    "value": "Microsoft.Storage/storageAccounts/blobServices/containers/write",
+                    "value": ("Microsoft.Storage/storageAccounts/" "blobServices/containers/write"),
                     "localizedValue": "Create or Update Blob Container",
                 },
                 "status": {"value": "Succeeded"},
                 "caller": "developer@example.onmicrosoft.com",
                 "description": "Blob container created with public access",
-                "resourceId": f"/subscriptions/{self.subscription_id}/resourceGroups/rg1/providers/Microsoft.Storage/storageAccounts/publicstorageaccount",
+                "resourceId": (
+                    f"/subscriptions/{self.subscription_id}/resourceGroups/rg1/"
+                    "providers/Microsoft.Storage/storageAccounts/"
+                    "publicstorageaccount"
+                ),
                 "properties": {"statusCode": "OK", "serviceRequestId": "request-id-2"},
             },
             {
-                "id": f"/subscriptions/{self.subscription_id}/providers/Microsoft.Insights/eventtypes/management/values/log3",
+                "id": (
+                    f"/subscriptions/{self.subscription_id}/providers/"
+                    "Microsoft.Insights/eventtypes/management/values/log3"
+                ),
                 "eventTimestamp": "2024-01-01T12:00:00Z",
                 "operationName": {
                     "value": "Microsoft.KeyVault/vaults/secrets/write",
@@ -177,7 +212,10 @@ class AzureProvider(CloudProvider):
                 "status": {"value": "Succeeded"},
                 "caller": "app-id-1",
                 "description": "Secret set in Key Vault",
-                "resourceId": f"/subscriptions/{self.subscription_id}/resourceGroups/rg1/providers/Microsoft.KeyVault/vaults/prodkeyvault",
+                "resourceId": (
+                    f"/subscriptions/{self.subscription_id}/resourceGroups/rg1/"
+                    "providers/Microsoft.KeyVault/vaults/prodkeyvault"
+                ),
                 "properties": {"statusCode": "OK", "serviceRequestId": "request-id-3"},
             },
         ]

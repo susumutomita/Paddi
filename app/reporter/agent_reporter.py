@@ -63,7 +63,9 @@ class MarkdownGenerator(ReportGenerator):
             "",
             (
                 f"This security audit identified {report.total_findings} findings "
-                f"across your {'multi-cloud' if report.providers and len(report.providers) > 1 else 'cloud'} infrastructure."
+                f"across your "
+                f"{'multi-cloud' if report.providers and len(report.providers) > 1 else 'cloud'} "
+                f"infrastructure."
             ),
             "",
             "### Severity Breakdown",

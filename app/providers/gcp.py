@@ -57,7 +57,10 @@ class GCPProvider(CloudProvider):
             {
                 "name": f"projects/{self.project_id}/findings/finding2",
                 "category": "OVER_PRIVILEGED_ACCOUNT",
-                "resourceName": f"//iam.googleapis.com/projects/{self.project_id}/serviceAccounts/prod-sa@example.iam.gserviceaccount.com",
+                "resourceName": (
+                    f"//iam.googleapis.com/projects/{self.project_id}/"
+                    "serviceAccounts/prod-sa@example.iam.gserviceaccount.com"
+                ),
                 "severity": "MEDIUM",
                 "finding": {
                     "description": "Service account has excessive permissions",
