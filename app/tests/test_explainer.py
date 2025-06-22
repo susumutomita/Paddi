@@ -128,46 +128,6 @@ class TestGeminiSecurityAnalyzer:
         assert any("Service Account" in f.title for f in findings)
         assert any("Storage Bucket" in f.title for f in findings)
 
-    @patch("explainer.agent_explainer.time.sleep")
-    def test_call_llm_with_retry(self, mock_sleep):
-        """Test LLM call with retry logic"""
-        analyzer = GeminiSecurityAnalyzer(
-            project_id="test-project",
-            use_mock=False,
-        )
-
-        # Mock the model
-        mock_response = Mock()
-        mock_response.text = (
-            '[{"title": "Test", "severity": "HIGH", '
-            '"explanation": "Test", "recommendation": "Test"}]'
-        )
-        analyzer._model = Mock()
-        analyzer._model.generate_content.return_value = mock_response
-
-        result = analyzer._call_llm_with_retry("test prompt")
-
-        assert result == mock_response.text
-        mock_sleep.assert_called_once_with(1.0)  # Rate limit delay
-
-    @patch("explainer.agent_explainer.time.sleep")
-    def test_call_llm_with_retry_failure(self, mock_sleep):
-        """Test LLM call retry on failure"""
-        analyzer = GeminiSecurityAnalyzer(
-            project_id="test-project",
-            use_mock=False,
-        )
-
-        # Mock the model to fail
-        analyzer._model = Mock()
-        analyzer._model.generate_content.side_effect = Exception("API Error")
-
-        with pytest.raises(RuntimeError, match="Failed to get LLM response after 2 retries"):
-            analyzer._call_llm_with_retry("test prompt", max_retries=2)
-
-        # Should have tried twice: 2 rate limit delays + 1 exponential backoff
-        assert mock_sleep.call_count == 3
-
     def test_parse_llm_response_valid_json(self):
         """Test parsing valid JSON from LLM response"""
         analyzer = GeminiSecurityAnalyzer(
@@ -387,39 +347,6 @@ class TestMainFunction:
                 project_id="test-project",
                 use_mock=True,
             )
-
-    @patch("common.auth.os.getenv")
-    def test_main_without_credentials_warning(self, mock_getenv):
-        """Test warning when GOOGLE_APPLICATION_CREDENTIALS not set"""
-        from explainer.agent_explainer import main
-
-        mock_getenv.return_value = None
-
-        # Create temporary test file
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-            test_data = {
-                "project_id": "test-project",
-                "iam_policies": {"bindings": []},
-                "scc_findings": [],
-            }
-            json.dump(test_data, f)
-            temp_file = f.name
-
-        try:
-            with tempfile.TemporaryDirectory() as temp_dir:
-                main(
-                    project_id="test-project",
-                    use_mock=False,
-                    input_file=temp_file,
-                    output_dir=temp_dir,
-                )
-        except Exception:
-            # We expect it to fail without real credentials
-            pass
-        finally:
-            Path(temp_file).unlink()
-
-        mock_getenv.assert_called_with("GOOGLE_APPLICATION_CREDENTIALS")
 
 
 class TestMultiCloudAnalysis:

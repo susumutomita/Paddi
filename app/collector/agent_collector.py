@@ -44,10 +44,10 @@ class IAMCollector(CollectorInterface):
             return self._get_mock_iam_data()
 
         try:
-            from google.cloud import iam
+            from google.cloud import iam_admin_v1 as iam
 
             # Initialize IAM admin client
-            iam.IAMClient()
+            iam.IAMClient()  # pylint: disable=no-member
             # This would collect real IAM data
             # For now, returning mock structure
             logger.warning("Real IAM collection not fully implemented, using mock data")
