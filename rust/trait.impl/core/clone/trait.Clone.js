@@ -1,0 +1,9 @@
+(function() {
+    var implementors = Object.fromEntries([["paddi",[["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.87.0/core/clone/trait.Clone.html\" title=\"trait core::clone::Clone\">Clone</a> for <a class=\"struct\" href=\"paddi/config/struct.Config.html\" title=\"struct paddi::config::Config\">Config</a>"],["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.87.0/core/clone/trait.Clone.html\" title=\"trait core::clone::Clone\">Clone</a> for <a class=\"struct\" href=\"paddi/config/struct.ExecutionConfig.html\" title=\"struct paddi::config::ExecutionConfig\">ExecutionConfig</a>"],["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.87.0/core/clone/trait.Clone.html\" title=\"trait core::clone::Clone\">Clone</a> for <a class=\"struct\" href=\"paddi/config/struct.GcpConfig.html\" title=\"struct paddi::config::GcpConfig\">GcpConfig</a>"],["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.87.0/core/clone/trait.Clone.html\" title=\"trait core::clone::Clone\">Clone</a> for <a class=\"struct\" href=\"paddi/config/struct.PathsConfig.html\" title=\"struct paddi::config::PathsConfig\">PathsConfig</a>"],["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.87.0/core/clone/trait.Clone.html\" title=\"trait core::clone::Clone\">Clone</a> for <a class=\"struct\" href=\"paddi/config/struct.PythonConfig.html\" title=\"struct paddi::config::PythonConfig\">PythonConfig</a>"]]]]);
+    if (window.register_implementors) {
+        window.register_implementors(implementors);
+    } else {
+        window.pending_implementors = implementors;
+    }
+})()
+//{"start":57,"fragment_lengths":[1370]}

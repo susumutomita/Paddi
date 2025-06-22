@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ConfigCommands"],"fn":["init_config","run","show_config","validate_config"],"struct":["ConfigArgs"]};

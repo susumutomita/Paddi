@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["analyze","audit","collect","config","init","report"]};
