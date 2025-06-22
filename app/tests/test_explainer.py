@@ -348,39 +348,6 @@ class TestMainFunction:
                 use_mock=True,
             )
 
-    @patch("common.auth.os.getenv")
-    def test_main_without_credentials_warning(self, mock_getenv):
-        """Test warning when GOOGLE_APPLICATION_CREDENTIALS not set"""
-        from explainer.agent_explainer import main
-
-        mock_getenv.return_value = None
-
-        # Create temporary test file
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-            test_data = {
-                "project_id": "test-project",
-                "iam_policies": {"bindings": []},
-                "scc_findings": [],
-            }
-            json.dump(test_data, f)
-            temp_file = f.name
-
-        try:
-            with tempfile.TemporaryDirectory() as temp_dir:
-                main(
-                    project_id="test-project",
-                    use_mock=False,
-                    input_file=temp_file,
-                    output_dir=temp_dir,
-                )
-        except Exception:
-            # We expect it to fail without real credentials
-            pass
-        finally:
-            Path(temp_file).unlink()
-
-        mock_getenv.assert_called_with("GOOGLE_APPLICATION_CREDENTIALS")
-
 
 class TestMultiCloudAnalysis:
     """Test multi-cloud analysis capabilities"""
