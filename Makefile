@@ -10,6 +10,10 @@ test:
 test_coverage:
 	python -m pytest  -v --cov=app
 
+.PHONY: test_coverage_check
+test_coverage_check:
+	python -m pytest --cov=app --cov-report=term-missing --cov-fail-under=80
+
 .PHONY: test_debug
 test_debug:
 	python -m pytest -vv -o log_cli=true
@@ -33,7 +37,7 @@ format:
 	isort .
 
 .PHONY: before-commit
-before-commit: test format lint
+before-commit: test_coverage_check format lint
 
 # -------------------------------
 # Presentation
