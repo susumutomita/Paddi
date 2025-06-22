@@ -195,21 +195,65 @@ class GCPConfigurationCollector:
 
 
 def main(
-    project_id: str = "example-project",
+    project_id: Optional[str] = None,
     organization_id: Optional[str] = None,
     use_mock: bool = True,
     output_dir: str = "data",
+    provider: str = "gcp",
+    providers: Optional[str] = None,
+    account_id: Optional[str] = None,
+    subscription_id: Optional[str] = None,
+    **kwargs,
 ):
     """
-    Collect GCP configuration data for security audit.
+    Collect cloud configuration data for security audit.
 
     Args:
-        project_id: GCP project ID to audit
+        project_id: GCP project ID to audit (for backward compatibility)
         organization_id: GCP organization ID for SCC findings
-        use_mock: Use mock data instead of real GCP APIs
+        use_mock: Use mock data instead of real cloud APIs
         output_dir: Directory to save collected data
+        provider: Single cloud provider (gcp, aws, azure)
+        providers: JSON string with list of provider configs for multi-cloud
+        account_id: AWS account ID
+        subscription_id: Azure subscription ID
+        **kwargs: Additional provider-specific parameters
     """
     try:
+        # Import multi-cloud collector
+        from .multi_cloud_collector import MultiCloudCollector
+
+        # Handle multi-cloud collection
+        if providers:
+            import json as json_lib
+
+            provider_configs = json_lib.loads(providers)
+            multi_collector = MultiCloudCollector(output_dir=output_dir)
+            data = multi_collector.collect_from_multiple_providers(provider_configs)
+            output_path = multi_collector.save_data(data)
+            print(f"✅ Multi-cloud collection successful! Data saved to: {output_path}")
+            return
+
+        # Handle single provider collection
+        if provider.lower() != "gcp":
+            # Use multi-cloud collector for AWS/Azure
+            provider_config = {"provider": provider}
+            if provider.lower() == "aws" and account_id:
+                provider_config["account_id"] = account_id
+            elif provider.lower() == "azure" and subscription_id:
+                provider_config["subscription_id"] = subscription_id
+            provider_config.update(kwargs)
+
+            multi_collector = MultiCloudCollector(output_dir=output_dir)
+            data = multi_collector.collect_from_provider(provider_config)
+            output_path = multi_collector.save_data(data)
+            print(f"✅ {provider.upper()} collection successful! Data saved to: {output_path}")
+            return
+
+        # Backward compatibility: GCP collection using original logic
+        if not project_id:
+            project_id = "example-project"
+
         # Set up Google Cloud authentication if not using mock
         check_gcp_credentials(use_mock)
 
