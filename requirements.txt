@@ -16,11 +16,17 @@ yamllint==1.37.0
 black==25.1.0
 pylint==3.3.6
 flake8==7.2.0
+mypy==1.8.0
+bandit[toml]==1.7.6
+coverage-badge==1.1.0
 
 # Additional utilities
 setuptools>=65.5.1
 requests-toolbelt==1.0.0
 PyGithub==2.6.1
+pyyaml==6.0.2
+tenacity==9.0.0
+pytest-timeout==2.3.1
 
 # Google Cloud dependencies (optional - for real GCP integration)
 google-cloud-aiplatform>=1.36.0
