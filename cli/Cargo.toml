@@ -36,10 +36,10 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 indicatif = "0.17"
 
 # Process management
-which = "6.0"
+which = "8.0"
 
 # Path handling
-dirs = "5.0"
+dirs = "6.0"
 
 [dev-dependencies]
 tempfile = "3.10"
