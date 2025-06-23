@@ -5,7 +5,7 @@
 本プロジェクト「Paddi（パディ）」は、[第2回 AI Agent Hackathon with Google Cloud](https://zenn.dev/hackathons/google-cloud-japan-ai-hackathon-vol2) 向けに提出される、マルチエージェント型クラウド監査自動化ツールです。
 従来の手作業による監査業務を、Google Cloud の設定データと Gemini（Vertex AI）を活用してコードベースで再現・自動化します。
 
-このフォルダ以下の Python 実装は Claude Code が担当してください。構成設計とCLI統合（Rust）はユーザーが主導します。
+このフォルダ以下の Python 実装は Claude Code が担当してください。全体のアーキテクチャと実装はPythonで統一されます。
 
 ---
 
@@ -110,10 +110,13 @@ black
 
 以下の手順で一連の処理が完結すること：
 
-cd python_agents
-python collector/agent_collector.py
-python explainer/agent_explainer.py
-python reporter/agent_reporter.py
+# メインCLIで全エージェントを統合実行
+python main.py audit
+
+# または個別実行も可能
+python main.py collect
+python main.py analyze
+python main.py report
 
 これにより、GCP構成 → Geminiによる説明 → Markdown/HTMLレポートの自動生成が可能となる。
 
@@ -121,5 +124,5 @@ python reporter/agent_reporter.py
 
 💬 補足事項
 - フロントエンドは不要。CLIベースで構築すること。
-- 将来的にRust CLIに統合予定（現時点では分離）
+- Python Fireライブラリを使用した統一CLIインタフェース
 - Claudeは出力の正しさだけでなく、コード構造の健全性も重視してください。

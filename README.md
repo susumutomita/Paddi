@@ -13,7 +13,7 @@
 ![Code size](https://img.shields.io/github/languages/code-size/susumutomita/Paddi)
 ![Repo size](https://img.shields.io/github/repo-size/susumutomita/Paddi)
 
-**Paddi（パディ）** は、Google Cloud AIと統一されたCLIインタフェースを使用して
+**Paddi（パディ）** は、Google Cloud AIを使用して
 クラウドセキュリティ監査を自動化するマルチエージェントシステムです。
 
 [第2回 AI Agent Hackathon with Google Cloud](https://zenn.dev/hackathons/google-cloud-japan-ai-hackathon-vol2)
@@ -75,11 +75,17 @@ graph LR
 1分以内でPaddiを開始できます。
 
 ```bash
-# Paddiのインストール（将来のHomebrew対応予定）
-# brew install paddi
+# リポジトリのクローン
+git clone https://github.com/susumutomita/Paddi.git
+cd Paddi
+
+# Python環境のセットアップ
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
 
 # サンプルデータでPaddiを試す - 設定不要！
-paddi init
+python main.py init
 
 # 出力:
 # ✅ Paddi init 完了:
@@ -98,7 +104,7 @@ paddi init
 
 デモの内容は以下のとおりです。
 
-1. `paddi init` でのクイックスタート
+1. `python main.py init` でのクイックスタート
 2. 実際のGCPプロジェクトでの監査実行
 3. 生成されたレポートの確認
 4. CI/CDパイプラインへの統合
@@ -144,13 +150,13 @@ paddi init
 
 ### オーケストレーションレイヤー
 
-**Rust CLI** (`cli/`) はPythonエージェントを調整する統一インタフェースを提供します。
+**Python CLI** (`main.py`) はエージェントを調整する統一インタフェースを提供します。
 
-```rust
-// 簡略化されたオーケストレーションフロー
-orchestrator.run_collector()?;
-orchestrator.run_explainer()?;
-orchestrator.run_reporter(formats)?;
+```python
+# 簡略化されたオーケストレーションフロー
+orchestrator.run_collector()
+orchestrator.run_explainer()
+orchestrator.run_reporter(formats)
 ```
 
 ---
@@ -164,76 +170,74 @@ orchestrator.run_reporter(formats)?;
 git clone https://github.com/susumutomita/Paddi.git
 cd Paddi
 
-# Rust CLIのビルド
-cd cli
-cargo build --release
-
-# PATHに追加（またはcargo installを使用）
-export PATH=$PATH:$(pwd)/target/release
+# Python環境のセットアップ
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
 ```
 
 ### コアコマンド
 
-#### `paddi init` - ゼロセットアップ試用
+#### `python main.py init` - ゼロセットアップ試用
 
 ```bash
 # サンプルデータで完全な監査を実行
-paddi init
+python main.py init
 
 # 自動パイプライン実行をスキップ
-paddi init --skip-run
+python main.py init --skip-run
 
 # 出力ディレクトリを指定
-paddi init --output custom-output/
+python main.py init --output custom-output/
 ```
 
-#### `paddi audit` - 完全なパイプライン
+#### `python main.py audit` - 完全なパイプライン
 
 ```bash
 # 完全な監査パイプラインを実行
-paddi audit
+python main.py audit
 
 # 実際のGCPの代わりにモックデータを使用
-paddi audit --use-mock
+python main.py audit --use-mock
 
 # GCPプロジェクトを指定
-paddi audit --project-id my-gcp-project
+python main.py audit --project-id my-gcp-project
 
 # 詳細出力
-paddi audit -v
+python main.py audit -v
 ```
 
-#### `paddi collect` - データ収集のみ
+#### `python main.py collect` - データ収集のみ
 
 ```bash
 # 実際のGCPプロジェクトから収集
-paddi collect --project-id my-gcp-project
+python main.py collect --project-id my-gcp-project
 
 # テスト用のモックデータを収集
-paddi collect --use-mock
+python main.py collect --use-mock
 ```
 
-#### `paddi analyze` - AI分析のみ
+#### `python main.py analyze` - AI分析のみ
 
 ```bash
 # 収集したデータをAIで分析
-paddi analyze
+python main.py analyze
 
 # モックAIレスポンスを使用
-paddi analyze --use-mock
+python main.py analyze --use-mock
 ```
 
-#### `paddi report` - レポート生成
+#### `python main.py report` - レポート生成
 
 ```bash
 # デフォルトレポート（Markdown + HTML）を生成
-paddi report
+python main.py report
 
 # 特定の形式を生成
-paddi report --format markdown,html,honkit
+python main.py report --format markdown,html,honkit
 
 # カスタム入力/出力ディレクトリ
-paddi report --input-dir data/ --output-dir reports/
+python main.py report --input-dir data/ --output-dir reports/
 ```
 
 ---
@@ -244,12 +248,12 @@ paddi report --input-dir data/ --output-dir reports/
 
 ```bash
 # サンプルデータでクイックスタート
-paddi init
+python main.py init
 
 # 個々のエージェントをテスト
-paddi collect --use-mock
-paddi analyze --use-mock
-paddi report
+python main.py collect --use-mock
+python main.py analyze --use-mock
+python main.py report
 ```
 
 ### 2. **実際のGCP監査**
@@ -259,16 +263,25 @@ paddi report
 gcloud auth application-default login
 
 # 完全な監査を実行
-paddi audit --project-id production-project
+python main.py audit --project-id production-project
 ```
 
 ### 3. **CI/CD統合**
 
 ```yaml
 # GitHub Actionsの例
+- name: Python環境セットアップ
+  uses: actions/setup-python@v4
+  with:
+    python-version: '3.10'
+
+- name: 依存関係インストール
+  run: |
+    pip install -r requirements.txt
+
 - name: セキュリティ監査を実行
   run: |
-    paddi audit --project-id ${{ secrets.GCP_PROJECT }}
+    python main.py audit --project-id ${{ secrets.GCP_PROJECT }}
 
 - name: レポートをアップロード
   uses: actions/upload-artifact@v3
@@ -281,7 +294,7 @@ paddi audit --project-id production-project
 
 ```bash
 # 週次監査のcronジョブ
-0 0 * * 0 paddi audit --project-id prod && \
+0 0 * * 0 cd /path/to/paddi && python main.py audit --project-id prod && \
   gsutil cp output/audit.html gs://audit-reports/$(date +%Y%m%d).html
 ```
 
@@ -330,25 +343,17 @@ paddi audit --project-id production-project
 ### 前提条件
 
 - Python 3.10+
-- Rust 1.70+
 - Google Cloud SDK（実際のGCP監査用）
 
 ### 開発環境のセットアップ
 
 ```bash
-# Pythonエージェント
-cd app
+# Python環境のセットアップ
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 
-# Rust CLI
-cd ../cli
-cargo build
-cargo test
-
 # 品質チェックを実行
-cd ../app
 make before-commit
 ```
 
@@ -358,30 +363,26 @@ make before-commit
 # Pythonテスト
 make test
 
-# Rustテスト
-cargo test
-
 # 統合テスト
-./scripts/integration_test.sh
+pytest tests/integration/
 ```
 
 ---
 
 ## 🌐 技術スタック
 
-- **Python 3.10+**: エージェント実装
-- **Rust**: CLIとオーケストレーション
+- **Python 3.10+**: エージェント実装とCLI
 - **Google Vertex AI**: AI分析用Gemini Pro
 - **Google Cloud APIs**: IAM、Security Command Center
+- **Fire**: PythonコマンドラインインタフェースCLI
 - **Jinja2**: レポートテンプレート
 - **HonKit**: ドキュメント生成
-- **Tokio**: Rust用非同期ランタイム
 
 ---
 
 ## 🚀 ロードマップ
 
-- [ ] 簡単なインストールのためのHomebrewフォーミュラ
+- [ ] PyPIパッケージとしての配布
 - [ ] AWSとAzureのサポート
 - [ ] カスタムルール定義
 - [ ] Slack/Teams通知

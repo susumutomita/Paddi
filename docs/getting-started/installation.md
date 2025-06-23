@@ -9,8 +9,7 @@ Before installing Paddi, ensure you have the following:
 ### System Requirements
 
 - **Operating System**: Linux, macOS, or Windows
-- **Python**: 3.8 or higher
-- **Rust**: 1.70 or higher (for CLI installation)
+- **Python**: 3.10 or higher
 - **Git**: For cloning the repository
 
 ### Google Cloud Requirements
@@ -23,40 +22,13 @@ Before installing Paddi, ensure you have the following:
 
 ## Installation Methods
 
-### Method 1: Using the Rust CLI (Recommended)
+### Method 1: Standard Installation
 
 1. **Clone the repository:**
 
    ```bash
    git clone https://github.com/susumutomita/Paddi.git
    cd Paddi
-   ```
-
-2. **Install the Rust CLI:**
-
-   ```bash
-   cd cli
-   make install
-   ```
-
-   This will:
-   - Build the Rust binary
-   - Install it to `~/.local/bin/paddi`
-   - Set up shell completions
-
-3. **Verify installation:**
-
-   ```bash
-   paddi --version
-   ```
-
-### Method 2: Python-only Installation
-
-1. **Clone the repository:**
-
-   ```bash
-   git clone https://github.com/susumutomita/Paddi.git
-   cd Paddi/python_agents
    ```
 
 2. **Create a virtual environment:**
@@ -75,7 +47,7 @@ Before installing Paddi, ensure you have the following:
 4. **Verify installation:**
 
    ```bash
-   python run_example.py --use_mock=True
+   python main.py init
    ```
 
 ## Google Cloud Setup
@@ -111,26 +83,14 @@ gcloud config set project YOUR_PROJECT_ID
 
 ## Configuration
 
-Create a configuration file:
+Paddi can be configured through command-line arguments or environment variables:
 
 ```bash
-cp cli/paddi.example.toml paddi.toml
-```
+# Set default project
+export GCP_PROJECT_ID="your-project-id"
 
-Edit `paddi.toml` with your settings:
-
-```toml
-[general]
-project_id = "your-project-id"
-organization_id = "your-org-id"  # Optional
-
-[paths]
-python_interpreter = "python3"
-agents_dir = "./python_agents"
-
-[execution]
-timeout_seconds = 300
-use_mock = false  # Set to true for testing without GCP access
+# Or pass as argument
+python main.py audit --project-id="your-project-id"
 ```
 
 ## Verify Installation
@@ -138,41 +98,30 @@ use_mock = false  # Set to true for testing without GCP access
 ### Test with Mock Data
 
 ```bash
-# Using CLI
-paddi audit --use-mock
-
-# Using Python directly
-cd python_agents
-python run_example.py --use_mock=True
+# Run with mock data (no GCP access required)
+python main.py audit --use-mock
 ```
 
 ### Test with Real GCP Data
 
 ```bash
 # Ensure you're authenticated first
-paddi audit --project-id=YOUR_PROJECT_ID
+python main.py audit --project-id=YOUR_PROJECT_ID
 ```
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Permission Denied (Rust CLI)**
-
-   ```bash
-   chmod +x ~/.local/bin/paddi
-   export PATH="$HOME/.local/bin:$PATH"
-   ```
-
-2. **Python Import Errors**
+1. **Python Import Errors**
    - Ensure you're in the virtual environment
    - Reinstall dependencies: `pip install -r requirements.txt`
 
-3. **Google Cloud Authentication Errors**
+2. **Google Cloud Authentication Errors**
    - Re-authenticate: `gcloud auth application-default login`
    - Check project permissions
 
-4. **Vertex AI Region Issues**
+3. **Vertex AI Region Issues**
    - Set the region in configuration or environment:
 
    ```bash
