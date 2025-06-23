@@ -127,11 +127,6 @@ backgroundImage: url('https://marp.app/assets/hero-background.svg')
 - `google-cloud-securitycenter`
 - `google-cloud-aiplatform` (Vertex AI)
 
-## 🦀 **Rust CLI**
-
-- 高速な実行
-- クロスプラットフォーム対応
-
 ## 📊 **出力形式**
 
 - Markdown (Obsidian対応)

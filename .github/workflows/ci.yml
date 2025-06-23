@@ -46,7 +46,7 @@ jobs:
           make install
 
       - name: Test
-        run: make test_coverage
+        run: make test-coverage
 
       - name: Lint
         run: make lint
