@@ -33,15 +33,15 @@ logger = logging.getLogger(__name__)
 
 
 class LLMInterface(ABC):
-    """Abstract interface for LLM interactions"""
+    """Abstract interface for LLM interactions."""
 
     @abstractmethod
     def analyze_security_risks(self, configuration: Dict[str, Any]) -> List[SecurityFinding]:
-        """Analyze security risks in the configuration"""
+        """Analyze security risks in the configuration."""
 
 
 class PromptTemplate:
-    """Template for generating security analysis prompts"""
+    """Template for generating security analysis prompts."""
 
     SYSTEM_PROMPT = (
         "You are a multi-cloud security expert analyzing cloud configurations "
@@ -109,7 +109,7 @@ Provide analysis in this JSON format:
 
 
 class GeminiSecurityAnalyzer(LLMInterface):
-    """Security analyzer using Google's Gemini model via Vertex AI"""
+    """Security analyzer using Google's Gemini model via Vertex AI."""
 
     def __init__(
         self,
@@ -120,6 +120,7 @@ class GeminiSecurityAnalyzer(LLMInterface):
         max_output_tokens: int = 2048,
         use_mock: bool = False,
     ):
+        """Initialize GeminiSecurityAnalyzer with configuration."""
         self.project_id = project_id
         self.location = location
         self.model_name = model_name
@@ -133,7 +134,7 @@ class GeminiSecurityAnalyzer(LLMInterface):
             self._initialize_vertex_ai()
 
     def _initialize_vertex_ai(self):
-        """Initialize Vertex AI with project settings"""
+        """Initialize Vertex AI with project settings."""
         if aiplatform is None or models is None:
             logger.warning("google-cloud-aiplatform not installed, using mock mode")
             self.use_mock = True
@@ -556,6 +557,7 @@ class SecurityRiskExplainer:
         input_file: str = "data/collected.json",
         output_dir: str = "data",
     ):
+        """Initialize SecurityRiskExplainer with configuration."""
         self.project_id = project_id
         self.location = location
         self.use_mock = use_mock

@@ -12,8 +12,7 @@ class Logger:
     """
 
     def __init__(self, name):
-        """
-        Initializes the logger with a specified name and level.
+        """Initialize the logger with a specified name and level.
 
         Args:
             name (str): The name of the logger, typically the name of the module using the logger.
