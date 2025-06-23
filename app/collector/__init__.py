@@ -1,1 +1,1 @@
-# Collector module for GCP configuration collection
+"""Collector module for GCP configuration collection."""

@@ -7,12 +7,14 @@ This guide will help you install and set up Paddi on your system.
 Before installing Paddi, ensure you have the following:
 
 ### System Requirements
+
 - **Operating System**: Linux, macOS, or Windows
 - **Python**: 3.8 or higher
 - **Rust**: 1.70 or higher (for CLI installation)
 - **Git**: For cloning the repository
 
 ### Google Cloud Requirements
+
 - Google Cloud Project with billing enabled
 - Appropriate IAM permissions:
   - `roles/iam.securityReviewer` (for reading IAM policies)
@@ -24,12 +26,14 @@ Before installing Paddi, ensure you have the following:
 ### Method 1: Using the Rust CLI (Recommended)
 
 1. **Clone the repository:**
+
    ```bash
    git clone https://github.com/susumutomita/Paddi.git
    cd Paddi
    ```
 
 2. **Install the Rust CLI:**
+
    ```bash
    cd cli
    make install
@@ -41,6 +45,7 @@ Before installing Paddi, ensure you have the following:
    - Set up shell completions
 
 3. **Verify installation:**
+
    ```bash
    paddi --version
    ```
@@ -48,23 +53,27 @@ Before installing Paddi, ensure you have the following:
 ### Method 2: Python-only Installation
 
 1. **Clone the repository:**
+
    ```bash
    git clone https://github.com/susumutomita/Paddi.git
    cd Paddi/python_agents
    ```
 
 2. **Create a virtual environment:**
+
    ```bash
    python -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
 
 3. **Install dependencies:**
+
    ```bash
    pip install -r requirements.txt
    ```
 
 4. **Verify installation:**
+
    ```bash
    python run_example.py --use_mock=True
    ```
@@ -149,6 +158,7 @@ paddi audit --project-id=YOUR_PROJECT_ID
 ### Common Issues
 
 1. **Permission Denied (Rust CLI)**
+
    ```bash
    chmod +x ~/.local/bin/paddi
    export PATH="$HOME/.local/bin:$PATH"
@@ -164,6 +174,7 @@ paddi audit --project-id=YOUR_PROJECT_ID
 
 4. **Vertex AI Region Issues**
    - Set the region in configuration or environment:
+
    ```bash
    export VERTEX_AI_REGION=us-central1
    ```

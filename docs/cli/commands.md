@@ -510,12 +510,14 @@ paddi analyze --min-severity=HIGH && paddi report
 ## Tips and Tricks
 
 1. **Use aliases for common commands:**
+
    ```bash
    alias audit-mock='paddi audit --use-mock'
    alias audit-prod='paddi audit --fail-on-critical'
    ```
 
 2. **Combine with other tools:**
+
    ```bash
    # Send report via email
    paddi report --formats=html && \
@@ -523,6 +525,7 @@ paddi analyze --min-severity=HIGH && paddi report
    ```
 
 3. **Custom output processing:**
+
    ```bash
    # Extract critical findings
    paddi audit --output-format=json | \
