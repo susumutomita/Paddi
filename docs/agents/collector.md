@@ -5,6 +5,7 @@ The Collector Agent is responsible for gathering Google Cloud Platform (GCP) con
 ## Overview
 
 The Collector Agent:
+
 - Fetches IAM policies and Security Command Center findings
 - Supports both mock data (for testing) and real GCP API calls
 - Outputs structured JSON for downstream processing
@@ -145,11 +146,13 @@ export PADDI_USE_MOCK=true
 ### IAM Collector
 
 Collects IAM policies from:
+
 - Project level
 - Organization level (if configured)
 - Resource level (future enhancement)
 
 Features:
+
 - Filters out Google-managed service accounts (configurable)
 - Captures policy bindings, conditions, and audit configs
 - Handles large policies with pagination
@@ -157,11 +160,13 @@ Features:
 ### Security Command Center Collector
 
 Collects findings from Security Command Center:
+
 - Active security findings
 - Filtered by severity and state
 - Includes vulnerability and misconfiguration findings
 
 Features:
+
 - Customizable finding filters
 - Batch processing for large result sets
 - Automatic retry on API errors
@@ -169,6 +174,7 @@ Features:
 ### Mock Data Provider
 
 Provides realistic test data:
+
 - Sample IAM policies with common misconfigurations
 - Example SCC findings across severity levels
 - Consistent data structure for testing
@@ -262,7 +268,7 @@ RESOURCE_TYPES = ['iam', 'scc', 'compute']
 # Add custom filtering logic
 def custom_iam_filter(policy):
     # Filter out test accounts
-    return not any('test' in member for binding in policy.bindings 
+    return not any('test' in member for binding in policy.bindings
                    for member in binding.members)
 
 collector.add_filter('iam', custom_iam_filter)
@@ -303,21 +309,23 @@ def test_collector_real():
 ### Common Issues
 
 1. **Authentication Errors**
+
    ```bash
    # Verify authentication
    gcloud auth application-default print-access-token
-   
+
    # Re-authenticate
    gcloud auth application-default login
    ```
 
 2. **Permission Errors**
+
    ```bash
    # Check current permissions
    gcloud projects get-iam-policy PROJECT_ID \
      --flatten="bindings[].members" \
      --filter="bindings.members:user:YOUR_EMAIL"
-   
+
    # Grant required role
    gcloud projects add-iam-policy-binding PROJECT_ID \
      --member="user:YOUR_EMAIL" \
@@ -325,6 +333,7 @@ def test_collector_real():
    ```
 
 3. **API Not Enabled**
+
    ```bash
    # Enable required APIs
    gcloud services enable iam.googleapis.com
@@ -358,16 +367,16 @@ python python_agents/collector/agent_collector.py --log-level=DEBUG
 class CollectorAgent:
     def __init__(self, config: CollectorConfig):
         """Initialize collector with configuration."""
-        
+
     def collect(self) -> CollectionResult:
         """Run collection and return results."""
-        
+
     def collect_iam_policies(self) -> List[IAMPolicy]:
         """Collect IAM policies from configured resources."""
-        
+
     def collect_scc_findings(self) -> List[SCCFinding]:
         """Collect Security Command Center findings."""
-        
+
     def save_results(self, results: CollectionResult, output_path: str):
         """Save collection results to JSON file."""
 ```
@@ -389,7 +398,7 @@ class SCCFinding:
     state: str
     resource_name: str
     finding_class: str
-    
+
 @dataclass
 class CollectionResult:
     metadata: dict

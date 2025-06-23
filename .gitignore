@@ -134,3 +134,6 @@ node_modules
 
 .vscode
 .devcontainer
+
+# Generated files
+presentation.pdf

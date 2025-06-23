@@ -12,13 +12,13 @@ paddi audit --use-mock
 
 # Output:
 # ✓ Collecting GCP resources... Done
-# ✓ Analyzing security risks... Done  
+# ✓ Analyzing security risks... Done
 # ✓ Generating reports... Done
-# 
+#
 # Audit complete! Reports saved to ./output/
 # - audit.md (Markdown report)
 # - audit.html (HTML report)
-# 
+#
 # Summary: 15 findings (2 CRITICAL, 5 HIGH, 6 MEDIUM, 2 LOW)
 ```
 
@@ -97,7 +97,7 @@ Example output in `audit.md`:
 ## Critical Findings
 
 ### 1. Overly Permissive Owner Role
-**Severity:** CRITICAL  
+**Severity:** CRITICAL
 **Resource:** projects/my-project
 
 The following accounts have owner-level access:
@@ -140,13 +140,13 @@ config = {
     - CIS Google Cloud Platform Benchmark
     - PCI-DSS requirements
     - HIPAA security rules
-    
+
     Focus on:
     1. Access controls
     2. Encryption requirements
     3. Audit logging
     4. Network security
-    
+
     Configuration:
     {configuration}
     """
@@ -178,7 +178,7 @@ Generated: 2024-01-15 10:30:00
 
 ## Executive Summary
 
-**Critical Issues:** 2  
+**Critical Issues:** 2
 **Total Findings:** 15
 
 ### Top Risks
@@ -203,6 +203,7 @@ Generated: 2024-01-15 10:30:00
 ### HTML Report Features
 
 The HTML report includes:
+
 - Interactive charts showing severity distribution
 - Filtering by severity and category
 - Expandable finding details
@@ -257,7 +258,7 @@ critical_count = sum(1 for f in data["findings"] if f["severity"] == "CRITICAL")
 if critical_count > 0:
     # Send Slack notification
     webhook_url = "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
-    
+
     message = {
         "text": f"🚨 Security Audit Alert",
         "attachments": [{
@@ -275,7 +276,7 @@ if critical_count > 0:
             ]
         }]
     }
-    
+
     requests.post(webhook_url, json=message)
 ```
 
@@ -293,31 +294,31 @@ on:
 jobs:
   audit:
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v3
-    
+
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@v1
       with:
         service_account_key: ${{ secrets.GCP_SA_KEY }}
         project_id: ${{ secrets.GCP_PROJECT_ID }}
-    
+
     - name: Install Paddi
       run: |
         cd cli
         make install
-        
+
     - name: Run Security Audit
       run: |
         paddi audit --fail-on-critical
-        
+
     - name: Upload Reports
       uses: actions/upload-artifact@v3
       with:
         name: security-reports
         path: output/
-        
+
     - name: Create Issue for Critical Findings
       if: failure()
       uses: actions/github-script@v6
@@ -349,10 +350,10 @@ with open("output/audit.json") as f:
 # Export to CSV
 with open("output/findings.csv", "w", newline="") as f:
     writer = csv.DictWriter(f, fieldnames=[
-        "id", "title", "severity", "category", 
+        "id", "title", "severity", "category",
         "resource", "risk_score", "recommendation"
     ])
-    
+
     writer.writeheader()
     for finding in data["findings"]:
         writer.writerow({

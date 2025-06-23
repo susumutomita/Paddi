@@ -5,6 +5,7 @@ The Reporter Agent transforms security findings into professional, actionable re
 ## Overview
 
 The Reporter Agent:
+
 - Processes analyzed security findings
 - Generates reports in Markdown, HTML, and JSON formats
 - Uses customizable Jinja2 templates
@@ -147,8 +148,8 @@ Generated: 2024-01-15 10:30:00
 ## Critical Findings
 
 ### 1. Overly Permissive Owner Role Assignment
-**Severity:** CRITICAL  
-**Category:** IAM_MISCONFIGURATION  
+**Severity:** CRITICAL
+**Category:** IAM_MISCONFIGURATION
 **Resource:** projects/my-project
 
 **Description:**
@@ -448,7 +449,7 @@ pytest python_agents/tests/test_reporter.py::test_markdown_generation
 ```python
 def test_custom_template():
     agent = ReporterAgent()
-    
+
     # Test with sample findings
     findings = [
         Finding(
@@ -457,12 +458,12 @@ def test_custom_template():
             explanation="Test explanation"
         )
     ]
-    
+
     report = agent.generate_with_template(
         findings,
         template="custom.j2"
     )
-    
+
     assert "Test Finding" in report
     assert "CRITICAL" in report
 ```
@@ -517,19 +518,19 @@ async def generate_formats_parallel(findings):
 class ReporterAgent:
     def __init__(self, config: ReporterConfig):
         """Initialize reporter with configuration."""
-        
+
     def generate_reports(self, findings: List[Finding]) -> Dict[str, str]:
         """Generate reports in all configured formats."""
-        
+
     def generate_markdown(self, findings: List[Finding]) -> str:
         """Generate Markdown report."""
-        
+
     def generate_html(self, findings: List[Finding]) -> str:
         """Generate HTML report."""
-        
+
     def generate_json(self, findings: List[Finding]) -> str:
         """Generate JSON report."""
-        
+
     def save_reports(self, reports: Dict[str, str], output_dir: str):
         """Save generated reports to disk."""
 ```
@@ -545,7 +546,7 @@ class ReporterConfig:
     include_summary: bool = True
     group_by_severity: bool = True
     theme: str = "light"
-    
+
 @dataclass
 class ReportMetadata:
     generated_at: datetime
@@ -553,7 +554,7 @@ class ReportMetadata:
     organization_id: Optional[str]
     report_version: str
     total_findings: int
-    
+
 @dataclass
 class ReportSection:
     title: str

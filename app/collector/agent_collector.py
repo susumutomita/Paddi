@@ -24,22 +24,23 @@ logger = logging.getLogger(__name__)
 
 
 class CollectorInterface(ABC):
-    """Abstract interface for GCP collectors"""
+    """Abstract interface for GCP collectors."""
 
     @abstractmethod
     def collect(self) -> Dict[str, Any]:
-        """Collect GCP configuration data"""
+        """Collect GCP configuration data."""
 
 
 class IAMCollector(CollectorInterface):
-    """Collector for IAM policies and roles"""
+    """Collector for IAM policies and roles."""
 
     def __init__(self, project_id: str, use_mock: bool = False):
+        """Initialize IAMCollector with project configuration."""
         self.project_id = project_id
         self.use_mock = use_mock
 
     def collect(self) -> Dict[str, Any]:
-        """Collect IAM policies"""
+        """Collect IAM policies."""
         if self.use_mock:
             return self._get_mock_iam_data()
 
@@ -60,7 +61,7 @@ class IAMCollector(CollectorInterface):
             return self._get_mock_iam_data()
 
     def _get_mock_iam_data(self) -> Dict[str, Any]:
-        """Return mock IAM data for testing"""
+        """Return mock IAM data for testing."""
         return {
             "bindings": [
                 {
@@ -82,14 +83,15 @@ class IAMCollector(CollectorInterface):
 
 
 class SCCCollector(CollectorInterface):
-    """Collector for Security Command Center findings"""
+    """Collector for Security Command Center findings."""
 
     def __init__(self, organization_id: str, use_mock: bool = False):
+        """Initialize SCCCollector with organization configuration."""
         self.organization_id = organization_id
         self.use_mock = use_mock
 
     def collect(self) -> List[Dict[str, Any]]:
-        """Collect SCC findings"""
+        """Collect SCC findings."""
         if self.use_mock:
             return self._get_mock_scc_data()
 
@@ -110,7 +112,7 @@ class SCCCollector(CollectorInterface):
             return self._get_mock_scc_data()
 
     def _get_mock_scc_data(self) -> List[Dict[str, Any]]:
-        """Return mock SCC findings for testing"""
+        """Return mock SCC findings for testing."""
         return [
             {
                 "name": "organizations/123456/sources/789/findings/finding-1",
@@ -143,7 +145,7 @@ class SCCCollector(CollectorInterface):
 
 
 class GCPConfigurationCollector:
-    """Main orchestrator for collecting GCP configurations"""
+    """Main orchestrator for collecting GCP configurations."""
 
     def __init__(
         self,
@@ -152,6 +154,7 @@ class GCPConfigurationCollector:
         use_mock: bool = False,
         output_dir: str = "data",
     ):
+        """Initialize GCPConfigurationCollector with configuration."""
         self.project_id = project_id
         self.organization_id = organization_id or "123456"  # Default for mock
         self.use_mock = use_mock
@@ -163,7 +166,7 @@ class GCPConfigurationCollector:
         self.scc_collector = SCCCollector(self.organization_id, use_mock)
 
     def collect_all(self) -> Dict[str, Any]:
-        """Collect all GCP configurations"""
+        """Collect all GCP configurations."""
         logger.info("Starting GCP configuration collection for project: %s", self.project_id)
 
         collected_data = {
@@ -180,7 +183,7 @@ class GCPConfigurationCollector:
         return collected_data
 
     def save_to_file(self, data: Dict[str, Any], filename: str = "collected.json") -> Path:
-        """Save collected data to JSON file"""
+        """Save collected data to JSON file."""
         output_path = self.output_dir / filename
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
@@ -188,7 +191,7 @@ class GCPConfigurationCollector:
         return output_path
 
     def _get_timestamp(self) -> str:
-        """Get current timestamp in ISO format"""
+        """Get current timestamp in ISO format."""
         from datetime import datetime, timezone
 
         return datetime.now(timezone.utc).isoformat()
