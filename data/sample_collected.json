@@ -1,0 +1,24 @@
+{
+  "project_id": "example-project-123",
+  "timestamp": "2025-06-23T10:00:00Z",
+  "iam_policies": [
+    {
+      "resource": "projects/example-project-123",
+      "bindings": [
+        {
+          "role": "roles/owner",
+          "members": [
+            "user:admin@example.com"
+          ]
+        }
+      ]
+    }
+  ],
+  "scc_findings": [
+    {
+      "name": "organizations/123/sources/456/findings/789",
+      "category": "PUBLIC_BUCKET",
+      "severity": "HIGH"
+    }
+  ]
+}

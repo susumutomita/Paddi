@@ -94,7 +94,7 @@ lint-python: ## Run Python linters (black, isort, pylint, flake8)
 	@printf "${GREEN}✓ Python linting passed${NC}\n"
 
 .PHONY: lint-security
-lint-security: ## Run security checks with bandit
+lint-security: ## Run security checks with bandit and detect-secrets
 	@printf "${BLUE}Running security checks...${NC}\n"
 	bandit -c pyproject.toml -r app/
 	@printf "${GREEN}✓ Security checks passed${NC}\n"

@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Optional
 import fire
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from common.models import SecurityFinding
+from app.common.models import SecurityFinding
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
