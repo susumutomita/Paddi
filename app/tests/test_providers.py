@@ -38,7 +38,7 @@ class TestCloudProviderFactory:
     def test_get_supported_providers(self):
         """Test getting list of supported providers."""
         providers = CloudProviderFactory.get_supported_providers()
-        assert set(providers) == {"gcp", "aws", "azure"}
+        assert set(providers) == {"gcp", "aws", "azure", "github"}
 
 
 class TestGCPProvider:
@@ -46,13 +46,14 @@ class TestGCPProvider:
 
     def test_init(self):
         """Test GCP provider initialization."""
-        provider = GCPProvider(project_id="test-project")
+        provider = GCPProvider(project_id="test-project", use_mock=True)
         assert provider.project_id == "test-project"
         assert provider.get_name() == "gcp"
+        assert provider.use_mock is True
 
     def test_get_iam_policies(self):
         """Test getting IAM policies."""
-        provider = GCPProvider()
+        provider = GCPProvider(use_mock=True)
         policies = provider.get_iam_policies()
         assert "project" in policies
         assert "bindings" in policies
@@ -60,7 +61,7 @@ class TestGCPProvider:
 
     def test_get_security_findings(self):
         """Test getting security findings."""
-        provider = GCPProvider()
+        provider = GCPProvider(use_mock=True)
         findings = provider.get_security_findings()
         assert isinstance(findings, list)
         assert len(findings) > 0
@@ -68,7 +69,7 @@ class TestGCPProvider:
 
     def test_get_audit_logs(self):
         """Test getting audit logs."""
-        provider = GCPProvider()
+        provider = GCPProvider(use_mock=True)
         logs = provider.get_audit_logs()
         assert isinstance(logs, list)
         assert len(logs) > 0
@@ -76,7 +77,7 @@ class TestGCPProvider:
 
     def test_collect_all(self):
         """Test collecting all data."""
-        provider = GCPProvider(project_id="test-project")
+        provider = GCPProvider(project_id="test-project", use_mock=True)
         data = provider.collect_all()
         assert data["provider"] == "gcp"
         assert data["project_id"] == "test-project"
@@ -189,6 +190,72 @@ class TestAzureProvider:
         assert data["provider"] == "azure"
         assert data["subscription_id"] == "test-sub"
         assert data["tenant_id"] == "test-tenant"
+        assert "iam_policies" in data
+        assert "security_findings" in data
+        assert "audit_logs" in data
+
+
+class TestGitHubProvider:
+    """Test GitHub provider implementation."""
+
+    def test_init_with_mock(self):
+        """Test GitHub provider initialization with mock data."""
+        from app.providers.github import GitHubProvider
+
+        provider = GitHubProvider(use_mock=True)
+        assert provider.get_name() == "github"
+        assert provider.use_mock is True
+
+    def test_init_without_token(self):
+        """Test GitHub provider initialization without token."""
+        from app.providers.github import GitHubProvider
+
+        provider = GitHubProvider(access_token=None)
+        assert provider.use_mock is True
+
+    def test_get_iam_policies(self):
+        """Test getting repository access permissions."""
+        from app.providers.github import GitHubProvider
+
+        provider = GitHubProvider(use_mock=True)
+        policies = provider.get_iam_policies()
+        assert "repository" in policies
+        assert "visibility" in policies
+        assert "collaborators" in policies
+        assert "branch_protections" in policies
+        assert len(policies["collaborators"]) > 0
+
+    def test_get_security_findings(self):
+        """Test getting security vulnerabilities."""
+        from app.providers.github import GitHubProvider
+
+        provider = GitHubProvider(use_mock=True)
+        findings = provider.get_security_findings()
+        assert isinstance(findings, list)
+        assert len(findings) > 0
+        assert all("type" in finding for finding in findings)
+        assert all("severity" in finding for finding in findings)
+
+    def test_get_audit_logs(self):
+        """Test getting repository audit events."""
+        from app.providers.github import GitHubProvider
+
+        provider = GitHubProvider(use_mock=True)
+        logs = provider.get_audit_logs()
+        assert isinstance(logs, list)
+        assert len(logs) > 0
+        assert all("type" in log for log in logs)
+        assert all("actor" in log for log in logs)
+        assert all("timestamp" in log for log in logs)
+
+    def test_collect_all(self):
+        """Test collecting all GitHub data."""
+        from app.providers.github import GitHubProvider
+
+        provider = GitHubProvider(owner="test-org", repo="test-repo", use_mock=True)
+        data = provider.collect_all()
+        assert data["provider"] == "github"
+        assert data["repository"] == "test-org/test-repo"
         assert "iam_policies" in data
         assert "security_findings" in data
         assert "audit_logs" in data

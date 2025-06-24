@@ -1,16 +1,26 @@
 """Google Cloud Platform provider implementation."""
 
+import logging
 from typing import Any, Dict, List
 
 from .base import CloudProvider
+
+logger = logging.getLogger(__name__)
 
 
 class GCPProvider(CloudProvider):
     """Google Cloud Platform provider implementation."""
 
-    def __init__(self, project_id: str = None, **kwargs):
-        """Initialize GCP provider."""
+    def __init__(self, project_id: str = None, use_mock: bool = False, **kwargs):
+        """Initialize GCP provider.
+
+        Args:
+            project_id: GCP project ID to audit
+            use_mock: Force use of mock data instead of real API calls
+            **kwargs: Additional configuration
+        """
         self.project_id = project_id or "sample-project"
+        self.use_mock = use_mock
 
     def get_name(self) -> str:
         """Return the name of the cloud provider."""
@@ -18,7 +28,12 @@ class GCPProvider(CloudProvider):
 
     def get_iam_policies(self) -> Dict[str, Any]:
         """Retrieve IAM policies from GCP."""
-        # Mock implementation for now
+        # For hackathon demo, use mock data primarily
+        # Real API implementation requires proper GCP setup
+        return self._get_mock_iam_policies()
+
+    def _get_mock_iam_policies(self) -> Dict[str, Any]:
+        """Get mock IAM policies for fallback."""
         return {
             "project": self.project_id,
             "bindings": [
@@ -42,7 +57,12 @@ class GCPProvider(CloudProvider):
 
     def get_security_findings(self) -> List[Dict[str, Any]]:
         """Retrieve Security Command Center findings."""
-        # Mock implementation
+        # For hackathon demo, use mock data primarily
+        # Real API implementation requires proper GCP setup
+        return self._get_mock_security_findings()
+
+    def _get_mock_security_findings(self) -> List[Dict[str, Any]]:
+        """Get mock security findings for fallback."""
         return [
             {
                 "name": f"projects/{self.project_id}/findings/finding1",
@@ -71,7 +91,12 @@ class GCPProvider(CloudProvider):
 
     def get_audit_logs(self) -> List[Dict[str, Any]]:
         """Retrieve Cloud Audit Logs."""
-        # Mock implementation
+        # For hackathon demo, use mock data primarily
+        # Real API implementation requires proper GCP setup
+        return self._get_mock_audit_logs()
+
+    def _get_mock_audit_logs(self) -> List[Dict[str, Any]]:
+        """Get mock audit logs for fallback."""
         return [
             {
                 "insertId": "log1",

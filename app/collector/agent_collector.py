@@ -206,6 +206,9 @@ def main(
     providers: Optional[str] = None,
     account_id: Optional[str] = None,
     subscription_id: Optional[str] = None,
+    github_token: Optional[str] = None,
+    github_owner: Optional[str] = None,
+    github_repo: Optional[str] = None,
     **kwargs,
 ):
     """
@@ -216,10 +219,13 @@ def main(
         organization_id: GCP organization ID for SCC findings
         use_mock: Use mock data instead of real cloud APIs
         output_dir: Directory to save collected data
-        provider: Single cloud provider (gcp, aws, azure)
+        provider: Single cloud provider (gcp, aws, azure, github)
         providers: JSON string with list of provider configs for multi-cloud
         account_id: AWS account ID
         subscription_id: Azure subscription ID
+        github_token: GitHub personal access token
+        github_owner: GitHub repository owner
+        github_repo: GitHub repository name
         **kwargs: Additional provider-specific parameters
     """
     try:
@@ -237,12 +243,19 @@ def main(
 
         # Handle single provider collection
         if provider.lower() != "gcp":
-            # Use multi-cloud collector for AWS/Azure
-            provider_config = {"provider": provider}
+            # Use multi-cloud collector for AWS/Azure/GitHub
+            provider_config = {"provider": provider, "use_mock": use_mock}
             if provider.lower() == "aws" and account_id:
                 provider_config["account_id"] = account_id
             elif provider.lower() == "azure" and subscription_id:
                 provider_config["subscription_id"] = subscription_id
+            elif provider.lower() == "github":
+                if github_token:
+                    provider_config["access_token"] = github_token
+                if github_owner:
+                    provider_config["owner"] = github_owner
+                if github_repo:
+                    provider_config["repo"] = github_repo
             provider_config.update(kwargs)
 
             multi_collector = MultiCloudCollector(output_dir=output_dir)
