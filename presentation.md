@@ -121,11 +121,12 @@ backgroundImage: url('https://marp.app/assets/hero-background.svg')
 
 # **技術スタック**
 
-## 🐍 **Pythonエージェント**
+## 🐍 **Python実装**
 
-- `google-cloud-iam`
-- `google-cloud-securitycenter`
-- `google-cloud-aiplatform` (Vertex AI)
+- **CLIフレームワーク**: Fire
+- **GCP SDK**: `google-cloud-iam`, `google-cloud-securitycenter`
+- **AI統合**: `google-cloud-aiplatform` (Vertex AI)
+- **テンプレート**: Jinja2
 
 ## 📊 **出力形式**
 
@@ -161,7 +162,7 @@ backgroundImage: url('https://marp.app/assets/hero-background.svg')
 ## 1️⃣ **設定の収集**
 
 ```bash
-$ paddi collect --project my-gcp-project
+$ python main.py collect --project-id my-gcp-project
 ✓ IAMポリシーを収集: 47件
 ✓ SCC findingsを取得: 12件
 ```
@@ -169,7 +170,7 @@ $ paddi collect --project my-gcp-project
 ## 2️⃣ **AI分析**
 
 ```bash
-$ paddi analyze
+$ python main.py analyze
 ✓ Gemini Proで分析中...
 ✓ リスクスコア計算: 7.3/10
 ```
@@ -177,7 +178,7 @@ $ paddi analyze
 ## 3️⃣ **レポート生成**
 
 ```bash
-$ paddi report --format html
+$ python main.py report --format html
 ✓ レポート生成完了: audit-2025-06-21.html
 ```
 
@@ -328,4 +329,5 @@ collector_output:
 
 - Google Cloud Documentation
 - Vertex AI Gemini API
+- Python Fire for CLI
 - Python asyncio for concurrency
