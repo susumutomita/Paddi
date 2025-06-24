@@ -6,6 +6,7 @@ from .aws import AWSProvider
 from .azure import AzureProvider
 from .base import CloudProvider
 from .gcp import GCPProvider
+from .github import GitHubProvider
 
 
 class CloudProviderFactory:
@@ -15,6 +16,7 @@ class CloudProviderFactory:
         "gcp": GCPProvider,
         "aws": AWSProvider,
         "azure": AzureProvider,
+        "github": GitHubProvider,
     }
 
     @classmethod
