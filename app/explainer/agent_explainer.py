@@ -22,8 +22,8 @@ except ImportError:
     aiplatform = None
     models = None
 
-from common.auth import check_gcp_credentials
-from common.models import SecurityFinding
+from app.common.auth import check_gcp_credentials
+from app.common.models import SecurityFinding
 
 # Configure logging
 logging.basicConfig(

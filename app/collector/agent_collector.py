@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional
 
 import fire
 
-from common.auth import check_gcp_credentials
+from app.common.auth import check_gcp_credentials
 
 # Configure logging
 logging.basicConfig(
