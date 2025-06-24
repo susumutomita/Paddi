@@ -79,7 +79,7 @@ def start_audit():
 
     except Exception as e:
         logger.error(f"Error starting audit: {str(e)}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False}), 500
 
 
 @app.route("/api/audit/status/<audit_id>")
@@ -202,4 +202,4 @@ def chat_with_paddi():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    app.run(host="0.0.0.0", port=port, debug=False)
