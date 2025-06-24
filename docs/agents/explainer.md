@@ -5,6 +5,7 @@ The Explainer Agent analyzes collected GCP configuration data using Google's Gem
 ## Overview
 
 The Explainer Agent:
+
 - Processes collected GCP configuration data
 - Uses Vertex AI's Gemini model for intelligent analysis
 - Identifies security risks with severity ratings
@@ -275,7 +276,7 @@ def analyze_resource(resource_hash):
 class CustomAnalyzer(BaseAnalyzer):
     def analyze(self, resource):
         findings = []
-        
+
         # Custom logic
         if self.is_public_bucket(resource):
             findings.append(self.create_finding(
@@ -284,7 +285,7 @@ class CustomAnalyzer(BaseAnalyzer):
                 explanation="...",
                 recommendation="..."
             ))
-        
+
         return findings
 
 # Register analyzer
@@ -359,9 +360,9 @@ pytest python_agents/tests/test_explainer.py::test_severity_classification
 def test_mock_analysis():
     agent = ExplainerAgent(use_mock=True)
     findings = agent.analyze(sample_data)
-    
+
     assert len(findings) > 0
-    assert all(f.severity in ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] 
+    assert all(f.severity in ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']
                for f in findings)
     assert all(f.explanation and f.recommendation for f in findings)
 ```
@@ -371,25 +372,28 @@ def test_mock_analysis():
 ### Common Issues
 
 1. **Vertex AI Authentication**
+
    ```bash
    # Verify authentication
    gcloud auth application-default print-access-token
-   
+
    # Enable Vertex AI API
    gcloud services enable aiplatform.googleapis.com
    ```
 
 2. **Model Availability**
+
    ```bash
    # List available models
    gcloud ai models list --region=us-central1
-   
+
    # Check model permissions
    gcloud ai models describe gemini-1.5-flash \
      --region=us-central1
    ```
 
 3. **Quota Limits**
+
    ```python
    # Implement rate limiting
    rate_limiter = RateLimiter(
@@ -439,16 +443,16 @@ export PADDI_LOG_LLM_CALLS=true
 class ExplainerAgent:
     def __init__(self, config: ExplainerConfig):
         """Initialize explainer with configuration."""
-        
+
     def analyze(self, collected_data: dict) -> List[Finding]:
         """Analyze collected data and return findings."""
-        
+
     def analyze_iam_policies(self, policies: List[dict]) -> List[Finding]:
         """Analyze IAM policies for security issues."""
-        
+
     def analyze_scc_findings(self, findings: List[dict]) -> List[Finding]:
         """Enhance SCC findings with additional context."""
-        
+
     def save_findings(self, findings: List[Finding], output_path: str):
         """Save analysis results to JSON file."""
 ```
@@ -475,7 +479,7 @@ class AnalysisSummary:
     total_findings: int
     by_severity: Dict[str, int]
     by_category: Dict[str, int]
-    
+
 class Severity(Enum):
     CRITICAL = "CRITICAL"
     HIGH = "HIGH"

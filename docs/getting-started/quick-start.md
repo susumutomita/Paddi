@@ -20,6 +20,7 @@ python run_example.py --use_mock=True
 ```
 
 This will:
+
 1. Collect sample GCP configuration data
 2. Analyze it for security issues using Gemini
 3. Generate reports in `output/` directory
@@ -49,6 +50,7 @@ paddi audit
 ### Step 3: Review Results
 
 Check the generated reports:
+
 - `output/audit.md` - Markdown report (Obsidian-compatible)
 - `output/audit.html` - HTML report for web viewing
 

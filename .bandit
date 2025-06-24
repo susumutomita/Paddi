@@ -1,0 +1,6 @@
+[bandit]
+# Skip assert warnings in test files
+skips = B101
+
+# Only scan the app directory
+exclude_dirs = tests,venv,.venv,env,.env,node_modules

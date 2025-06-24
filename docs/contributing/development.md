@@ -7,8 +7,7 @@ your development environment and contribute to the project.
 
 ### Prerequisites
 
-- Python 3.8 or higher
-- Rust 1.70 or higher
+- Python 3.10 or higher
 - Git
 - Google Cloud SDK (for testing with real GCP resources)
 - Docker (optional, for containerized development)
@@ -25,7 +24,6 @@ cd Paddi
 #### 1. Create Virtual Environment
 
 ```bash
-cd python_agents
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
@@ -48,49 +46,21 @@ pip install -e .
 pre-commit install
 ```
 
-### Rust Development Setup
-
-#### 1. Install Rust Dependencies
-
-```bash
-cd cli
-cargo build
-```
-
-#### 2. Run Tests
-
-```bash
-cargo test
-```
-
-#### 3. Install Development Tools
-
-```bash
-# Install cargo-watch for auto-recompilation
-cargo install cargo-watch
-
-# Install rustfmt and clippy
-rustup component add rustfmt clippy
-```
-
 ## Project Structure
 
 ```text
 Paddi/
-├── python_agents/          # Python agent implementations
+├── app/                    # Python application code
 │   ├── collector/         # Data collection agent
-│   ├── explainer/        # Analysis agent (LLM integration)
-│   ├── reporter/         # Report generation agent
-│   ├── tests/           # Python tests
-│   └── templates/       # Report templates
-├── cli/                  # Rust CLI implementation
-│   ├── src/
-│   │   ├── commands/    # CLI commands
-│   │   ├── config/      # Configuration handling
-│   │   └── orchestrator/# Agent orchestration
-│   └── tests/          # Rust tests
-├── docs/               # Documentation
-└── examples/           # Example configurations and scripts
+│   ├── explainer/         # Analysis agent (LLM integration)
+│   └── reporter/          # Report generation agent
+├── tests/                 # Test suite
+├── templates/             # Report templates
+├── data/                  # Intermediate data storage
+├── output/                # Generated reports
+├── docs/                  # Documentation
+├── examples/              # Example configurations
+└── main.py                # CLI entry point
 ```
 
 ## Development Workflow
@@ -131,31 +101,6 @@ class SecurityFinding:
         return self.severity == "CRITICAL"
 ```
 
-#### Rust Code Style
-
-```rust
-// Good example
-use anyhow::Result;
-
-/// Configuration for the Paddi CLI
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Config {
-    /// GCP project ID
-    pub project_id: String,
-    /// Use mock data instead of real APIs
-    pub use_mock: bool,
-}
-
-impl Config {
-    /// Load configuration from file
-    pub fn load(path: &Path) -> Result<Self> {
-        let content = fs::read_to_string(path)?;
-        let config: Config = toml::from_str(&content)?;
-        Ok(config)
-    }
-}
-```
-
 ### 3. Write Tests
 
 #### Python Tests
@@ -186,29 +131,6 @@ def test_collect_with_filters(mock_collector):
     assert len(result.scc_findings) == 0
 ```
 
-#### Rust Tests
-
-```rust
-// tests/integration_test.rs
-use paddi::config::Config;
-
-#[test]
-fn test_config_loading() {
-    let config = Config::load("tests/fixtures/test_config.toml").unwrap();
-
-    assert_eq!(config.project_id, "test-project");
-    assert!(config.use_mock);
-}
-
-#[tokio::test]
-async fn test_audit_command() {
-    let result = run_audit_command("--use-mock").await;
-
-    assert!(result.is_ok());
-    assert!(result.unwrap().findings.len() > 0);
-}
-```
-
 ### 4. Run Quality Checks
 
 #### Python
@@ -225,22 +147,6 @@ make format
 
 # Run all checks (required before commit)
 make before-commit
-```
-
-#### Rust
-
-```bash
-# Format code
-cargo fmt
-
-# Run linter
-cargo clippy -- -D warnings
-
-# Run tests
-cargo test
-
-# Check all
-make check
 ```
 
 ### 5. Update Documentation
@@ -411,21 +317,6 @@ logger = logging.getLogger(__name__)
 logger.debug("Debug information")
 ```
 
-### Rust Debugging
-
-```rust
-// Use debug prints
-dbg!(&config);
-println!("Debug: {:?}", result);
-
-// Use env_logger
-env_logger::init();
-log::debug!("Debug information");
-
-// Run with debug output
-RUST_LOG=debug cargo run
-```
-
 ### Common Issues
 
 1. **Import Errors**
@@ -438,22 +329,12 @@ RUST_LOG=debug cargo run
    pip install -e .
    ```
 
-2. **Rust Compilation Errors**
-
-   ```bash
-   # Clean and rebuild
-   cargo clean
-   cargo build
-   ```
-
-3. **Test Failures**
+2. **Test Failures**
 
    ```bash
    # Run specific test with output
    pytest -xvs tests/test_specific.py::test_function
 
-   # Rust test with output
-   cargo test -- --nocapture test_name
    ```
 
 ## Performance Profiling
@@ -476,28 +357,13 @@ stats = pstats.Stats(profiler).sort_stats('cumulative')
 stats.print_stats()
 ```
 
-### Rust Profiling
-
-```bash
-# Build with release profile
-cargo build --release
-
-# Profile with perf
-perf record --call-graph=dwarf target/release/paddi audit
-perf report
-```
-
 ## Release Process
 
 ### Version Bumping
 
 ```bash
-# Python version (pyproject.toml)
+# Python version (setup.py or pyproject.toml)
 [tool.poetry]
-version = "1.2.0"
-
-# Rust version (Cargo.toml)
-[package]
 version = "1.2.0"
 ```
 

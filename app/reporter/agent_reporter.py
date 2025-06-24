@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Optional
 import fire
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from common.models import SecurityFinding
+from app.common.models import SecurityFinding
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -285,6 +285,7 @@ class HonKitGenerator(ReportGenerator):
     """Generates HonKit documentation structure."""
 
     def __init__(self, output_dir: Path):
+        """Initialize HonKitReportGenerator with output directory."""
         self.output_dir = output_dir / "docs"
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -482,6 +483,7 @@ class ReportService:
         output_dir: Path = Path("output"),
         template_dir: Optional[Path] = None,
     ):
+        """Initialize ReportService with directories."""
         self.input_dir = input_dir
         self.output_dir = output_dir
         self.template_dir = template_dir

@@ -245,15 +245,15 @@ metadata:
 def create_secure_bucket(bucket_name: str, cmek_key: str):
     """Create bucket with customer-managed encryption."""
     storage_client = storage.Client()
-    
+
     bucket = storage_client.bucket(bucket_name)
     bucket.encryption_key = cmek_key
     bucket.location = "us-central1"
     bucket.storage_class = "STANDARD"
-    
+
     # Enable uniform bucket-level access
     bucket.iam_configuration.uniform_bucket_level_access_enabled = True
-    
+
     bucket.create()
 ```
 
@@ -304,6 +304,7 @@ gcloud compute networks subnets update ${SUBNET_NAME} \
 These require immediate attention:
 
 1. **Public Data Exposure**
+
    ```python
    # Finding: Storage bucket with public access
    {
@@ -314,6 +315,7 @@ These require immediate attention:
    ```
 
 2. **Overly Permissive IAM**
+
    ```python
    # Finding: User with Owner role
    {
@@ -324,6 +326,7 @@ These require immediate attention:
    ```
 
 3. **Unencrypted Data**
+
    ```python
    # Finding: Storage without encryption
    {
@@ -473,7 +476,7 @@ def send_to_siem(finding):
             "recommendation": finding["recommendation"]
         }
     }
-    
+
     # Send to Splunk/ELK/etc
     siem_client.send_event(siem_event)
 ```
@@ -510,7 +513,7 @@ def auto_remediate(finding):
             remove_public_access(finding["resource"])
         elif finding["type"] == "old_sa_key":
             rotate_service_account_key(finding["resource"])
-        
+
         log_remediation(finding)
 ```
 
@@ -539,6 +542,7 @@ Before running Paddi in production:
 ## Questions?
 
 For security-related questions:
+
 - Review the [Security FAQ](https://github.com/susumutomita/Paddi/wiki/Security-FAQ)
 - Contact the security team
 - Report security issues privately via [security@paddi.dev](mailto:security@paddi.dev)

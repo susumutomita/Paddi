@@ -134,3 +134,23 @@ node_modules
 
 .vscode
 .devcontainer
+
+# Generated files
+presentation.pdf
+
+# Security - Never commit these files
+*.key
+*.pem
+*.p12
+*.pfx
+*-sa-key.json
+*-credentials.json
+service-account-*.json
+credentials/
+secrets/
+
+# Local data files
+data/collected.json
+data/explained.json
+output/audit.md
+output/audit.html
