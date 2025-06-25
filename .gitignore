@@ -136,6 +136,7 @@ node_modules
 .devcontainer
 
 # Generated files
+presentation.html
 presentation.pdf
 
 # Security - Never commit these files
