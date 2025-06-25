@@ -3,6 +3,34 @@
 from common.models import SecurityFinding
 
 
+def test_security_finding_creation():
+    finding = SecurityFinding(
+        title="Test Finding",
+        severity="HIGH",
+        explanation="Test explanation",
+        recommendation="Test recommendation",
+    )
+    assert finding.title == "Test Finding"
+    assert finding.severity == "HIGH"
+    assert finding.explanation == "Test explanation"
+    assert finding.recommendation == "Test recommendation"
+
+
+def test_security_finding_to_dict():
+    finding = SecurityFinding(
+        title="Test Finding",
+        severity="MEDIUM",
+        explanation="Test explanation",
+        recommendation="Test recommendation",
+    )
+    result = finding.to_dict()
+    assert isinstance(result, dict)
+    assert result["title"] == "Test Finding"
+    assert result["severity"] == "MEDIUM"
+    assert result["explanation"] == "Test explanation"
+    assert result["recommendation"] == "Test recommendation"
+
+
 class TestSecurityFinding:
     """Test cases for SecurityFinding dataclass."""
 

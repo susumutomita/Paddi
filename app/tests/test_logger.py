@@ -4,7 +4,7 @@ import logging
 import os
 from unittest.mock import patch
 
-from log.logger import Logger
+from log.logger import Logger, get_logger
 
 
 class TestLogger:
@@ -142,3 +142,10 @@ class TestLogger:
 
         # Handler count should not increase
         assert len(logger2.logger.handlers) == initial_handler_count
+
+
+def test_get_logger_returns_logger_instance():
+    logger = get_logger("test_logger")
+    assert logger.name == "test_logger"
+    assert hasattr(logger, "info")
+    assert hasattr(logger, "error")

@@ -1,4 +1,6 @@
-"""Tests for authentication utilities."""
+"""
+Unit tests for authentication utilities
+"""
 
 import os
 from unittest.mock import patch
