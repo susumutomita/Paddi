@@ -72,3 +72,17 @@ class Logger:
             message (str): The message to be logged.
         """
         self.logger.critical(message)
+
+
+def get_logger(name):
+    """
+    Create and return a logger instance.
+
+    Args:
+        name (str): The name of the logger.
+
+    Returns:
+        logging.Logger: The configured logger instance.
+    """
+    logger = Logger(name)
+    return logger.logger

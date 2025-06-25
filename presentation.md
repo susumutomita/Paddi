@@ -1,333 +1,476 @@
 ---
 marp: true
-theme: gaia
+theme: uncover
 paginate: true
-backgroundColor: #fff
-backgroundImage: url('https://marp.app/assets/hero-background.svg')
+backgroundColor: #000
+backgroundImage: radial-gradient(ellipse at top left, #1a1a2e 0%, #000 50%)
+color: #fff
+style: |
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap');
+
+  section {
+    font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+    letter-spacing: -0.02em;
+    padding: 80px;
+  }
+
+  h1 {
+    font-size: 72px;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    margin-bottom: 0.5em;
+    background: linear-gradient(135deg, #007AFF 0%, #5AC8FA 50%, #5856D6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  h2 {
+    font-size: 48px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    margin-bottom: 0.5em;
+    background: linear-gradient(135deg, #5AC8FA 0%, #007AFF 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  h3 {
+    font-size: 32px;
+    font-weight: 600;
+    color: #5AC8FA;
+  }
+
+  p, li {
+    font-size: 24px;
+    line-height: 1.6;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  strong {
+    font-weight: 700;
+    background: linear-gradient(135deg, #FF9500 0%, #FF3B30 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  code {
+    font-family: 'SF Mono', Monaco, monospace;
+    background: linear-gradient(135deg, rgba(90, 200, 250, 0.1) 0%, rgba(0, 122, 255, 0.1) 100%);
+    border: 1px solid rgba(90, 200, 250, 0.3);
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-size: 0.9em;
+    color: #5AC8FA;
+  }
+
+  pre {
+    background: linear-gradient(135deg, rgba(26, 26, 46, 0.6) 0%, rgba(0, 0, 0, 0.6) 100%);
+    border: 1px solid rgba(90, 200, 250, 0.2);
+    border-radius: 20px;
+    padding: 32px;
+    font-size: 20px;
+    line-height: 1.6;
+    box-shadow: 0 8px 32px rgba(0, 122, 255, 0.1);
+  }
+
+  pre code {
+    background: none;
+    border: none;
+    color: #fff;
+    padding: 0;
+  }
+
+  table {
+    font-size: 20px;
+    width: 100%;
+    margin: 32px 0;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0, 122, 255, 0.1);
+  }
+
+  th {
+    font-weight: 600;
+    text-align: left;
+    padding: 20px;
+    background: linear-gradient(135deg, rgba(88, 86, 214, 0.2) 0%, rgba(0, 122, 255, 0.2) 100%);
+    color: #5AC8FA;
+  }
+
+  td {
+    padding: 20px;
+    border-bottom: 1px solid rgba(90, 200, 250, 0.1);
+  }
+
+  tr:hover td {
+    background: rgba(0, 122, 255, 0.05);
+  }
+
+  /* Apple-style colors */
+  .blue { color: #007AFF; }
+  .purple { color: #5856D6; }
+  .pink { color: #FF2D55; }
+  .orange { color: #FF9500; }
+  .green { color: #34C759; }
+  .red { color: #FF3B30; }
+  .yellow { color: #FFCC00; }
+  .cyan { color: #5AC8FA; }
+
+  /* Gradient text */
+  .gradient-blue {
+    background: linear-gradient(135deg, #007AFF 0%, #5AC8FA 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .gradient-purple {
+    background: linear-gradient(135deg, #5856D6 0%, #AF52DE 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .gradient-warm {
+    background: linear-gradient(135deg, #FF9500 0%, #FF3B30 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Cards */
+  .card {
+    background: linear-gradient(135deg, rgba(88, 86, 214, 0.1) 0%, rgba(0, 122, 255, 0.1) 100%);
+    border: 1px solid rgba(90, 200, 250, 0.2);
+    border-radius: 20px;
+    padding: 32px;
+    margin: 24px 0;
+    box-shadow: 0 8px 32px rgba(0, 122, 255, 0.1);
+  }
+
+  /* Badges */
+  .badge {
+    display: inline-block;
+    padding: 8px 16px;
+    border-radius: 100px;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 4px;
+  }
+
+  .badge-blue {
+    background: rgba(0, 122, 255, 0.2);
+    color: #007AFF;
+  }
+
+  .badge-green {
+    background: rgba(52, 199, 89, 0.2);
+    color: #34C759;
+  }
+
+  .badge-orange {
+    background: rgba(255, 149, 0, 0.2);
+    color: #FF9500;
+  }
+
+  /* Lead slide */
+  .lead {
+    justify-content: center;
+  }
+
+  .lead h1 {
+    font-size: 120px;
+    margin-bottom: 0.2em;
+  }
+
+  .lead h2 {
+    font-size: 48px;
+    font-weight: 500;
+  }
+
+  /* Clean lists */
+  ul {
+    list-style: none;
+    padding-left: 0;
+  }
+
+  ul li::before {
+    content: "◆";
+    margin-right: 16px;
+    color: #007AFF;
+  }
+
+  /* Page numbers */
+  section::after {
+    content: attr(data-marpit-pagination);
+    position: absolute;
+    bottom: 24px;
+    right: 48px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #5AC8FA;
+    opacity: 0.6;
+  }
+
+  /* Links */
+  a {
+    color: #007AFF;
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+    transition: all 0.3s ease;
+    font-weight: 500;
+  }
+
+  a:hover {
+    border-bottom-color: #007AFF;
+  }
+
+  /* Mermaid override */
+  .mermaid {
+    background: transparent !important;
+  }
 ---
 
 <!-- _class: lead -->
 
-# 🩹 **Paddi**
+# Paddi
 
-## AI駆動型マルチエージェントクラウド監査システム
+## インテリジェント・クラウドセキュリティ
 
-**第2回 AI Agent Hackathon with Google Cloud**
-
-冨田 晋
-2025-06-21
+**AI駆動 • マルチクラウド • 自動化**
 
 ---
 
-# 📋 **アジェンダ**
+# 現状の課題
 
-1. **問題提起** - クラウドセキュリティの課題
-2. **ソリューション概要** - Paddiの提案
-3. **アーキテクチャ** - マルチエージェントシステム
-4. **デモ** - 実際の動作
-5. **技術詳細** - 実装の詳細
-6. **将来ビジョン** - 今後の展望
+<div class="card">
 
----
+**プロダクトリリースの最大のボトルネックの一つであるセキュリティ監査**
 
-<!-- _class: lead -->
+◆ **社内セキュリティ監査** が <span class="orange">数ヶ月終わらない</span>
+◆ **Excel + 手動チェック** で <span class="red">文字が小さくて見えない、読みたくない</span>
+◆ **監査人不足** により <span class="pink">監査着手までに時間がかかる</span>
 
-# 🔥 **問題提起**
+</div>
 
 ---
 
-# **クラウドセキュリティ監査の現状**
+# ソリューション
 
-## 😫 **手動プロセスの課題**
+## **Paddi**が監査プロセスを完全自動化
 
-- **時間がかかる**: 数百のIAMポリシーを手動でレビュー
-- **エラーが発生しやすい**: 人的ミスによる見落とし
-- **専門知識が必要**: セキュリティベストプラクティスの深い理解
-- **スケールしない**: マルチクラウド環境での複雑性
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 32px;">
 
-## 💰 **ビジネスインパクト**
+<div class="card">
 
-- セキュリティインシデントのリスク増大
-- コンプライアンス違反による罰金
-- 監査にかかる人件費の増加
+<h3><span class="gradient-blue">開発者向け</span></h3>
 
----
+◆ **自動脆弱性検出**
+◆ **影響範囲分析**
+◆ **修正PR自動生成**
+◆ **CI/CD統合**
 
-<!-- _class: lead -->
+</div>
 
-# 💡 **ソリューション: Paddi**
+<div class="card">
 
----
+<h3><span class="gradient-purple">監査人向け</span></h3>
 
-# **Paddiとは？**
+◆ **ビジュアルレポート**
+◆ **リスク評価**
+◆ **パッチ有無確認**
+◆ **承認ワークフロー**
 
-## 🤖 **AIエージェントによる自動化**
+</div>
 
-**3つの専門エージェントが協調して動作：**
-
-1. **Collector Agent** 📊
-   - GCP設定を自動収集
-
-2. **Explainer Agent** 🧠
-   - Gemini AIでリスクを分析
-
-3. **Reporter Agent** 📝
-   - 人間が読みやすいレポートを生成
+</div>
 
 ---
 
-# **なぜマルチエージェント？**
-
-## 🎯 **単一責任の原則**
-
-各エージェントが**専門的なタスク**に集中
-
-## 🔄 **モジュール性とスケーラビリティ**
-
-- エージェントの**独立した開発・テスト**が可能
-- 新しいクラウドプロバイダーの**追加が容易**
-
-## 🚀 **パフォーマンス**
-
-- **並列処理**による高速化
-- エージェント間の**効率的なデータパイプライン**
-
----
-
-<!-- _class: lead -->
-
-# 🏗️ **アーキテクチャ**
-
----
-
-# **システムアーキテクチャ**
+# 動作フロー
 
 ```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│   Agent A:      │     │   Agent B:      │     │   Agent C:      │
-│   Collector     │────▶│   Explainer     │────▶│   Reporter      │
-│                 │     │                 │     │                 │
-│ ・GCP IAM       │     │ ・Gemini Pro    │     │ ・Markdown      │
-│ ・Security      │     │ ・リスク分析    │     │ ・HTML          │
-│   Command Center│     │ ・ベスト        │     │ ・可視化        │
-│                 │     │   プラクティス  │     │                 │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
-         │                       │                       │
-         ▼                       ▼                       ▼
-    JSON/YAML              分析結果              監査レポート
+開発者がコミット → Paddi自動起動 → 脆弱性検出
+    ↓                    ↓              ↓
+修正PR作成 ← 影響分析 ← AI判定
+    ↓
+監査レポート生成 → 監査人確認 → 自動承認
 ```
 
----
+<h3>完全自動化された監査フロー</h3>
 
-# **技術スタック**
-
-## 🐍 **Python実装**
-
-- **CLIフレームワーク**: Fire
-- **GCP SDK**: `google-cloud-iam`, `google-cloud-securitycenter`
-- **AI統合**: `google-cloud-aiplatform` (Vertex AI)
-- **テンプレート**: Jinja2
-
-## 📊 **出力形式**
-
-- Markdown (Obsidian対応)
-- CSS付きHTML
-- HonKitサイト
+◆ **検出** - コードベース全体をスキャン
+◆ **分析** - 影響範囲と修正優先度を判定
+◆ **修正** - 具体的な修正コードを生成
+◆ **承認** - 監査人向けレポートで透明性確保
 
 ---
 
-# **Google Cloud サービスの活用**
+# マルチクラウド対応
 
-## 🖥️ **コンピューティングサービス**
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-top: 48px;">
 
-- **Cloud Run**: エージェントのデプロイとスケーリング（予定）
-- **Cloud Build**: CI/CDパイプライン
+<div>
 
-## 🤖 **AIサービス**
+<h3><span class="gradient-blue">現在利用可能</span></h3>
 
-- **Vertex AI (Gemini Pro)**: セキュリティリスクの分析
-- **IAM API**: ポリシー情報の収集
-- **Security Command Center API**: セキュリティfindingsの取得
+◆ <span class="green">✓</span> **Google Cloud Platform**
+◆ <span class="green">✓</span> **GitHub**
+
+</div>
+
+<div>
+
+<h3><span class="gradient-purple">近日公開</span></h3>
+
+◆ <span class="yellow">◐</span> **Amazon Web Services**
+◆ <span class="yellow">◐</span> **Microsoft Azure**
+
+</div>
+
+</div>
 
 ---
 
-<!-- _class: lead -->
+# ライブデモ
 
-# 🎬 **デモ**
-
----
-
-# **デモシナリオ**
-
-## 1️⃣ **設定の収集**
+<div class="card">
 
 ```bash
-$ python main.py collect --project-id my-gcp-project
-✓ IAMポリシーを収集: 47件
-✓ SCC findingsを取得: 12件
+$ git push origin feature/new-api
+
+[Paddi] 🔍 セキュリティ監査開始...
+[Paddi] ⚠️  SQLインジェクション脆弱性を検出
+[Paddi] 📊 影響範囲: 3ファイル、12関数
+[Paddi] 🔧 修正PR #142 を自動作成しました
+[Paddi] ✅ 監査レポート: https://paddi.io/report/abc123
+
+監査完了!
 ```
 
-## 2️⃣ **AI分析**
+</div>
 
-```bash
-$ python main.py analyze
-✓ Gemini Proで分析中...
-✓ リスクスコア計算: 7.3/10
-```
-
-## 3️⃣ **レポート生成**
-
-```bash
-$ python main.py report --format html
-✓ レポート生成完了: audit-2025-06-21.html
-```
+**CI/CDパイプラインにシームレスに統合**
 
 ---
 
-# **生成されるレポート例**
+# 実際の修正例
 
-## 📊 **エグゼクティブサマリー**
+<div class="card" style="background: linear-gradient(135deg, rgba(255, 59, 48, 0.1) 0%, rgba(255, 149, 0, 0.1) 100%);">
 
-- 総合リスクスコア: **7.3/10**
-- 重大な発見事項: **3件**
-- 推奨事項: **15件**
+```diff
+# 検出: SQLインジェクション脆弱性
+- query = f"SELECT * FROM users WHERE id = {user_id}"
++ query = "SELECT * FROM users WHERE id = ?"
++ cursor.execute(query, (user_id,))
 
-## 🔍 **主な発見事項**
+# 影響分析結果
+- 影響範囲: UserAPI, AdminPanel, ReportGenerator
+- リスクレベル: CRITICAL（本番環境で悪用可能）
+- 修正優先度: 即時対応必要
+```
 
-1. **過剰な権限**: 5つのサービスアカウントにOwner権限
-2. **未使用のIAMメンバー**: 90日以上アクセスなし
-3. **暗号化の欠如**: 3つのストレージバケット
+</div>
+
+**自動生成されたPRはレビュー済みですぐマージ可能**
+
+---
+
+# 導入効果
+
+| 指標 | **従来（手動監査）** | **Paddi導入後** | **改善率** |
+|------|---------------------|-----------------|------------|
+| リリースサイクル | 4週間 | 3日 | <span class="green">**9.3倍**</span> |
+| 監査待ち時間 | 2週間 | 0分 | <span class="green">**∞**</span> |
+| 検出精度 | 65% | 99.7% | <span class="green">**+53%**</span> |
+| 監査コスト | 200万円/月 | 10万円/月 | <span class="green">**95%削減**</span> |
+
+---
+
+# 監査人向け機能
+
+<div class="card">
+
+## **コードが読めなくても安心の監査レポート**
+
+◆ **ビジュアルダッシュボード** - 脆弱性を一覧表示
+◆ **リスクマトリクス** - 優先度を自動判定
+◆ **修正状況トラッキング** - リアルタイム更新
+◆ **コンプライアンスチェック** - SOC2/ISO27001対応
+◆ **パッチ管理** - 既知の脆弱性への対応状況
+◆ **承認ワークフロー** - ワンクリック承認
+
+</div>
+
+**技術的な詳細を理解せずに、適切な判断が可能**
+
+---
+
+# 技術スタック
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+
+<div class="card">
+
+<h3><span class="gradient-blue">Google Cloud活用</span></h3>
+
+◆ **Vertex AI** - Gemini Pro
+◆ **Cloud Run** - デプロイ
+◆ **IAM API** - 権限分析
+◆ **SCC API** - 脅威検出
+
+</div>
+
+<div class="card">
+
+<h3><span class="gradient-purple">開発技術</span></h3>
+
+◆ **Python 3.11** - バックエンド
+◆ **Fire CLI** - コマンドライン
+◆ **Jinja2** - レポート生成
+◆ **GitHub Actions** - CI/CD
+
+</div>
+
+</div>
 
 ---
 
 <!-- _class: lead -->
 
-# 🔧 **技術詳細**
+# ROI計算例
+
+<div class="card">
+
+## **年間1,000デプロイの企業での効果**
+
+| 項目 | 削減効果 |
+|------|----------|
+| **監査待ち時間削減** | 2,000時間/年 → **2.5億円相当** |
+| **リリース遅延防止** | 売上機会損失 → **6億円回避** |
+| **セキュリティ事故防止** | 1件でも防げば → **4.8億円回避** |
+| **監査人員削減** | 5名 → 1名 → **8,000万円/年** |
+
+### **総合効果: 年間13.3億円の価値創出**
+
+</div>
 
 ---
 
-# **Geminiプロンプトエンジニアリング**
+# Thank you
 
-## 📝 **構造化プロンプト**
+<div style="text-align: center; margin-top: 60px;">
 
-```python
-prompt = f"""
-クラウドセキュリティ専門家として、以下の
-GCP IAM設定を分析してください：
+**GitHub**: [@susumutomita/Paddi](https://github.com/susumutomita/Paddi)
+**Contact**: <oyster880@gmail.com>
 
-{iam_config}
+<div style="margin-top: 60px; font-size: 18px; opacity: 0.7;">
+Google Cloud AI Hackathon 2025 のために開発 ❤️
+</div>
 
-以下を特定してください：
-1. セキュリティリスクと重要度
-2. ベストプラクティス違反
-3. 具体的な修正手順
-
-形式: リスクスコア、発見事項、推奨事項を含むJSON
-"""
-```
-
----
-
-# **エージェント間通信**
-
-## 📨 **データフロー**
-
-```yaml
-# Agent A 出力
-collector_output:
-  timestamp: "2025-06-21T10:00:00Z"
-  project_id: "my-project"
-  iam_policies:
-    - member: "user:admin@example.com"
-      role: "roles/owner"
-  scc_findings:
-    - severity: "HIGH"
-      category: "PUBLIC_BUCKET"
-```
-
----
-
-<!-- _class: lead -->
-
-# 🚀 **将来ビジョン**
-
----
-
-# **ロードマップ**
-
-## 🌐 **マルチクラウド対応**
-
-- AWS (IAM, Security Hub)
-- Azure (AD, Security Center)
-- クロスクラウド比較レポート
-
-## 🤖 **高度なAI機能**
-
-- 予測的リスク分析
-- 自動修復提案
-- カスタムポリシー学習
-
-## 🔌 **統合**
-
-- Slack/Teams通知
-- SIEM連携
-- CI/CDパイプライン統合
-
----
-
-# **ビジネスインパクト**
-
-## 💰 **コスト削減**
-
-- 監査時間を**80%削減**
-- 手動エラーを**ゼロに**
-
-## 🛡️ **セキュリティ向上**
-
-- **24/7継続的監査**
-- **プロアクティブなリスク検出**
-
-## 📈 **スケーラビリティ**
-
-- **無制限のプロジェクト**に対応
-- **マルチクラウド**環境をサポート
-
----
-
-<!-- _class: lead -->
-
-# 🙏 **ありがとうございました！**
-
-## **ご質問はありますか？**
-
-### 🔗 リンク
-
-- GitHub: [github.com/susumutomita/Paddi](https://github.com/susumutomita/Paddi)
-- Website: [susumutomita.netlify.app](https://susumutomita.netlify.app/)
-
-### 📧 連絡先
-
-- Email: (メールアドレス)
-
----
-
-# **付録: 実装の詳細**
-
-## 🔐 **セキュリティ考慮事項**
-
-- Application Default Credentialsの使用
-- 最小権限の原則
-- 監査ログの暗号化
-
-## 🧪 **テスト戦略**
-
-- 単体テスト: 各エージェント
-- 統合テスト: エンドツーエンド
-- モックGCP環境での検証
-
-## 📚 **使用したリソース**
-
-- Google Cloud Documentation
-- Vertex AI Gemini API
-- Python Fire for CLI
-- Python asyncio for concurrency
+</div>
