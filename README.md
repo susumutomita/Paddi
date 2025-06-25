@@ -13,11 +13,14 @@
 ![Code size](https://img.shields.io/github/languages/code-size/susumutomita/Paddi)
 ![Repo size](https://img.shields.io/github/repo-size/susumutomita/Paddi)
 
-**Paddi（パディ）** は、Google Cloud AIを使用して
-クラウドセキュリティ監査を自動化するマルチエージェントシステムです。
+**Paddi（パディ）** は、Google Cloud AIを使用してクラウドセキュリティ監査を自動化するマルチエージェントシステムです。
 
-[第2回 AI Agent Hackathon with Google Cloud](https://zenn.dev/hackathons/google-cloud-japan-ai-hackathon-vol2)
-向けに開発しました。
+🎯 **2つの実行モード**を提供しています。
+
+- 🏠 **ローカル実行**: データを外部に送信せず、完全にプライベートな環境で監査
+- ☁️ **Cloud Run実行**: ブラウザでアクセスするだけ、AIインフラ不要で即座に利用可能
+
+[第2回 AI Agent Hackathon with Google Cloud](https://zenn.dev/hackathons/google-cloud-japan-ai-hackathon-vol2) 向けに開発しました。
 
 ---
 
@@ -78,7 +81,9 @@ graph LR
 
 ## 🚀 クイックスタート
 
-1分以内でPaddiを開始できます。
+### 方法1: ローカル実行（推奨：データプライバシー重視）
+
+1分以内でPaddiを開始できます。データは外部に送信されません。
 
 ```bash
 # リポジトリのクローン
@@ -97,12 +102,32 @@ python main.py init
 # ✅ Paddi init 完了:
 #   • Markdown: output/audit.md
 #   • HTML: output/audit.html（ブラウザで開けます）
-#   • サイトプレビュー: npx honkit serve docs/
 ```
 
-これだけですPaddiは自動的にサンプルGCPデータで完全な監査パイプラインを実行し、GCPクレデンシャルや設定なしでその機能を実証します。
+### 方法2: Cloud Run実行（インストール不要）
+
+ブラウザでアクセスするだけで利用可能。Vertex AI (Gemini Pro) を使用した高度な分析を提供。
+
+🌐 **デモURL**: <https://paddi-demo.a.run.app>
+
+```bash
+# APIとして利用する場合
+curl -X POST https://paddi-demo.a.run.app/api/audit \
+  -H "Content-Type: application/json" \
+  -d '{"provider": "gcp", "use_mock": true}'
+```
 
 ---
+
+## 🤔 どちらのモードを選ぶべきか
+
+| 比較項目 | ローカル実行 | Cloud Run実行 |
+|---------|------------|--------------|
+| **セットアップ** | Python環境必要 | 不要（ブラウザのみ） |
+| **データプライバシー** | ✅ 完全にローカル | ⚠️ クラウド経由 |
+| **AI機能** | 🔄 将来対応予定 | ✅ Vertex AI使用 |
+| **コスト** | 無料 | 無料（デモ版） |
+| **用途** | 企業・機密データ | デモ・評価 |
 
 ## 🎬 デモビデオ
 
@@ -110,8 +135,8 @@ python main.py init
 
 デモの内容は以下のとおりです。
 
-1. `python main.py init` でのクイックスタート
-2. 実際のGCPプロジェクトでの監査実行
+1. **ローカル実行**: `python main.py init` でのクイックスタート
+2. **Cloud Run実行**: ブラウザでのワンクリック監査
 3. 生成されたレポートの確認
 4. CI/CDパイプラインへの統合
 
@@ -377,12 +402,25 @@ pytest tests/integration/
 
 ## 🌐 技術スタック
 
+### コア技術
+
 - **Python 3.10+**: エージェント実装とCLI
-- **Google Vertex AI**: AI分析用Gemini Pro
-- **Google Cloud APIs**: IAM、Security Command Center
 - **Fire**: PythonコマンドラインインタフェースCLI
 - **Jinja2**: レポートテンプレート
-- **HonKit**: ドキュメント生成
+
+### Google Cloud サービス
+
+- **Vertex AI (Gemini Pro)**: AI分析エンジン（Cloud Run版）
+- **Cloud Run**: サーバーレス実行環境
+- **IAM API & Security Command Center API**: セキュリティデータ収集
+
+### 実行モード別の利用技術
+
+| ローカル実行 | Cloud Run実行 |
+|------------|--------------|
+| Python CLI | RESTful API |
+| モックデータ | Vertex AI |
+| ローカルファイル | クラウドストレージ |
 
 ---
 

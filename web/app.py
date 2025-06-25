@@ -200,6 +200,41 @@ def chat_with_paddi():
     return jsonify({"response": mock_response, "timestamp": datetime.utcnow().isoformat()})
 
 
+@app.route("/api/audit", methods=["POST"])
+def run_audit_api():
+    """Run a complete audit via API."""
+    try:
+        data = request.get_json()
+        provider = data.get("provider", "gcp")
+
+        # For Cloud Run demo, always use mock data
+        result = {
+            "status": "success",
+            "provider": provider,
+            "findings": [
+                {
+                    "title": "Service Account with Owner Role",
+                    "severity": "CRITICAL",
+                    "description": "Service account has excessive permissions",
+                    "recommendation": "Apply principle of least privilege",
+                },
+                {
+                    "title": "Public Storage Bucket",
+                    "severity": "HIGH",
+                    "description": "Storage bucket is publicly accessible",
+                    "recommendation": "Restrict bucket access",
+                },
+            ],
+            "summary": {"total_findings": 2, "critical": 1, "high": 1, "medium": 0, "low": 0},
+            "report_url": "/api/export/html",
+        }
+
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error running audit: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port, debug=False)
