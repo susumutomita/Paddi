@@ -232,7 +232,7 @@ def run_audit_api():
         return jsonify(result)
     except Exception as e:
         logger.error(f"Error running audit: {str(e)}")
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return jsonify({"status": "error", "message": "An internal error occurred. Please try again later."}), 500
 
 
 if __name__ == "__main__":
