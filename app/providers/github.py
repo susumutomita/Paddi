@@ -1,8 +1,11 @@
 """GitHub provider implementation."""
 
 import logging
+import os
 from datetime import datetime, timedelta
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
+
+import requests
 
 from .base import CloudProvider
 
@@ -29,10 +32,14 @@ class GitHubProvider(CloudProvider):
             use_mock: Force use of mock data instead of real API calls
             **kwargs: Additional configuration
         """
-        self.access_token = access_token
-        self.owner = owner or "example-org"
-        self.repo = repo or "example-repo"
-        self.use_mock = use_mock or not access_token
+        self.access_token = access_token or os.getenv('GITHUB_TOKEN')
+        self.owner = owner or os.getenv('GITHUB_OWNER') or "example-org"
+        self.repo = repo or os.getenv('GITHUB_REPO') or "example-repo"
+        self.use_mock = use_mock or not self.access_token
+        self.headers = {
+            'Authorization': f'token {self.access_token}',
+            'Accept': 'application/vnd.github.v3+json'
+        } if self.access_token else {}
 
     def get_name(self) -> str:
         """Return the name of the provider."""
@@ -95,9 +102,21 @@ class GitHubProvider(CloudProvider):
 
     def get_security_findings(self) -> List[Dict[str, Any]]:
         """Get security vulnerabilities and code scanning alerts."""
-        # For hackathon demo, use mock data primarily
-        # Real API implementation requires proper GitHub setup
-        return self._get_mock_security_findings()
+        if self.use_mock or not self.access_token:
+            return self._get_mock_security_findings()
+        
+        try:
+            # Get Dependabot alerts
+            dependabot_alerts = self.collect_dependabot_alerts()
+            
+            # Get other security findings (branch protection, etc.)
+            other_findings = self._check_security_settings()
+            
+            return dependabot_alerts + other_findings
+        except Exception as e:
+            logger.error(f"Failed to get security findings: {e}")
+            logger.info("Falling back to mock data")
+            return self._get_mock_security_findings()
 
     def _get_mock_security_findings(self) -> List[Dict[str, Any]]:
         """Get mock security findings for fallback."""
@@ -202,3 +221,92 @@ class GitHubProvider(CloudProvider):
         from datetime import timezone
 
         return datetime.now(timezone.utc).isoformat()
+    
+    def collect_dependabot_alerts(self) -> List[Dict[str, Any]]:
+        """Collect Dependabot alerts from GitHub API."""
+        url = f"https://api.github.com/repos/{self.owner}/{self.repo}/dependabot/alerts"
+        
+        try:
+            response = requests.get(url, headers=self.headers)
+            
+            # Handle specific error cases
+            if response.status_code == 401:
+                raise Exception("Authentication failed. Please check your GitHub token.")
+            elif response.status_code == 403:
+                if 'rate limit' in response.text.lower():
+                    raise Exception("GitHub API rate limit exceeded. Please try again later.")
+                else:
+                    raise Exception("Access forbidden. Please check repository permissions.")
+            elif response.status_code == 404:
+                raise Exception(f"Repository {self.owner}/{self.repo} not found or no access.")
+            
+            response.raise_for_status()
+            
+            alerts = response.json()
+            
+            # Convert alerts to internal format
+            return [self._convert_alert(alert) for alert in alerts]
+            
+        except requests.exceptions.RequestException as e:
+            logger.error(f"GitHub API call failed: {e}")
+            raise
+    
+    def _convert_alert(self, alert: Dict[str, Any]) -> Dict[str, Any]:
+        """Convert Dependabot alert to internal format."""
+        # Extract relevant information from the alert
+        vulnerability = alert.get('security_vulnerability', {})
+        package = vulnerability.get('package', {})
+        advisory = alert.get('security_advisory', {})
+        
+        # Map GitHub severity to internal severity
+        severity_mapping = {
+            'critical': 'CRITICAL',
+            'high': 'HIGH',
+            'medium': 'MEDIUM',
+            'low': 'LOW'
+        }
+        github_severity = alert.get('severity', 'unknown').lower()
+        severity = severity_mapping.get(github_severity, 'MEDIUM')
+        
+        # Build the internal format
+        return {
+            'type': 'dependabot_alert',
+            'severity': severity,
+            'package_name': package.get('name', 'Unknown'),
+            'package_ecosystem': package.get('ecosystem', 'Unknown'),
+            'vulnerable_version': vulnerability.get('vulnerable_version_range', 'Unknown'),
+            'patched_version': vulnerability.get('first_patched_version', {}).get('identifier', 'Not available'),
+            'description': advisory.get('summary', alert.get('summary', 'No description available')),
+            'cve_id': advisory.get('cve_id'),
+            'ghsa_id': advisory.get('ghsa_id'),
+            'references': advisory.get('references', []),
+            'recommendation': f"Update {package.get('name', 'package')} to version {vulnerability.get('first_patched_version', {}).get('identifier', 'latest patched version')} or higher",
+            'created_at': alert.get('created_at'),
+            'state': alert.get('state'),
+            'alert_number': alert.get('number')
+        }
+    
+    def _check_security_settings(self) -> List[Dict[str, Any]]:
+        """Check repository security settings and return findings."""
+        findings = []
+        
+        # This would normally make API calls to check settings
+        # For now, returning some basic checks
+        if self.use_mock:
+            return [
+                {
+                    "type": "branch_protection",
+                    "branch": "main",
+                    "severity": "HIGH",
+                    "description": "Default branch 'main' is not protected",
+                    "recommendation": "Enable branch protection rules for the default branch",
+                },
+                {
+                    "type": "two_factor_auth",
+                    "severity": "MEDIUM",
+                    "description": "Some collaborators don't have 2FA enabled",
+                    "recommendation": "Require two-factor authentication for all collaborators",
+                },
+            ]
+        
+        return findings
