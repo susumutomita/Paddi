@@ -24,6 +24,7 @@ except ImportError:
 
 from app.common.auth import check_gcp_credentials
 from app.common.models import SecurityFinding
+from app.config.settings import settings
 
 # Configure logging
 logging.basicConfig(
@@ -106,6 +107,46 @@ Provide analysis in this JSON format:
     "recommendation": "Specific recommendation"
   }}
 ]"""
+
+
+def get_analyzer(config: Dict[str, Any] = None) -> LLMInterface:
+    """
+    Factory function to get the appropriate AI analyzer based on configuration.
+    
+    Args:
+        config: Optional configuration dictionary. If not provided, uses global settings.
+    
+    Returns:
+        LLMInterface: An instance of either GeminiSecurityAnalyzer or OllamaSecurityAnalyzer
+    """
+    if config is None:
+        config = settings.to_dict()
+    
+    provider = config.get('ai_provider', 'gemini').lower()
+    use_mock = config.get('use_mock', True)
+    temperature = config.get('temperature', 0.2)
+    max_output_tokens = config.get('max_output_tokens', 2048)
+    
+    if provider == 'ollama':
+        from app.explainer.ollama_explainer import OllamaSecurityAnalyzer
+        logger.info("Using Ollama as AI provider")
+        return OllamaSecurityAnalyzer(
+            model=config.get('ollama_model', 'llama3'),
+            endpoint=config.get('ollama_endpoint', 'http://localhost:11434'),
+            temperature=temperature,
+            max_output_tokens=max_output_tokens,
+            use_mock=use_mock
+        )
+    else:
+        logger.info("Using Gemini as AI provider")
+        return GeminiSecurityAnalyzer(
+            project_id=config.get('gcp_project_id', 'example-project-123'),
+            location=config.get('vertex_ai_location', 'asia-northeast1'),
+            model_name=config.get('vertex_ai_model', 'gemini-1.5-flash'),
+            temperature=temperature,
+            max_output_tokens=max_output_tokens,
+            use_mock=use_mock
+        )
 
 
 class GeminiSecurityAnalyzer(LLMInterface):
@@ -556,6 +597,7 @@ class SecurityRiskExplainer:
         use_mock: bool = False,
         input_file: str = "data/collected.json",
         output_dir: str = "data",
+        config: Dict[str, Any] = None,
     ):
         """Initialize SecurityRiskExplainer with configuration."""
         self.project_id = project_id
@@ -565,12 +607,22 @@ class SecurityRiskExplainer:
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True)
 
-        # Initialize analyzer
-        self.analyzer = GeminiSecurityAnalyzer(
-            project_id=project_id,
-            location=location,
-            use_mock=use_mock,
-        )
+        # Initialize analyzer using factory
+        if config is None:
+            # Build config from provided parameters
+            config = {
+                'gcp_project_id': project_id,
+                'vertex_ai_location': location,
+                'use_mock': use_mock,
+                'ai_provider': settings.ai_provider,
+                'ollama_model': settings.ollama_model,
+                'ollama_endpoint': settings.ollama_endpoint,
+                'vertex_ai_model': settings.vertex_ai_model,
+                'temperature': settings.temperature,
+                'max_output_tokens': settings.max_output_tokens,
+            }
+        
+        self.analyzer = get_analyzer(config)
 
     def load_configuration(self) -> Dict[str, Any]:
         """Load configuration data from Agent A output"""
@@ -613,20 +665,42 @@ def main(
     use_mock: bool = True,
     input_file: str = "data/collected.json",
     output_dir: str = "data",
+    ai_provider: str = None,
+    ollama_model: str = None,
+    ollama_endpoint: str = None,
 ):
     """
-    Analyze GCP configuration for security risks using Gemini LLM.
+    Analyze cloud configuration for security risks using AI.
 
     Args:
         project_id: GCP project ID for Vertex AI
         location: GCP region for Vertex AI
-        use_mock: Use mock responses instead of real LLM calls
+        use_mock: Use mock responses instead of real API calls
         input_file: Path to configuration data from Agent A
         output_dir: Directory to save analysis results
+        ai_provider: AI provider to use ('gemini' or 'ollama')
+        ollama_model: Ollama model name (e.g., 'llama3', 'codellama')
+        ollama_endpoint: Ollama API endpoint URL
     """
     try:
-        # Set up Google Cloud authentication if not using mock
-        check_gcp_credentials(use_mock)
+        # Build configuration
+        config = None
+        if ai_provider:
+            config = {
+                'ai_provider': ai_provider,
+                'gcp_project_id': project_id,
+                'vertex_ai_location': location,
+                'use_mock': use_mock,
+                'ollama_model': ollama_model or settings.ollama_model,
+                'ollama_endpoint': ollama_endpoint or settings.ollama_endpoint,
+                'vertex_ai_model': settings.vertex_ai_model,
+                'temperature': settings.temperature,
+                'max_output_tokens': settings.max_output_tokens,
+            }
+            
+        # Set up Google Cloud authentication if using Gemini and not mock
+        if (not ai_provider or ai_provider == 'gemini') and not use_mock:
+            check_gcp_credentials(use_mock)
 
         # Initialize explainer
         explainer = SecurityRiskExplainer(
@@ -635,6 +709,7 @@ def main(
             use_mock=use_mock,
             input_file=input_file,
             output_dir=output_dir,
+            config=config,
         )
 
         # Perform analysis

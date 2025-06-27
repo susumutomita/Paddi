@@ -8,10 +8,11 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
-from explainer.agent_explainer import (
+from app.common.models import SecurityFinding
+from app.explainer.agent_explainer import (
     GeminiSecurityAnalyzer,
-    SecurityFinding,
     SecurityRiskExplainer,
+    get_analyzer,
 )
 
 
@@ -303,10 +304,10 @@ class TestSecurityRiskExplainer:
 class TestMainFunction:
     """Test main function"""
 
-    @patch("explainer.agent_explainer.SecurityRiskExplainer")
+    @patch("app.explainer.agent_explainer.SecurityRiskExplainer")
     def test_main_success(self, mock_explainer_class):
         """Test successful main execution"""
-        from explainer.agent_explainer import main
+        from app.explainer.agent_explainer import main
 
         # Mock the explainer instance
         mock_explainer = Mock()
@@ -331,10 +332,10 @@ class TestMainFunction:
         mock_explainer.analyze.assert_called_once()
         mock_explainer.save_findings.assert_called_once_with(mock_findings)
 
-    @patch("explainer.agent_explainer.SecurityRiskExplainer")
+    @patch("app.explainer.agent_explainer.SecurityRiskExplainer")
     def test_main_file_not_found(self, mock_explainer_class):
         """Test main handling FileNotFoundError"""
-        from explainer.agent_explainer import main
+        from app.explainer.agent_explainer import main
 
         # Mock the explainer to raise FileNotFoundError
         mock_explainer = Mock()
@@ -464,3 +465,76 @@ class TestMultiCloudAnalysis:
         # Should still get findings from successful provider
         assert isinstance(findings, list)
         assert len(findings) > 0
+
+
+class TestAnalyzerFactory:
+    """Test the get_analyzer factory function"""
+
+    @patch('app.config.settings.settings')
+    def test_get_analyzer_with_gemini(self, mock_settings):
+        """Test factory returns GeminiSecurityAnalyzer for gemini provider"""
+        mock_settings.to_dict.return_value = {
+            'ai_provider': 'gemini',
+            'gcp_project_id': 'test-project',
+            'vertex_ai_location': 'us-central1',
+            'vertex_ai_model': 'gemini-1.5-flash',
+            'use_mock': True,
+            'temperature': 0.2,
+            'max_output_tokens': 2048
+        }
+        
+        analyzer = get_analyzer()
+        
+        assert isinstance(analyzer, GeminiSecurityAnalyzer)
+        assert analyzer.project_id == 'test-project'
+        assert analyzer.location == 'us-central1'
+
+    @patch('app.config.settings.settings')
+    def test_get_analyzer_with_ollama(self, mock_settings):
+        """Test factory returns OllamaSecurityAnalyzer for ollama provider"""
+        mock_settings.to_dict.return_value = {
+            'ai_provider': 'ollama',
+            'ollama_model': 'llama3',
+            'ollama_endpoint': 'http://localhost:11434',
+            'use_mock': True,
+            'temperature': 0.2,
+            'max_output_tokens': 2048
+        }
+        
+        analyzer = get_analyzer()
+        
+        from app.explainer.ollama_explainer import OllamaSecurityAnalyzer
+        assert isinstance(analyzer, OllamaSecurityAnalyzer)
+        assert analyzer.model == 'llama3'
+        assert analyzer.endpoint == 'http://localhost:11434'
+
+    def test_get_analyzer_with_custom_config(self):
+        """Test factory with custom configuration"""
+        config = {
+            'ai_provider': 'ollama',
+            'ollama_model': 'codellama',
+            'ollama_endpoint': 'http://custom:11434',
+            'use_mock': True,
+            'temperature': 0.5,
+            'max_output_tokens': 4096
+        }
+        
+        analyzer = get_analyzer(config)
+        
+        from app.explainer.ollama_explainer import OllamaSecurityAnalyzer
+        assert isinstance(analyzer, OllamaSecurityAnalyzer)
+        assert analyzer.model == 'codellama'
+        assert analyzer.endpoint == 'http://custom:11434'
+        assert analyzer.temperature == 0.5
+        assert analyzer.max_output_tokens == 4096
+
+    def test_get_analyzer_default_to_gemini(self):
+        """Test factory defaults to Gemini when provider not specified"""
+        config = {
+            'gcp_project_id': 'test-project',
+            'use_mock': True
+        }
+        
+        analyzer = get_analyzer(config)
+        
+        assert isinstance(analyzer, GeminiSecurityAnalyzer)
