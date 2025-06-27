@@ -145,6 +145,7 @@ class TestLogger:
 
 
 def test_get_logger_returns_logger_instance():
+    """Test that get_logger returns a valid logger instance."""
     logger = get_logger("test_logger")
     assert logger.name == "test_logger"
     assert hasattr(logger, "info")

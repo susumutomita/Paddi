@@ -7,9 +7,9 @@ import pytest
 from collector.agent_collector import (
     GCPConfigurationCollector,
     IAMCollector,
-    SCCCollector,
     main,
 )
+from collector.scc_collector import SCCCollector
 
 
 class TestIAMCollector:
@@ -50,8 +50,8 @@ class TestSCCCollector:
 
     def test_collect_with_mock_data(self):
         """Test collecting SCC findings with mock."""
-        collector = SCCCollector(organization_id="123456", use_mock=True)
-        findings = collector.collect()
+        collector = SCCCollector(organization_id="123456")
+        findings = collector.collect_findings(use_mock=True)
 
         assert isinstance(findings, list)
         assert len(findings) > 0
@@ -62,8 +62,8 @@ class TestSCCCollector:
     def test_collect_without_google_cloud_securitycenter(self):
         """Test behavior when google-cloud-securitycenter is not installed."""
         # Force use_mock=True to avoid slow imports
-        collector = SCCCollector(organization_id="123456", use_mock=True)
-        data = collector.collect()
+        collector = SCCCollector(organization_id="123456")
+        data = collector.collect_findings(use_mock=True)
         assert isinstance(data, list)
         assert len(data) > 0
 
@@ -182,7 +182,7 @@ class TestMainFunction:
     @patch("collector.agent_collector.GCPConfigurationCollector")
     def test_main_with_defaults(self, mock_collector_class):
         """Test main function with default arguments."""
-        from collector.agent_collector import main
+        # main is already imported at the top
 
         mock_instance = MagicMock()
         mock_collector_class.return_value = mock_instance
@@ -202,7 +202,7 @@ class TestMainFunction:
     @patch("collector.agent_collector.GCPConfigurationCollector")
     def test_main_with_custom_args(self, mock_collector_class):
         """Test main function with custom arguments."""
-        from collector.agent_collector import main
+        # main is already imported at the top
 
         mock_instance = MagicMock()
         mock_collector_class.return_value = mock_instance
@@ -226,7 +226,7 @@ class TestMainFunction:
     @patch("collector.agent_collector.logger")
     def test_main_handles_exceptions(self, mock_logger, mock_collector_class):
         """Test that main function handles exceptions properly."""
-        from collector.agent_collector import main
+        # main is already imported at the top
 
         mock_instance = MagicMock()
         mock_collector_class.return_value = mock_instance
@@ -294,7 +294,7 @@ class TestMultiCloudSupport:
     def test_backward_compatibility_gcp(self):
         """Test backward compatibility with GCP-only mode."""
         # This test verifies that the original GCP collection still works
-        from collector.agent_collector import main
+        # main is already imported at the top
 
         # Should not raise any errors when called with GCP project_id
         # (actual execution will be mocked in integration tests)

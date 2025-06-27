@@ -221,7 +221,7 @@ class TestReportService:
         metadata = service.load_metadata()
         assert metadata["project_id"] == "unknown-project"
 
-    def test_create_report(self, tmp_path):
+    def test_create_report(self, tmp_path):  # pylint: disable=unused-argument
         """Test creating audit report from raw data."""
         findings_data = [
             {

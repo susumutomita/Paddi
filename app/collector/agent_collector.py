@@ -82,66 +82,26 @@ class IAMCollector(CollectorInterface):
         }
 
 
-class SCCCollector(CollectorInterface):
-    """Collector for Security Command Center findings."""
+class SCCCollectorAdapter(CollectorInterface):
+    """Adapter for the dedicated SCCCollector to maintain backward compatibility."""
 
     def __init__(self, organization_id: str, use_mock: bool = False):
-        """Initialize SCCCollector with organization configuration."""
+        """Initialize SCCCollectorAdapter with organization configuration."""
+        # Import the dedicated SCC collector
+        from .scc_collector import SCCCollector
+
         self.organization_id = organization_id
         self.use_mock = use_mock
+        self.scc_collector = SCCCollector(organization_id)
 
     def collect(self) -> List[Dict[str, Any]]:
-        """Collect SCC findings."""
-        if self.use_mock:
-            return self._get_mock_scc_data()
-
+        """Collect SCC findings using the dedicated collector."""
         try:
-            from google.cloud import securitycenter
-
-            # Initialize SCC client
-            securitycenter.SecurityCenterClient()
-            # This would collect real SCC findings
-            # For now, returning mock structure
-            logger.warning("Real SCC collection not fully implemented, using mock data")
-            return self._get_mock_scc_data()
-        except ImportError:
-            logger.error("google-cloud-securitycenter not installed, using mock data")
-            return self._get_mock_scc_data()
+            return self.scc_collector.collect_findings(use_mock=self.use_mock)
         except Exception as e:
             logger.error("Error collecting SCC data: %s", e)
-            return self._get_mock_scc_data()
-
-    def _get_mock_scc_data(self) -> List[Dict[str, Any]]:
-        """Return mock SCC findings for testing."""
-        return [
-            {
-                "name": "organizations/123456/sources/789/findings/finding-1",
-                "category": "OVERPRIVILEGED_SERVICE_ACCOUNT",
-                "resource_name": (
-                    "//iam.googleapis.com/projects/example-project/serviceAccounts/"
-                    "over-privileged-sa@example-project.iam.gserviceaccount.com"
-                ),
-                "state": "ACTIVE",
-                "severity": "HIGH",
-                "finding_class": "VULNERABILITY",
-                "indicator": {
-                    "domains": [],
-                    "ip_addresses": [],
-                },
-            },
-            {
-                "name": "organizations/123456/sources/789/findings/finding-2",
-                "category": "PUBLIC_BUCKET",
-                "resource_name": "//storage.googleapis.com/example-public-bucket",
-                "state": "ACTIVE",
-                "severity": "MEDIUM",
-                "finding_class": "MISCONFIGURATION",
-                "indicator": {
-                    "domains": [],
-                    "ip_addresses": [],
-                },
-            },
-        ]
+            # Fallback to mock data on error
+            return self.scc_collector._get_mock_scc_data()
 
 
 class GCPConfigurationCollector:
@@ -163,7 +123,7 @@ class GCPConfigurationCollector:
 
         # Initialize collectors
         self.iam_collector = IAMCollector(project_id, use_mock)
-        self.scc_collector = SCCCollector(self.organization_id, use_mock)
+        self.scc_collector = SCCCollectorAdapter(self.organization_id, use_mock)
 
     def collect_all(self) -> Dict[str, Any]:
         """Collect all GCP configurations."""
