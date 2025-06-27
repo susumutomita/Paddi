@@ -12,7 +12,10 @@ disable=
     too-many-locals,
     import-outside-toplevel,
     broad-exception-caught,
-    import-error
+    import-error,
+    redefined-outer-name,
+    protected-access,
+    duplicate-code
 
 # Ignored modules for import errors (these are valid but pylint can't find them)
 ignored-modules=common.auth,common.models

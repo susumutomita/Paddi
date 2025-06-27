@@ -8,7 +8,6 @@ to collect vulnerability findings from various security scanners.
 
 import logging
 import os
-import time
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
@@ -70,7 +69,7 @@ class SCCCollector:
             )
 
         try:
-            logger.info(f"Collecting SCC findings for organization: {self.organization_id}")
+            logger.info("Collecting SCC findings for organization: %s", self.organization_id)
             parent = f"organizations/{self.organization_id}"
 
             findings = []
@@ -85,20 +84,20 @@ class SCCCollector:
             logger.info("Collecting Container Analysis findings...")
             findings.extend(self._get_container_findings(self.client, parent))
 
-            logger.info(f"Total findings collected: {len(findings)}")
+            logger.info("Total findings collected: %d", len(findings))
             return findings
 
         except gcp_exceptions.PermissionDenied as e:
-            logger.error(f"Permission denied accessing SCC API: {e}")
+            logger.error("Permission denied accessing SCC API: %s", e)
             logger.error(
                 "Ensure the service account has 'roles/securitycenter.adminViewer' permission"
             )
             raise
         except gcp_exceptions.NotFound as e:
-            logger.error(f"Organization not found: {e}")
+            logger.error("Organization not found: %s", e)
             raise
         except Exception as e:
-            logger.error(f"SCC API call failed: {e}")
+            logger.error("SCC API call failed: %s", e)
             raise
 
     @retry(
@@ -129,7 +128,7 @@ class SCCCollector:
             f'state="ACTIVE" AND '
             f'finding_class="VULNERABILITY" AND '
             f'source_properties.source_id="SECURITY_HEALTH_ANALYTICS" AND '
-            f'{time_filter}'
+            f"{time_filter}"
         )
 
         request = securitycenter_v1.ListFindingsRequest(
@@ -146,7 +145,7 @@ class SCCCollector:
                 if converted:
                     findings.append(converted)
         except gcp_exceptions.InvalidArgument as e:
-            logger.warning(f"Invalid filter for SHA findings: {e}")
+            logger.warning("Invalid filter for SHA findings: %s", e)
             # Fallback to simpler filter
             request.filter = 'state="ACTIVE" AND finding_class="VULNERABILITY"'
             page_result = client.list_findings(request=request)
@@ -157,7 +156,7 @@ class SCCCollector:
                     if converted:
                         findings.append(converted)
 
-        logger.info(f"Found {len(findings)} SHA findings")
+        logger.info("Found %d SHA findings", len(findings))
         return findings
 
     @retry(
@@ -188,7 +187,7 @@ class SCCCollector:
             f'state="ACTIVE" AND '
             f'finding_class="VULNERABILITY" AND '
             f'source_properties.source_id="WEB_SECURITY_SCANNER" AND '
-            f'{time_filter}'
+            f"{time_filter}"
         )
 
         request = securitycenter_v1.ListFindingsRequest(
@@ -207,7 +206,7 @@ class SCCCollector:
         except gcp_exceptions.InvalidArgument:
             logger.info("Web Security Scanner might not be enabled")
 
-        logger.info(f"Found {len(findings)} WSS findings")
+        logger.info("Found %d WSS findings", len(findings))
         return findings
 
     @retry(
@@ -238,7 +237,7 @@ class SCCCollector:
             f'state="ACTIVE" AND '
             f'finding_class="VULNERABILITY" AND '
             f'source_properties.source_id="CONTAINER_SCANNER" AND '
-            f'{time_filter}'
+            f"{time_filter}"
         )
 
         request = securitycenter_v1.ListFindingsRequest(
@@ -257,7 +256,7 @@ class SCCCollector:
         except gcp_exceptions.InvalidArgument:
             logger.info("Container Analysis might not be enabled")
 
-        logger.info(f"Found {len(findings)} Container Analysis findings")
+        logger.info("Found %d Container Analysis findings", len(findings))
         return findings
 
     def _convert_finding(
@@ -296,18 +295,24 @@ class SCCCollector:
                 "resource_type": resource_type,
                 "state": finding.state.name if finding.state else "ACTIVE",
                 "severity": severity_map.get(finding.severity, "MEDIUM"),
-                "finding_class": finding.finding_class.name if finding.finding_class else "VULNERABILITY",
+                "finding_class": (
+                    finding.finding_class.name if finding.finding_class else "VULNERABILITY"
+                ),
                 "source_type": source_type,
                 "create_time": finding.create_time.isoformat() if finding.create_time else None,
                 "event_time": finding.event_time.isoformat() if finding.event_time else None,
                 "description": finding.description,
-                "recommendation": finding.source_properties.get("recommendation", "")
-                if finding.source_properties
-                else "",
+                "recommendation": (
+                    finding.source_properties.get("recommendation", "")
+                    if finding.source_properties
+                    else ""
+                ),
                 "external_uri": finding.external_uri,
                 "indicator": {
                     "domains": list(finding.indicator.domains) if finding.indicator else [],
-                    "ip_addresses": list(finding.indicator.ip_addresses) if finding.indicator else [],
+                    "ip_addresses": (
+                        list(finding.indicator.ip_addresses) if finding.indicator else []
+                    ),
                 },
             }
 
@@ -318,7 +323,7 @@ class SCCCollector:
             return converted
 
         except Exception as e:
-            logger.error(f"Error converting finding: {e}")
+            logger.error("Error converting finding: %s", e)
             return None
 
     def _get_time_filter(self, days: int = 7) -> str:
@@ -345,11 +350,14 @@ class SCCCollector:
         Returns:
             True if SHA finding, False otherwise.
         """
-        if not finding.source_properties:
-            return False
+        # Check source_properties if available
+        if finding.source_properties:
+            source_id = finding.source_properties.get("source_id", "")
+            if source_id == "SECURITY_HEALTH_ANALYTICS":
+                return True
 
-        source_id = finding.source_properties.get("source_id", "")
-        return source_id == "SECURITY_HEALTH_ANALYTICS" or finding.category in [
+        # Check if category matches known SHA categories
+        return finding.category in [
             "OVERPRIVILEGED_SERVICE_ACCOUNT",
             "PUBLIC_BUCKET",
             "FIREWALL_RULE_OPEN",
@@ -457,7 +465,10 @@ class SCCCollector:
             {
                 "name": "organizations/123456/sources/789/findings/finding-4",
                 "category": "CONTAINER_VULNERABILITY",
-                "resource_name": "//container.googleapis.com/projects/example-project/zones/us-central1-a/clusters/prod-cluster",
+                "resource_name": (
+                    "//container.googleapis.com/projects/example-project/"
+                    "zones/us-central1-a/clusters/prod-cluster"
+                ),
                 "resource_type": "container.Cluster",
                 "state": "ACTIVE",
                 "severity": "CRITICAL",

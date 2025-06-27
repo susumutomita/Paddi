@@ -124,7 +124,7 @@ class TestMultiCloudCollector:
         assert output_path.exists()
 
         # Verify saved data
-        with open(output_path) as f:
+        with open(output_path, encoding="utf-8") as f:
             saved_data = json.load(f)
         assert saved_data == test_data
 

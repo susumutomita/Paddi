@@ -45,7 +45,7 @@ class TestPaddiCLI:
         assert sample_data_path.exists()
 
         # Verify sample data content
-        data = json.loads(sample_data_path.read_text())
+        data = json.loads(sample_data_path.read_text(encoding="utf-8"))
         assert data["project_id"] == "example-project-123"
         assert len(data["iam_policies"]) > 0
         assert len(data["scc_findings"]) > 0
@@ -61,8 +61,10 @@ class TestPaddiCLI:
 
         # Create mock data files that would be created by the agents
         Path("data").mkdir()
-        Path("data/collected.json").write_text(json.dumps({"iam_policies": [], "scc_findings": []}))
-        Path("data/explained.json").write_text(json.dumps([]))
+        Path("data/collected.json").write_text(
+            json.dumps({"iam_policies": [], "scc_findings": []}), encoding="utf-8"
+        )
+        Path("data/explained.json").write_text(json.dumps([]), encoding="utf-8")
 
         cli.init(skip_run=False)
 
@@ -81,7 +83,8 @@ class TestPaddiCLI:
         Path("data/collected.json").write_text(
             json.dumps(
                 {"iam_policies": [{"resource": "test"}], "scc_findings": [{"finding": "test"}]}
-            )
+            ),
+            encoding="utf-8",
         )
 
         cli.collect(project_id="test-project", use_mock=True)
@@ -98,7 +101,7 @@ class TestPaddiCLI:
 
         # Create mock explained data
         Path("data/explained.json").write_text(
-            json.dumps([{"severity": "HIGH", "title": "Test finding"}])
+            json.dumps([{"severity": "HIGH", "title": "Test finding"}]), encoding="utf-8"
         )
 
         cli.analyze(project_id="test-project", use_mock=True)
@@ -131,8 +134,10 @@ class TestPaddiCLI:
         Path("output").mkdir()
 
         # Create mock data files
-        Path("data/collected.json").write_text(json.dumps({"iam_policies": [], "scc_findings": []}))
-        Path("data/explained.json").write_text(json.dumps([]))
+        Path("data/collected.json").write_text(
+            json.dumps({"iam_policies": [], "scc_findings": []}), encoding="utf-8"
+        )
+        Path("data/explained.json").write_text(json.dumps([]), encoding="utf-8")
 
         cli.audit(project_id="test-project", use_mock=True)
 
@@ -155,15 +160,17 @@ class TestPaddiCLI:
     @patch("app.main.reporter_main")
     def test_audit_verbose_mode(
         self, mock_reporter, mock_explainer, mock_collector, cli, tmp_path, monkeypatch
-    ):
+    ):  # pylint: disable=unused-argument
         """Test verbose mode sets debug logging."""
         monkeypatch.chdir(tmp_path)
         Path("data").mkdir()
         Path("output").mkdir()
 
         # Create mock data files
-        Path("data/collected.json").write_text(json.dumps({"iam_policies": [], "scc_findings": []}))
-        Path("data/explained.json").write_text(json.dumps([]))
+        Path("data/collected.json").write_text(
+            json.dumps({"iam_policies": [], "scc_findings": []}), encoding="utf-8"
+        )
+        Path("data/explained.json").write_text(json.dumps([]), encoding="utf-8")
 
         with patch("logging.getLogger") as mock_logger:
             mock_root_logger = MagicMock()
