@@ -610,7 +610,7 @@ class SecurityRiskExplainer:
 def main(
     project_id: str = "example-project",
     location: str = "us-central1",
-    use_mock: bool = True,
+    use_mock: bool = False,
     input_file: str = "data/collected.json",
     output_dir: str = "data",
 ):

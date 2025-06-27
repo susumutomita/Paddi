@@ -73,7 +73,7 @@ class PaddiCLI:
         self,
         project_id: str = "example-project-123",
         organization_id: Optional[str] = None,
-        use_mock: bool = True,
+        use_mock: bool = False,
         location: str = "us-central1",
         output_dir: str = "output",
         verbose: bool = False,

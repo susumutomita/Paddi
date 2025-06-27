@@ -200,7 +200,7 @@ class GCPConfigurationCollector:
 def main(
     project_id: Optional[str] = None,
     organization_id: Optional[str] = None,
-    use_mock: bool = True,
+    use_mock: bool = False,
     output_dir: str = "data",
     provider: str = "gcp",
     providers: Optional[str] = None,
