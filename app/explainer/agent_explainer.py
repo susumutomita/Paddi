@@ -261,8 +261,9 @@ class GeminiSecurityAnalyzer(LLMInterface):
                 }
 
                 # Generate response
+                system_prompt = SYSTEM_PROMPT_ENHANCED if self.project_context else self._get_basic_system_prompt()
                 response = self._model.generate_content(
-                    [PromptTemplate.SYSTEM_PROMPT, prompt],
+                    [system_prompt, prompt],
                     generation_config=generation_config,
                 )
 
@@ -332,6 +333,113 @@ class GeminiSecurityAnalyzer(LLMInterface):
                 ),
             ),
         ]
+
+    def _analyze_with_context(
+        self, infra_findings: List[Dict], app_findings: List[Dict]
+    ) -> List[SecurityFinding]:
+        """Perform enhanced analysis with project context"""
+        if self.use_mock:
+            return self._get_enhanced_mock_findings()
+
+        prompt = build_analysis_prompt(infra_findings, app_findings, self.project_context)
+
+        try:
+            response = self._call_llm_with_retry(prompt)
+            findings_data = self._parse_enhanced_response(response)
+            
+            # Convert enhanced format to SecurityFinding objects
+            findings = []
+            for finding in findings_data:
+                # Extract basic fields
+                basic_finding = SecurityFinding(
+                    title=finding.get("title", "Unknown Finding"),
+                    severity=finding.get("severity", "MEDIUM"),
+                    explanation=finding.get("explanation", ""),
+                    recommendation=finding.get("recommendation", {}).get("summary", "")
+                )
+                
+                # Store additional fields in metadata if needed
+                # This maintains backward compatibility
+                findings.append(basic_finding)
+            
+            return findings
+        except Exception as e:
+            logger.error("Error in enhanced analysis: %s", e)
+            return self._get_enhanced_mock_findings()
+
+    def _parse_enhanced_response(self, response: str) -> List[Dict[str, Any]]:
+        """Parse enhanced LLM response with extended fields"""
+        try:
+            # Extract JSON from response
+            json_start = response.find("[")
+            json_end = response.rfind("]") + 1
+            if json_start == -1:
+                # Try finding single object
+                json_start = response.find("{")
+                json_end = response.rfind("}") + 1
+                if json_start != -1 and json_end > json_start:
+                    json_str = response[json_start:json_end]
+                    return [json.loads(json_str)]
+            else:
+                if json_end > json_start:
+                    json_str = response[json_start:json_end]
+                    return json.loads(json_str)
+            
+            logger.error("No valid JSON found in enhanced LLM response")
+            return []
+        except json.JSONDecodeError as e:
+            logger.error("Failed to parse enhanced LLM response as JSON: %s", e)
+            logger.debug("Response: %s", response)
+            return []
+
+    def _get_enhanced_mock_findings(self) -> List[SecurityFinding]:
+        """Return enhanced mock findings with full metadata"""
+        return [
+            SecurityFinding(
+                title="過剰な権限を持つサービスアカウント",
+                severity="HIGH",
+                explanation=(
+                    "本番環境のサービスアカウント 'prod-app-sa@project.iam.gserviceaccount.com' が "
+                    "Owner権限を持っています。このアカウントが侵害された場合、プロジェクト全体への "
+                    "完全なアクセスが可能となり、データ漏洩やサービス停止のリスクがあります。"
+                ),
+                recommendation=(
+                    "最小権限の原則に基づいてロールを見直してください。具体的には：\n"
+                    "1. 現在の使用状況を確認: gcloud policy-intelligence query-activity\n"
+                    "2. カスタムロールを作成: gcloud iam roles create\n"
+                    "3. Owner権限を削除し、必要最小限の権限のみ付与"
+                )
+            ),
+            SecurityFinding(
+                title="公開アクセス可能なCloud Storageバケット",
+                severity="HIGH",
+                explanation=(
+                    "'public-data-bucket' が allUsers に対して読み取りアクセスを許可しています。"
+                    "機密データが含まれている場合、情報漏洩のリスクがあります。"
+                ),
+                recommendation=(
+                    "バケットの公開アクセスを無効化し、必要に応じて署名付きURLを使用してください。"
+                    "コマンド: gsutil iam ch -d allUsers gs://public-data-bucket"
+                )
+            ),
+        ]
+
+    def _get_basic_system_prompt(self) -> str:
+        """Get basic system prompt for backward compatibility"""
+        return (
+            "You are a multi-cloud security expert analyzing cloud configurations "
+            "for security risks across AWS, Azure, and Google Cloud Platform. "
+            "Your task is to identify security vulnerabilities, "
+            "misconfigurations, and violations of security best practices."
+            "\n\n"
+            "For each finding, provide:\n"
+            "1. A clear, concise title\n"
+            "2. Severity level (HIGH, MEDIUM, or LOW)\n"
+            "3. Detailed explanation of the risk\n"
+            "4. Specific, actionable recommendations\n"
+            "\n"
+            "Respond in JSON format as an array of findings."
+        )
 
     def _analyze_cloud_security_findings(
         self, security_findings: List[Dict[str, Any]], provider_name: str
