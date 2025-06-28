@@ -1,6 +1,6 @@
 """Enhanced prompt templates for security analysis with project context awareness."""
-from typing import Dict, Any
 
+from typing import Any, Dict
 
 ENHANCED_SECURITY_ANALYSIS_PROMPT = """
 あなたはクラウドセキュリティとアプリケーションセキュリティの専門家です。
@@ -152,19 +152,15 @@ MULTI_CLOUD_ANALYSIS_PROMPT = """
 """
 
 
-def get_enhanced_prompt(
-    prompt_type: str,
-    context: Dict[str, Any],
-    data: Dict[str, Any]
-) -> str:
+def get_enhanced_prompt(prompt_type: str, context: Dict[str, Any], data: Dict[str, Any]) -> str:
     """
     Get an enhanced prompt with project context.
-    
+
     Args:
         prompt_type: Type of prompt (security_analysis, iam_analysis, etc.)
         context: Project context information
         data: Security data to analyze
-        
+
     Returns:
         Formatted prompt string
     """
@@ -174,53 +170,61 @@ def get_enhanced_prompt(
         "dependency_analysis": DEPENDENCY_ANALYSIS_PROMPT,
         "multi_cloud": MULTI_CLOUD_ANALYSIS_PROMPT,
     }
-    
+
     template = prompt_templates.get(prompt_type, ENHANCED_SECURITY_ANALYSIS_PROMPT)
-    
+
     # Merge context and data for formatting
     format_data = {**context, **data}
-    
+
     # Handle missing keys gracefully
-    for key in ["project_name", "environment", "exposure_level", "tech_stack",
-                "project_type", "critical_assets", "team_size"]:
+    default_keys = [
+        "project_name",
+        "environment",
+        "exposure_level",
+        "tech_stack",
+        "project_type",
+        "critical_assets",
+        "team_size",
+        "infrastructure_data",
+        "application_data",
+        "iam_data",
+        "vulnerability_data",
+        "cloud_providers",
+        "security_configs",
+    ]
+
+    for key in default_keys:
         if key not in format_data:
             format_data[key] = "不明"
-    
+
     return template.format(**format_data)
 
 
 def build_analysis_prompt(
-    infrastructure_findings: list,
-    application_findings: list,
-    project_context: Dict[str, Any]
+    infrastructure_findings: list, application_findings: list, project_context: Dict[str, Any]
 ) -> str:
     """
     Build a comprehensive analysis prompt combining all security findings.
-    
+
     Args:
         infrastructure_findings: List of infrastructure security findings
         application_findings: List of application security findings
         project_context: Project context information
-        
+
     Returns:
         Complete analysis prompt
     """
     # Convert findings to structured text
-    infra_text = "\n".join([
-        f"- {f.get('title', '不明')}: {f.get('description', '')}"
-        for f in infrastructure_findings
-    ])
-    
-    app_text = "\n".join([
-        f"- {f.get('title', '不明')}: {f.get('description', '')}"
-        for f in application_findings
-    ])
-    
+    infra_text = "\n".join(
+        [f"- {f.get('title', '不明')}: {f.get('description', '')}" for f in infrastructure_findings]
+    )
+
+    app_text = "\n".join(
+        [f"- {f.get('title', '不明')}: {f.get('description', '')}" for f in application_findings]
+    )
+
     return get_enhanced_prompt(
         "security_analysis",
         project_context,
-        {
-            "infrastructure_data": infra_text or "なし",
-            "application_data": app_text or "なし"
-        }
+        {"infrastructure_data": infra_text or "なし", "application_data": app_text or "なし"},
     )

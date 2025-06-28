@@ -1,6 +1,6 @@
 """Tests for common data models."""
 
-from common.models import SecurityFinding, RecommendationStep, EnhancedRecommendation
+from common.models import EnhancedRecommendation, RecommendationStep, SecurityFinding
 
 
 class TestSecurityFinding:
@@ -100,19 +100,15 @@ class TestSecurityFinding:
             classification_reason="Production environment risk",
             business_impact="Critical data exposure risk",
             priority_score=85,
-            compliance_mapping={
-                "cis_benchmark": "1.4",
-                "iso_27001": "A.9.2.5",
-                "pci_dss": "7.1"
-            }
+            compliance_mapping={"cis_benchmark": "1.4", "iso_27001": "A.9.2.5", "pci_dss": "7.1"},
         )
-        
+
         result = finding.to_dict()
-        
+
         # Check basic fields
         assert result["title"] == "Over-privileged Service Account"
         assert result["severity"] == "HIGH"
-        
+
         # Check enhanced fields
         assert result["finding_id"] == "gcp-iam-001"
         assert result["source"] == "GCP-IAM"
@@ -127,100 +123,91 @@ class TestSecurityFinding:
 
 class TestRecommendationStep:
     """Test cases for RecommendationStep dataclass."""
-    
+
     def test_basic_step(self):
         """Test basic recommendation step."""
-        step = RecommendationStep(
-            order=1,
-            action="Review current permissions"
-        )
-        
+        step = RecommendationStep(order=1, action="Review current permissions")
+
         assert step.order == 1
         assert step.action == "Review current permissions"
         assert step.command is None
         assert step.code_snippet is None
         assert step.validation is None
-    
+
     def test_step_with_command(self):
         """Test step with command."""
         step = RecommendationStep(
             order=2,
             action="List current IAM bindings",
             command="gcloud projects get-iam-policy PROJECT_ID",
-            validation="Check for overly permissive roles"
+            validation="Check for overly permissive roles",
         )
-        
+
         result = step.to_dict()
-        
+
         assert result["order"] == 2
         assert result["action"] == "List current IAM bindings"
         assert result["command"] == "gcloud projects get-iam-policy PROJECT_ID"
         assert result["validation"] == "Check for overly permissive roles"
         assert "code_snippet" not in result  # Should not include None values
-    
+
     def test_step_with_code_snippet(self):
         """Test step with code snippet."""
         code = """# role-definition.yaml
 title: "Custom Role"
 includedPermissions:
 - storage.buckets.get"""
-        
+
         step = RecommendationStep(
             order=3,
             action="Create custom role",
             code_snippet=code,
-            command="gcloud iam roles create customRole --file=role-definition.yaml"
+            command="gcloud iam roles create customRole --file=role-definition.yaml",
         )
-        
+
         result = step.to_dict()
-        
+
         assert result["code_snippet"] == code
         assert "role-definition.yaml" in result["code_snippet"]
 
 
 class TestEnhancedRecommendation:
     """Test cases for EnhancedRecommendation dataclass."""
-    
+
     def test_basic_recommendation(self):
         """Test basic enhanced recommendation."""
-        rec = EnhancedRecommendation(
-            summary="Apply least privilege principle"
-        )
-        
+        rec = EnhancedRecommendation(summary="Apply least privilege principle")
+
         assert rec.summary == "Apply least privilege principle"
         assert rec.steps == []
         assert rec.estimated_time is None
         assert rec.required_skills == []
-    
+
     def test_recommendation_with_steps(self):
         """Test recommendation with multiple steps."""
         steps = [
             RecommendationStep(
                 order=1,
                 action="Audit current permissions",
-                command="gcloud policy-intelligence query-activity"
+                command="gcloud policy-intelligence query-activity",
             ),
             RecommendationStep(
-                order=2,
-                action="Create custom role",
-                command="gcloud iam roles create"
+                order=2, action="Create custom role", command="gcloud iam roles create"
             ),
             RecommendationStep(
-                order=3,
-                action="Apply new role",
-                command="gcloud projects add-iam-policy-binding"
-            )
+                order=3, action="Apply new role", command="gcloud projects add-iam-policy-binding"
+            ),
         ]
-        
+
         rec = EnhancedRecommendation(
             summary="Implement least privilege for service account",
             steps=steps,
             estimated_time="30分",
-            required_skills=["GCP IAM", "gcloud CLI", "YAML"]
+            required_skills=["GCP IAM", "gcloud CLI", "YAML"],
         )
-        
+
         result = rec.to_dict()
-        
+
         assert result["summary"] == "Implement least privilege for service account"
         assert len(result["steps"]) == 3
         assert result["steps"][0]["order"] == 1
@@ -228,34 +215,37 @@ class TestEnhancedRecommendation:
         assert result["estimated_time"] == "30分"
         assert "GCP IAM" in result["required_skills"]
         assert "gcloud CLI" in result["required_skills"]
-    
+
     def test_security_finding_with_enhanced_recommendation(self):
         """Test SecurityFinding with EnhancedRecommendation."""
         steps = [
             RecommendationStep(
                 order=1,
                 action="Remove owner role",
-                command="gcloud projects remove-iam-policy-binding PROJECT_ID --member=serviceAccount:SA_EMAIL --role=roles/owner"
+                command=(
+                    "gcloud projects remove-iam-policy-binding PROJECT_ID "
+                    "--member=serviceAccount:SA_EMAIL --role=roles/owner"
+                ),
             )
         ]
-        
+
         enhanced_rec = EnhancedRecommendation(
             summary="Remove excessive permissions",
             steps=steps,
             estimated_time="15分",
-            required_skills=["GCP IAM"]
+            required_skills=["GCP IAM"],
         )
-        
+
         finding = SecurityFinding(
             title="Service Account with Owner Role",
             severity="HIGH",
             explanation="Service account has owner permissions",
             recommendation="Remove owner role and apply least privilege",
-            enhanced_recommendation=enhanced_rec
+            enhanced_recommendation=enhanced_rec,
         )
-        
+
         result = finding.to_dict()
-        
+
         assert "enhanced_recommendation" in result
         assert result["enhanced_recommendation"]["summary"] == "Remove excessive permissions"
         assert len(result["enhanced_recommendation"]["steps"]) == 1

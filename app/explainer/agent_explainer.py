@@ -12,7 +12,7 @@ import os
 import time
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import fire
 
@@ -25,6 +25,7 @@ except ImportError:
 
 from app.common.auth import check_gcp_credentials
 from app.common.models import SecurityFinding
+from app.explainer.prompt_templates import SYSTEM_PROMPT_ENHANCED, build_analysis_prompt
 
 # Configure logging
 logging.basicConfig(
@@ -120,6 +121,7 @@ class GeminiSecurityAnalyzer(LLMInterface):
         temperature: float = 0.1,
         max_output_tokens: int = 2048,
         use_mock: bool = False,
+        project_context: Optional[Dict[str, Any]] = None,
     ):
         """Initialize GeminiSecurityAnalyzer with configuration."""
         self.project_id = project_id
@@ -128,6 +130,7 @@ class GeminiSecurityAnalyzer(LLMInterface):
         self.temperature = temperature
         self.max_output_tokens = max_output_tokens
         self.use_mock = use_mock
+        self.project_context = project_context or {}
         self._model = None
         self._rate_limit_delay = 1.0  # Delay between API calls in seconds
 
@@ -153,6 +156,30 @@ class GeminiSecurityAnalyzer(LLMInterface):
         """Analyze security risks in the configuration"""
         findings = []
 
+        # If project context is provided, use enhanced analysis
+        if self.project_context:
+            # Collect infrastructure findings
+            infra_findings = []
+            app_findings = []
+
+            if "providers" in configuration:
+                for provider_data in configuration["providers"]:
+                    provider_name = provider_data.get("provider", "unknown")
+                    provider_findings = self._analyze_provider_data(provider_data, provider_name)
+                    infra_findings.extend([f.__dict__ for f in provider_findings])
+            else:
+                # Single provider (backward compatibility)
+                if "iam_policies" in configuration:
+                    iam_findings = self._analyze_iam_policies(configuration["iam_policies"])
+                    infra_findings.extend([f.__dict__ for f in iam_findings])
+                if "scc_findings" in configuration:
+                    scc_findings = self._analyze_scc_findings(configuration["scc_findings"])
+                    infra_findings.extend([f.__dict__ for f in scc_findings])
+
+            # Perform enhanced analysis with context
+            return self._analyze_with_context(infra_findings, app_findings)
+
+        # Standard analysis without context
         # Handle multi-cloud data structure
         if "providers" in configuration:
             # Multi-cloud analysis
@@ -261,7 +288,11 @@ class GeminiSecurityAnalyzer(LLMInterface):
                 }
 
                 # Generate response
-                system_prompt = SYSTEM_PROMPT_ENHANCED if self.project_context else self._get_basic_system_prompt()
+                system_prompt = (
+                    SYSTEM_PROMPT_ENHANCED
+                    if self.project_context
+                    else self._get_basic_system_prompt()
+                )
                 response = self._model.generate_content(
                     [system_prompt, prompt],
                     generation_config=generation_config,
@@ -346,7 +377,7 @@ class GeminiSecurityAnalyzer(LLMInterface):
         try:
             response = self._call_llm_with_retry(prompt)
             findings_data = self._parse_enhanced_response(response)
-            
+
             # Convert enhanced format to SecurityFinding objects
             findings = []
             for finding in findings_data:
@@ -355,13 +386,13 @@ class GeminiSecurityAnalyzer(LLMInterface):
                     title=finding.get("title", "Unknown Finding"),
                     severity=finding.get("severity", "MEDIUM"),
                     explanation=finding.get("explanation", ""),
-                    recommendation=finding.get("recommendation", {}).get("summary", "")
+                    recommendation=finding.get("recommendation", {}).get("summary", ""),
                 )
-                
+
                 # Store additional fields in metadata if needed
                 # This maintains backward compatibility
                 findings.append(basic_finding)
-            
+
             return findings
         except Exception as e:
             logger.error("Error in enhanced analysis: %s", e)
@@ -384,7 +415,7 @@ class GeminiSecurityAnalyzer(LLMInterface):
                 if json_end > json_start:
                     json_str = response[json_start:json_end]
                     return json.loads(json_str)
-            
+
             logger.error("No valid JSON found in enhanced LLM response")
             return []
         except json.JSONDecodeError as e:
@@ -408,7 +439,7 @@ class GeminiSecurityAnalyzer(LLMInterface):
                     "1. 現在の使用状況を確認: gcloud policy-intelligence query-activity\n"
                     "2. カスタムロールを作成: gcloud iam roles create\n"
                     "3. Owner権限を削除し、必要最小限の権限のみ付与"
-                )
+                ),
             ),
             SecurityFinding(
                 title="公開アクセス可能なCloud Storageバケット",
@@ -420,7 +451,7 @@ class GeminiSecurityAnalyzer(LLMInterface):
                 recommendation=(
                     "バケットの公開アクセスを無効化し、必要に応じて署名付きURLを使用してください。"
                     "コマンド: gsutil iam ch -d allUsers gs://public-data-bucket"
-                )
+                ),
             ),
         ]
 
@@ -687,6 +718,7 @@ class SecurityRiskExplainer:
         ai_provider: str = None,
         ollama_model: str = None,
         ollama_endpoint: str = None,
+        project_path: Optional[str] = None,
     ):
         """Initialize SecurityRiskExplainer with configuration."""
         self.input_file = Path(input_file)
@@ -695,6 +727,16 @@ class SecurityRiskExplainer:
         self.project_id = project_id
         self.location = location
         self.use_mock = use_mock
+        self.project_context = {}
+
+        # Collect project context if path provided
+        if project_path:
+            # Import at function level to avoid circular imports
+            # but this makes mocking harder in tests
+            from app.explainer.context_collector import ContextCollector
+
+            collector = ContextCollector(project_path)
+            self.project_context = collector.collect_project_context()
 
         # Build config for analyzer factory
         config = {
@@ -717,6 +759,10 @@ class SecurityRiskExplainer:
                 )
             config["project_id"] = project_id
             config["location"] = location
+
+        # Add project context to config
+        if self.project_context:
+            config["project_context"] = self.project_context
 
         # Initialize analyzer using factory
         self.analyzer = get_analyzer(config)

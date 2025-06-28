@@ -1,18 +1,19 @@
 """Common data models shared across agents."""
 
 from dataclasses import dataclass, field
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 
 @dataclass
 class RecommendationStep:
     """A step in the recommendation process."""
+
     order: int
     action: str
     command: Optional[str] = None
     code_snippet: Optional[str] = None
     validation: Optional[str] = None
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         result = {
@@ -31,17 +32,15 @@ class RecommendationStep:
 @dataclass
 class EnhancedRecommendation:
     """Enhanced recommendation with detailed steps."""
+
     summary: str
     steps: List[RecommendationStep] = field(default_factory=list)
     estimated_time: Optional[str] = None
     required_skills: List[str] = field(default_factory=list)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
-        result = {
-            "summary": self.summary,
-            "steps": [step.to_dict() for step in self.steps]
-        }
+        result = {"summary": self.summary, "steps": [step.to_dict() for step in self.steps]}
         if self.estimated_time:
             result["estimated_time"] = self.estimated_time
         if self.required_skills:
@@ -57,7 +56,7 @@ class SecurityFinding:
     severity: str
     explanation: str
     recommendation: str
-    
+
     # Enhanced fields (optional for backward compatibility)
     finding_id: Optional[str] = None
     source: Optional[str] = None
@@ -76,7 +75,7 @@ class SecurityFinding:
             "explanation": self.explanation,
             "recommendation": self.recommendation,
         }
-        
+
         # Add enhanced fields if present
         if self.finding_id:
             result["finding_id"] = self.finding_id
@@ -94,5 +93,5 @@ class SecurityFinding:
             result["priority_score"] = self.priority_score
         if self.compliance_mapping:
             result["compliance_mapping"] = self.compliance_mapping
-            
+
         return result
