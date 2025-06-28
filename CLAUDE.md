@@ -61,7 +61,7 @@
 ✅ テストとカバレッジの確保
 - テストは pytest を使用
 - tests/ 配下に各エージェントのユニットテストを配置
-- カバレッジ80%以上を pytest --cov で保証
+- カバレッジ95%以上を pytest --cov で保証
 
 ✅ make before-commit を必ず通すこと
 

@@ -77,6 +77,9 @@ class PaddiCLI:
         location: str = "us-central1",
         output_dir: str = "output",
         verbose: bool = False,
+        ai_provider: str = None,
+        ollama_model: str = None,
+        ollama_endpoint: str = None,
     ):
         """
         Run complete audit pipeline.
@@ -88,6 +91,9 @@ class PaddiCLI:
             location: GCP location for Vertex AI
             output_dir: Output directory for reports
             verbose: Enable verbose logging
+            ai_provider: AI provider to use ('gemini' or 'ollama')
+            ollama_model: Ollama model name (default: gemma3:latest)
+            ollama_endpoint: Ollama API endpoint (default: http://localhost:11434)
         """
         if verbose:
             logging.getLogger().setLevel(logging.DEBUG)
@@ -98,7 +104,7 @@ class PaddiCLI:
             self.collect(project_id, organization_id, use_mock)
 
             # Step 2: Analyze
-            self.analyze(project_id, location, use_mock)
+            self.analyze(project_id, location, use_mock, ai_provider, ollama_model, ollama_endpoint)
 
             # Step 3: Report
             self.report(output_dir=output_dir)
@@ -153,6 +159,9 @@ class PaddiCLI:
         project_id: str = "example-project-123",
         location: str = "us-central1",
         use_mock: bool = True,
+        ai_provider: str = None,
+        ollama_model: str = None,
+        ollama_endpoint: str = None,
     ):
         """
         Analyze collected data with AI.
@@ -161,14 +170,23 @@ class PaddiCLI:
             project_id: GCP project ID
             location: GCP location for Vertex AI
             use_mock: Use mock AI responses
+            ai_provider: AI provider to use ('gemini' or 'ollama')
+            ollama_model: Ollama model name (default: gemma3:latest)
+            ollama_endpoint: Ollama API endpoint (default: http://localhost:11434)
         """
-        logger.info("✓ Analyzing with Gemini AI...")
+        import os
+
+        provider = ai_provider or os.getenv("AI_PROVIDER", "gemini")
+        logger.info("✓ Analyzing with %s AI...", provider.capitalize())
 
         try:
             explainer_main(
                 project_id=project_id,
                 location=location,
                 use_mock=use_mock,
+                ai_provider=ai_provider,
+                ollama_model=ollama_model,
+                ollama_endpoint=ollama_endpoint,
             )
 
             # Load and display summary

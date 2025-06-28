@@ -11,6 +11,7 @@ from reporter.agent_reporter import (
     MarkdownGenerator,
     ReportService,
     SecurityFinding,
+    main,
 )
 
 
@@ -351,8 +352,6 @@ class TestMainFunction:
         mock_instance = MagicMock()
         mock_service_class.return_value = mock_instance
 
-        from reporter.agent_reporter import main
-
         main()
 
         mock_service_class.assert_called_once_with(
@@ -367,8 +366,6 @@ class TestMainFunction:
         """Test main function with custom paths."""
         mock_instance = MagicMock()
         mock_service_class.return_value = mock_instance
-
-        from reporter.agent_reporter import main
 
         main(input_dir="custom/input", output_dir="custom/output", template_dir="custom/templates")
 

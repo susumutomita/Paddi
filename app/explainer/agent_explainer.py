@@ -8,6 +8,7 @@ to identify security risks and provide recommendations.
 
 import json
 import logging
+import os
 import time
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -546,31 +547,71 @@ Provide analysis in this JSON format:
         ]
 
 
+def get_analyzer(config: Dict[str, Any]) -> LLMInterface:
+    """設定に基づいてAIアナライザーを取得"""
+    provider = config.get("ai_provider", "gemini")
+
+    if provider == "ollama":
+        from .ollama_explainer import OllamaSecurityAnalyzer
+
+        return OllamaSecurityAnalyzer(
+            model=config.get("ollama_model", "gemma3:latest"),
+            endpoint=config.get("ollama_endpoint", "http://localhost:11434"),
+        )
+    # Gemini
+    return GeminiSecurityAnalyzer(
+        project_id=config["project_id"],
+        location=config.get("location", "us-central1"),
+        use_mock=config.get("use_mock", False),
+    )
+
+
 class SecurityRiskExplainer:
     """Main orchestrator for security risk analysis"""
 
     def __init__(
         self,
-        project_id: str,
+        project_id: str = None,
         location: str = "us-central1",
         use_mock: bool = False,
         input_file: str = "data/collected.json",
         output_dir: str = "data",
+        ai_provider: str = None,
+        ollama_model: str = None,
+        ollama_endpoint: str = None,
     ):
         """Initialize SecurityRiskExplainer with configuration."""
-        self.project_id = project_id
-        self.location = location
-        self.use_mock = use_mock
         self.input_file = Path(input_file)
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True)
+        self.project_id = project_id
+        self.location = location
+        self.use_mock = use_mock
 
-        # Initialize analyzer
-        self.analyzer = GeminiSecurityAnalyzer(
-            project_id=project_id,
-            location=location,
-            use_mock=use_mock,
-        )
+        # Build config for analyzer factory
+        config = {
+            "ai_provider": ai_provider or os.getenv("AI_PROVIDER", "gemini"),
+            "use_mock": use_mock,
+        }
+
+        if config["ai_provider"] == "ollama":
+            config["ollama_model"] = ollama_model or os.getenv("OLLAMA_MODEL", "gemma3:latest")
+            config["ollama_endpoint"] = ollama_endpoint or os.getenv(
+                "OLLAMA_ENDPOINT", "http://localhost:11434"
+            )
+        else:
+            # Gemini requires project_id
+            if not project_id:
+                project_id = os.getenv("PROJECT_ID")
+            if not project_id and not use_mock:
+                raise ValueError(
+                    "project_id is required for Gemini (set via parameter or PROJECT_ID env var)"
+                )
+            config["project_id"] = project_id
+            config["location"] = location
+
+        # Initialize analyzer using factory
+        self.analyzer = get_analyzer(config)
 
     def load_configuration(self) -> Dict[str, Any]:
         """Load configuration data from Agent A output"""
@@ -608,25 +649,35 @@ class SecurityRiskExplainer:
 
 
 def main(
-    project_id: str = "example-project",
+    project_id: str = None,
     location: str = "us-central1",
     use_mock: bool = True,
     input_file: str = "data/collected.json",
     output_dir: str = "data",
+    ai_provider: str = None,
+    ollama_model: str = None,
+    ollama_endpoint: str = None,
 ):
     """
-    Analyze GCP configuration for security risks using Gemini LLM.
+    Analyze cloud configuration for security risks using AI.
 
     Args:
-        project_id: GCP project ID for Vertex AI
+        project_id: GCP project ID for Vertex AI (required for Gemini)
         location: GCP region for Vertex AI
         use_mock: Use mock responses instead of real LLM calls
         input_file: Path to configuration data from Agent A
         output_dir: Directory to save analysis results
+        ai_provider: AI provider to use ('gemini' or 'ollama')
+        ollama_model: Ollama model name (default: llama3)
+        ollama_endpoint: Ollama API endpoint (default: http://localhost:11434)
     """
     try:
-        # Set up Google Cloud authentication if not using mock
-        check_gcp_credentials(use_mock)
+        # Determine AI provider
+        provider = ai_provider or os.getenv("AI_PROVIDER", "gemini")
+
+        # Set up Google Cloud authentication if using Gemini and not mock
+        if provider == "gemini" and not use_mock:
+            check_gcp_credentials(use_mock)
 
         # Initialize explainer
         explainer = SecurityRiskExplainer(
@@ -635,6 +686,9 @@ def main(
             use_mock=use_mock,
             input_file=input_file,
             output_dir=output_dir,
+            ai_provider=ai_provider,
+            ollama_model=ollama_model,
+            ollama_endpoint=ollama_endpoint,
         )
 
         # Perform analysis

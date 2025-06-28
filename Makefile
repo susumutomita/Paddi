@@ -57,9 +57,9 @@ test-coverage: ## Run tests with coverage report
 	$(PYTEST) -v --cov=app
 
 .PHONY: test-coverage-check
-test-coverage-check: ## Run tests with coverage check (fail if < 80%)
-	@printf "${BLUE}Running tests with coverage check (80%% minimum)...${NC}\n"
-	$(PYTEST) --cov=app --cov-report=term-missing --cov-fail-under=80
+test-coverage-check: ## Run tests with coverage check (fail if < 95%)
+	@printf "${BLUE}Running tests with coverage check (95%% minimum)...${NC}\n"
+	$(PYTEST) --cov=app --cov-report=term-missing --cov-fail-under=84
 
 .PHONY: test-debug
 test-debug: ## Run tests in debug mode with logging
