@@ -14,6 +14,10 @@ from explainer.agent_explainer import (
     SecurityRiskExplainer,
     get_analyzer,
 )
+from explainer.prompt_templates import (
+    build_analysis_prompt,
+    get_enhanced_prompt,
+)
 
 
 class TestSecurityFinding:
@@ -50,6 +54,32 @@ class TestSecurityFinding:
         assert result["explanation"] == "Test explanation"
         assert result["recommendation"] == "Test recommendation"
 
+    def test_security_finding_with_enhanced_fields(self):
+        """Test SecurityFinding with enhanced fields"""
+        finding = SecurityFinding(
+            title="Test Finding",
+            severity="HIGH",
+            explanation="Test explanation",
+            recommendation="Test recommendation",
+            finding_id="test-001",
+            source="GCP-IAM",
+            classification="要対応",
+            classification_reason="Critical security risk",
+            business_impact="High impact on production",
+            priority_score=85,
+            compliance_mapping={"cis_benchmark": "1.4", "iso_27001": "A.9.2.5"},
+        )
+
+        result = finding.to_dict()
+
+        assert result["finding_id"] == "test-001"
+        assert result["source"] == "GCP-IAM"
+        assert result["classification"] == "要対応"
+        assert result["classification_reason"] == "Critical security risk"
+        assert result["business_impact"] == "High impact on production"
+        assert result["priority_score"] == 85
+        assert result["compliance_mapping"]["cis_benchmark"] == "1.4"
+
 
 class TestGeminiSecurityAnalyzer:
     """Test GeminiSecurityAnalyzer class"""
@@ -66,6 +96,21 @@ class TestGeminiSecurityAnalyzer:
         assert analyzer.location == "us-central1"
         assert analyzer.use_mock is True
         assert analyzer._model is None
+        assert analyzer.project_context == {}
+
+    def test_initialization_with_context(self):
+        """Test initializing analyzer with project context"""
+        context = {
+            "project_name": "test-app",
+            "environment": "production",
+            "tech_stack": ["Python", "GCP"],
+        }
+
+        analyzer = GeminiSecurityAnalyzer(
+            project_id="test-project", use_mock=True, project_context=context
+        )
+
+        assert analyzer.project_context == context
 
     @patch("explainer.agent_explainer.aiplatform")
     @patch("explainer.agent_explainer.models")
@@ -100,6 +145,31 @@ class TestGeminiSecurityAnalyzer:
         assert len(findings) > 0
         assert all(isinstance(f, SecurityFinding) for f in findings)
         assert all(f.severity in ["HIGH", "MEDIUM", "LOW"] for f in findings)
+
+    def test_analyze_security_risks_with_context(self):
+        """Test analyzing with project context for enhanced analysis"""
+        context = {
+            "project_name": "production-api",
+            "environment": "production",
+            "exposure_level": "public",
+            "tech_stack": ["Python", "FastAPI", "PostgreSQL"],
+        }
+
+        analyzer = GeminiSecurityAnalyzer(
+            project_id="test-project", use_mock=True, project_context=context
+        )
+
+        configuration = {
+            "providers": [
+                {"provider": "gcp", "iam_policies": {"bindings": []}, "security_findings": []}
+            ]
+        }
+
+        findings = analyzer.analyze_security_risks(configuration)
+
+        assert len(findings) > 0
+        # With context and mock mode, should get enhanced findings
+        assert any("サービスアカウント" in f.title for f in findings)
 
     def test_mock_iam_findings(self):
         """Test mock IAM findings generation"""
@@ -511,3 +581,155 @@ class TestAnalyzerFactory:
                 call_config = mock_factory.call_args[0][0]
                 assert call_config["ai_provider"] == "ollama"
                 assert call_config["ollama_model"] == "mistral"
+
+
+class TestEnhancedFeatures:
+    """Test enhanced AI prompt features"""
+
+    def test_get_enhanced_prompt(self):
+        """Test getting enhanced prompts with context"""
+        context = {
+            "project_name": "test-app",
+            "environment": "production",
+            "exposure_level": "public",
+            "tech_stack": "Python, Django, PostgreSQL",
+        }
+
+        data = {
+            "infrastructure_data": "IAM policies data",
+            "application_data": "Dependency vulnerabilities",
+        }
+
+        prompt = get_enhanced_prompt("security_analysis", context, data)
+
+        assert "test-app" in prompt
+        assert "production" in prompt
+        assert "public" in prompt
+        assert "Python, Django, PostgreSQL" in prompt
+        assert "IAM policies data" in prompt
+        assert "Dependency vulnerabilities" in prompt
+
+    def test_build_analysis_prompt(self):
+        """Test building comprehensive analysis prompt"""
+        infra_findings = [
+            {"title": "IAM Issue", "description": "Over-privileged role"},
+            {"title": "Storage Issue", "description": "Public bucket"},
+        ]
+
+        app_findings = [{"title": "CVE-2021-1234", "description": "Critical vulnerability"}]
+
+        context = {
+            "project_name": "prod-api",
+            "environment": "production",
+            "exposure_level": "public",
+            "tech_stack": "Node.js, Express",
+            "project_type": "API Server",
+            "critical_assets": "Authentication, User Data",
+        }
+
+        prompt = build_analysis_prompt(infra_findings, app_findings, context)
+
+        assert "prod-api" in prompt
+        assert "IAM Issue" in prompt
+        assert "Storage Issue" in prompt
+        assert "CVE-2021-1234" in prompt
+        assert "API Server" in prompt
+
+    def test_analyzer_with_enhanced_analysis(self):
+        """Test analyzer with enhanced analysis capabilities"""
+        context = {
+            "project_name": "test-app",
+            "environment": "production",
+            "exposure_level": "public",
+            "tech_stack": ["Python", "GCP"],
+            "project_type": "Web Application",
+            "critical_assets": ["User Data", "Authentication"],
+        }
+
+        analyzer = GeminiSecurityAnalyzer(
+            project_id="test-project", use_mock=True, project_context=context
+        )
+
+        # Test enhanced mock findings
+        enhanced_findings = analyzer._get_enhanced_mock_findings()
+
+        assert len(enhanced_findings) > 0
+        assert all(isinstance(f, SecurityFinding) for f in enhanced_findings)
+        assert any("サービスアカウント" in f.title for f in enhanced_findings)
+        assert any("Storage" in f.title for f in enhanced_findings)
+
+    @patch("app.explainer.context_collector.ContextCollector")
+    def test_security_risk_explainer_with_context(self, mock_collector_class):
+        """Test SecurityRiskExplainer with context collection"""
+        # Mock context collector
+        mock_collector = Mock()
+        mock_collector.collect_project_context.return_value = {
+            "project_name": "test-app",
+            "environment": "staging",
+            "tech_stack": ["Python", "Flask"],
+        }
+        mock_collector_class.return_value = mock_collector
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            explainer = SecurityRiskExplainer(
+                project_id="test-project", use_mock=True, project_path=tmpdir
+            )
+
+            # Verify context was collected
+            assert explainer.project_context is not None
+            assert explainer.project_context["project_name"] == "test-app"
+
+    def test_parse_enhanced_response(self):
+        """Test parsing enhanced LLM response format"""
+        analyzer = GeminiSecurityAnalyzer(project_id="test-project", use_mock=True)
+
+        # Test with array format
+        response = """
+        [
+          {
+            "finding_id": "gcp-iam-001",
+            "source": "GCP-IAM",
+            "title": "Over-privileged Service Account",
+            "severity": "HIGH",
+            "classification": "要対応",
+            "classification_reason": "Production impact",
+            "business_impact": "Critical security risk",
+            "priority_score": 90,
+            "recommendation": {
+              "summary": "Reduce permissions",
+              "steps": [
+                {
+                  "order": 1,
+                  "action": "Review permissions",
+                  "command": "gcloud iam roles list"
+                }
+              ]
+            }
+          }
+        ]
+        """
+
+        result = analyzer._parse_enhanced_response(response)
+
+        assert len(result) == 1
+        assert result[0]["finding_id"] == "gcp-iam-001"
+        assert result[0]["priority_score"] == 90
+        assert "steps" in result[0]["recommendation"]
+
+    def test_parse_enhanced_response_single_object(self):
+        """Test parsing enhanced response with single object"""
+        analyzer = GeminiSecurityAnalyzer(project_id="test-project", use_mock=True)
+
+        # Test with single object format
+        response = """
+        {
+          "finding_id": "aws-s3-001",
+          "title": "Public S3 Bucket",
+          "severity": "HIGH"
+        }
+        """
+
+        result = analyzer._parse_enhanced_response(response)
+
+        assert len(result) == 1
+        assert result[0]["finding_id"] == "aws-s3-001"
