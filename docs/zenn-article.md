@@ -57,14 +57,14 @@ def analyze_with_gemini(self, finding: dict) -> dict:
     prompt = f"""
     以下のセキュリティ設定を分析し、リスクと対策を説明してください：
     {json.dumps(finding, ensure_ascii=False)}
-    
+
     回答は以下の形式で：
     - タイトル: 問題の簡潔な説明
     - 重要度: CRITICAL/HIGH/MEDIUM/LOW
     - 説明: 技術者でなくても理解できる説明
     - 推奨事項: 具体的な対処方法
     """
-    
+
     response = self.model.generate_content(prompt)
     return self._parse_response(response.text)
 ```
@@ -121,12 +121,11 @@ async def collect_all_resources(self):
     return self._merge_results(results)
 ```
 
-### 3. 87%のテストカバレッジ
+### 3. テストカバレッジ
 
 ```bash
 # テスト実行とカバレッジ確認
 make test
-# カバレッジ: 87.3%
 ```
 
 ### 4. マルチクラウド対応の拡張性
@@ -144,7 +143,7 @@ class BaseCloudProvider(ABC):
     @abstractmethod
     async def collect_iam_policies(self) -> List[Dict]:
         pass
-    
+
     @abstractmethod
     async def collect_security_findings(self) -> List[Dict]:
         pass

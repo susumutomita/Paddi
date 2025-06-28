@@ -19,16 +19,19 @@ docker run -d -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama
 ### Option 2: Native Installation
 
 #### macOS
+
 ```bash
 curl https://ollama.ai/install.sh | sh
 ```
 
 #### Linux
+
 ```bash
 curl -fsSL https://ollama.ai/install.sh | sh
 ```
 
 #### Windows
+
 Download and run the installer from [ollama.ai](https://ollama.ai/download)
 
 ## 📦 Model Setup

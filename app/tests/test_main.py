@@ -107,7 +107,12 @@ class TestPaddiCLI:
         cli.analyze(project_id="test-project", use_mock=True)
 
         mock_explainer.assert_called_once_with(
-            project_id="test-project", location="us-central1", use_mock=True
+            project_id="test-project",
+            location="us-central1",
+            use_mock=True,
+            ai_provider=None,
+            ollama_model=None,
+            ollama_endpoint=None,
         )
 
     @patch("app.main.reporter_main")

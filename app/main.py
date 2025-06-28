@@ -92,7 +92,7 @@ class PaddiCLI:
             output_dir: Output directory for reports
             verbose: Enable verbose logging
             ai_provider: AI provider to use ('gemini' or 'ollama')
-            ollama_model: Ollama model name (default: llama3)
+            ollama_model: Ollama model name (default: gemma3:latest)
             ollama_endpoint: Ollama API endpoint (default: http://localhost:11434)
         """
         if verbose:
@@ -171,11 +171,12 @@ class PaddiCLI:
             location: GCP location for Vertex AI
             use_mock: Use mock AI responses
             ai_provider: AI provider to use ('gemini' or 'ollama')
-            ollama_model: Ollama model name (default: llama3)
+            ollama_model: Ollama model name (default: gemma3:latest)
             ollama_endpoint: Ollama API endpoint (default: http://localhost:11434)
         """
         import os
-        provider = ai_provider or os.getenv('AI_PROVIDER', 'gemini')
+
+        provider = ai_provider or os.getenv("AI_PROVIDER", "gemini")
         logger.info("✓ Analyzing with %s AI...", provider.capitalize())
 
         try:
