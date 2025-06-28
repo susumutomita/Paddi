@@ -18,7 +18,7 @@ resource "google_project_iam_member" "vertex_ai_user" {
   project = var.project_id
   role    = "roles/aiplatform.user"
   member  = "serviceAccount:${google_service_account.paddi.email}"
-  
+
   depends_on = [google_project_service.aiplatform]
 }
 
@@ -59,7 +59,7 @@ resource "google_service_account_key" "paddi_key" {
 resource "local_file" "paddi_key_file" {
   content  = base64decode(google_service_account_key.paddi_key.private_key)
   filename = "${path.root}/paddi-sa-key.json"
-  
+
   # ファイル権限を制限
   file_permission = "0600"
 }

@@ -7,10 +7,10 @@ resource "google_storage_bucket" "public_data" {
 
   # 意図的に公開設定（セキュリティリスク）
   uniform_bucket_level_access = false
-  
+
   lifecycle_rule {
     condition {
-      age = 7  # 7日後に自動削除（コスト削減）
+      age = 7 # 7日後に自動削除（コスト削減）
     }
     action {
       type = "Delete"
@@ -31,8 +31,8 @@ resource "google_storage_bucket_iam_member" "public_viewer" {
 
 # 機密データっぽいダミーファイルを配置
 resource "google_storage_bucket_object" "sensitive_data" {
-  name   = "sensitive/customer-data.csv"
-  bucket = google_storage_bucket.public_data.name
+  name    = "sensitive/customer-data.csv"
+  bucket  = google_storage_bucket.public_data.name
   content = <<-EOT
     customer_id,name,email,credit_card
     1,Demo User,demo@example.com,****-****-****-1234
@@ -57,7 +57,7 @@ resource "google_storage_bucket" "public_backup" {
   force_destroy = true
 
   uniform_bucket_level_access = false
-  
+
   lifecycle_rule {
     condition {
       age = 7

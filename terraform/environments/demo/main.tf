@@ -56,16 +56,16 @@ resource "google_cloud_scheduler_job" "destroy_demo" {
   description = "デモ環境を自動削除（コスト削減）"
   schedule    = var.auto_destroy_schedule
   time_zone   = "Asia/Tokyo"
-  
+
   pubsub_target {
     topic_name = google_pubsub_topic.destroy_trigger.id
-    data       = base64encode(jsonencode({
+    data = base64encode(jsonencode({
       action      = "destroy"
       environment = var.environment
       project_id  = var.project_id
     }))
   }
-  
+
   depends_on = [google_project_service.scheduler]
 }
 
@@ -76,10 +76,10 @@ resource "local_file" "vulnerability_summary" {
     project_id  = var.project_id
     environment = var.environment
     created_at  = timestamp()
-    
+
     iam_vulnerabilities     = module.vulnerable_iam.vulnerable_findings
     storage_vulnerabilities = module.public_storage.storage_vulnerabilities
-    
+
     resources = {
       service_accounts = [
         module.vulnerable_iam.overprivileged_sa_email,
@@ -91,12 +91,12 @@ resource "local_file" "vulnerability_summary" {
         module.public_storage.backup_bucket_name
       ]
     }
-    
+
     paddi_config = {
       service_account = module.vertex_ai.paddi_sa_email
       key_path        = module.vertex_ai.paddi_sa_key_path
     }
   })
-  
+
   file_permission = "0644"
 }

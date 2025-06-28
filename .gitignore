@@ -155,3 +155,18 @@ data/collected.json
 data/explained.json
 output/audit.md
 output/audit.html
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+*.tfvars
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+**/terraform/environments/*/vulnerability-summary.json

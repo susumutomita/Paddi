@@ -30,5 +30,5 @@ variable "enable_auto_destroy" {
 variable "auto_destroy_schedule" {
   description = "自動削除のスケジュール（cron形式）"
   type        = string
-  default     = "0 2 * * *"  # 毎日午前2時
+  default     = "0 2 * * *" # 毎日午前2時
 }
