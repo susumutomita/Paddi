@@ -1,7 +1,8 @@
 """Tests for cloud provider implementations."""
 
-import pytest
 from unittest.mock import Mock, patch
+
+import pytest
 
 from app.providers.aws import AWSProvider
 from app.providers.azure import AzureProvider
@@ -260,188 +261,177 @@ class TestGitHubProvider:
         assert "iam_policies" in data
         assert "security_findings" in data
         assert "audit_logs" in data
-    
+
     def test_environment_variables(self):
         """Test GitHub provider with environment variables."""
         from app.providers.github import GitHubProvider
-        
-        with patch.dict('os.environ', {
-            'GITHUB_TOKEN': 'test-token',
-            'GITHUB_OWNER': 'env-owner',
-            'GITHUB_REPO': 'env-repo'
-        }):
+
+        with patch.dict(
+            "os.environ",
+            {"GITHUB_TOKEN": "test-token", "GITHUB_OWNER": "env-owner", "GITHUB_REPO": "env-repo"},
+        ):
             provider = GitHubProvider()
-            assert provider.access_token == 'test-token'
-            assert provider.owner == 'env-owner'
-            assert provider.repo == 'env-repo'
+            assert provider.access_token == "test-token"
+            assert provider.owner == "env-owner"
+            assert provider.repo == "env-repo"
             assert provider.use_mock is False
-    
-    @patch('requests.get')
+
+    @patch("requests.get")
     def test_collect_dependabot_alerts_success(self, mock_get):
         """Test successful Dependabot alerts collection."""
         from app.providers.github import GitHubProvider
-        
+
         # Mock response
         mock_response = Mock()
         mock_response.status_code = 200
         mock_response.json.return_value = [
             {
-                'number': 1,
-                'state': 'open',
-                'severity': 'high',
-                'security_vulnerability': {
-                    'package': {
-                        'name': 'requests',
-                        'ecosystem': 'pip'
-                    },
-                    'vulnerable_version_range': '<= 2.20.0',
-                    'first_patched_version': {
-                        'identifier': '2.20.1'
-                    }
+                "number": 1,
+                "state": "open",
+                "severity": "high",
+                "security_vulnerability": {
+                    "package": {"name": "requests", "ecosystem": "pip"},
+                    "vulnerable_version_range": "<= 2.20.0",
+                    "first_patched_version": {"identifier": "2.20.1"},
                 },
-                'security_advisory': {
-                    'summary': 'Security vulnerability in requests',
-                    'cve_id': 'CVE-2018-18074',
-                    'ghsa_id': 'GHSA-x84v-xcm2-53pg',
-                    'references': []
+                "security_advisory": {
+                    "summary": "Security vulnerability in requests",
+                    "cve_id": "CVE-2018-18074",
+                    "ghsa_id": "GHSA-x84v-xcm2-53pg",
+                    "references": [],
                 },
-                'created_at': '2023-01-01T00:00:00Z'
+                "created_at": "2023-01-01T00:00:00Z",
             }
         ]
         mock_get.return_value = mock_response
-        
-        provider = GitHubProvider(access_token='test-token', owner='test-org', repo='test-repo')
+
+        provider = GitHubProvider(access_token="test-token", owner="test-org", repo="test-repo")
         alerts = provider.collect_dependabot_alerts()
-        
+
         assert len(alerts) == 1
-        assert alerts[0]['type'] == 'dependabot_alert'
-        assert alerts[0]['severity'] == 'HIGH'
-        assert alerts[0]['package_name'] == 'requests'
-        assert alerts[0]['cve_id'] == 'CVE-2018-18074'
-    
-    @patch('requests.get')
+        assert alerts[0]["type"] == "dependabot_alert"
+        assert alerts[0]["severity"] == "HIGH"
+        assert alerts[0]["package_name"] == "requests"
+        assert alerts[0]["cve_id"] == "CVE-2018-18074"
+
+    @patch("requests.get")
     def test_collect_dependabot_alerts_auth_error(self, mock_get):
         """Test Dependabot alerts collection with authentication error."""
         from app.providers.github import GitHubProvider
-        
+
         # Mock 401 response
         mock_response = Mock()
         mock_response.status_code = 401
         mock_response.raise_for_status.side_effect = Exception("401 Unauthorized")
         mock_get.return_value = mock_response
-        
-        provider = GitHubProvider(access_token='invalid-token', owner='test-org', repo='test-repo')
-        
+
+        provider = GitHubProvider(access_token="invalid-token", owner="test-org", repo="test-repo")
+
         with pytest.raises(Exception) as exc:
             provider.collect_dependabot_alerts()
         assert "Authentication failed" in str(exc.value)
-    
-    @patch('requests.get')
+
+    @patch("requests.get")
     def test_collect_dependabot_alerts_rate_limit(self, mock_get):
         """Test Dependabot alerts collection with rate limit error."""
         from app.providers.github import GitHubProvider
-        
+
         # Mock 403 rate limit response
         mock_response = Mock()
         mock_response.status_code = 403
         mock_response.text = "API rate limit exceeded"
         mock_response.raise_for_status.side_effect = Exception("403 Forbidden")
         mock_get.return_value = mock_response
-        
-        provider = GitHubProvider(access_token='test-token', owner='test-org', repo='test-repo')
-        
+
+        provider = GitHubProvider(access_token="test-token", owner="test-org", repo="test-repo")
+
         with pytest.raises(Exception) as exc:
             provider.collect_dependabot_alerts()
         assert "rate limit exceeded" in str(exc.value)
-    
-    @patch('requests.get')
+
+    @patch("requests.get")
     def test_collect_dependabot_alerts_not_found(self, mock_get):
         """Test Dependabot alerts collection with repository not found."""
         from app.providers.github import GitHubProvider
-        
+
         # Mock 404 response
         mock_response = Mock()
         mock_response.status_code = 404
         mock_response.raise_for_status.side_effect = Exception("404 Not Found")
         mock_get.return_value = mock_response
-        
-        provider = GitHubProvider(access_token='test-token', owner='test-org', repo='test-repo')
-        
+
+        provider = GitHubProvider(access_token="test-token", owner="test-org", repo="test-repo")
+
         with pytest.raises(Exception) as exc:
             provider.collect_dependabot_alerts()
         assert "not found" in str(exc.value)
-    
+
     def test_convert_alert(self):
         """Test alert conversion to internal format."""
         from app.providers.github import GitHubProvider
-        
+
         provider = GitHubProvider(use_mock=True)
-        
+
         github_alert = {
-            'number': 1,
-            'state': 'open',
-            'severity': 'critical',
-            'security_vulnerability': {
-                'package': {
-                    'name': 'lodash',
-                    'ecosystem': 'npm'
-                },
-                'vulnerable_version_range': '< 4.17.19',
-                'first_patched_version': {
-                    'identifier': '4.17.19'
-                }
+            "number": 1,
+            "state": "open",
+            "severity": "critical",
+            "security_vulnerability": {
+                "package": {"name": "lodash", "ecosystem": "npm"},
+                "vulnerable_version_range": "< 4.17.19",
+                "first_patched_version": {"identifier": "4.17.19"},
             },
-            'security_advisory': {
-                'summary': 'Prototype pollution in lodash',
-                'cve_id': 'CVE-2020-8203',
-                'ghsa_id': 'GHSA-jf85-cpcp-j695',
-                'references': ['https://example.com/advisory']
+            "security_advisory": {
+                "summary": "Prototype pollution in lodash",
+                "cve_id": "CVE-2020-8203",
+                "ghsa_id": "GHSA-jf85-cpcp-j695",
+                "references": ["https://example.com/advisory"],
             },
-            'created_at': '2023-01-01T00:00:00Z'
+            "created_at": "2023-01-01T00:00:00Z",
         }
-        
+
         converted = provider._convert_alert(github_alert)
-        
-        assert converted['type'] == 'dependabot_alert'
-        assert converted['severity'] == 'CRITICAL'
-        assert converted['package_name'] == 'lodash'
-        assert converted['package_ecosystem'] == 'npm'
-        assert converted['vulnerable_version'] == '< 4.17.19'
-        assert converted['patched_version'] == '4.17.19'
-        assert converted['cve_id'] == 'CVE-2020-8203'
-        assert converted['ghsa_id'] == 'GHSA-jf85-cpcp-j695'
-        assert 'Update lodash to version 4.17.19' in converted['recommendation']
-    
-    @patch('requests.get')
+
+        assert converted["type"] == "dependabot_alert"
+        assert converted["severity"] == "CRITICAL"
+        assert converted["package_name"] == "lodash"
+        assert converted["package_ecosystem"] == "npm"
+        assert converted["vulnerable_version"] == "< 4.17.19"
+        assert converted["patched_version"] == "4.17.19"
+        assert converted["cve_id"] == "CVE-2020-8203"
+        assert converted["ghsa_id"] == "GHSA-jf85-cpcp-j695"
+        assert "Update lodash to version 4.17.19" in converted["recommendation"]
+
+    @patch("requests.get")
     def test_get_security_findings_with_api(self, mock_get):
         """Test get_security_findings with real API."""
         from app.providers.github import GitHubProvider
-        
+
         # Mock successful response
         mock_response = Mock()
         mock_response.status_code = 200
         mock_response.json.return_value = []
         mock_get.return_value = mock_response
-        
-        provider = GitHubProvider(access_token='test-token', owner='test-org', repo='test-repo')
+
+        provider = GitHubProvider(access_token="test-token", owner="test-org", repo="test-repo")
         findings = provider.get_security_findings()
-        
+
         # Should include both Dependabot alerts and other security checks
         assert isinstance(findings, list)
         mock_get.assert_called_once()
-    
-    @patch('requests.get')
+
+    @patch("requests.get")
     def test_get_security_findings_fallback(self, mock_get):
         """Test get_security_findings fallback to mock on error."""
         from app.providers.github import GitHubProvider
-        
+
         # Mock failed response
         mock_get.side_effect = Exception("API Error")
-        
-        provider = GitHubProvider(access_token='test-token', owner='test-org', repo='test-repo')
+
+        provider = GitHubProvider(access_token="test-token", owner="test-org", repo="test-repo")
         findings = provider.get_security_findings()
-        
+
         # Should fall back to mock data
         assert isinstance(findings, list)
         assert len(findings) > 0
-        assert all('type' in f for f in findings)
+        assert all("type" in f for f in findings)
