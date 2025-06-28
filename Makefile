@@ -74,15 +74,32 @@ test-watch: ## Run tests in watch mode (requires pytest-watch)
 ##@ Code Quality
 
 .PHONY: format
-format: ## Format code with black, isort, and markdownlint
+format: ## Format code with black, isort, markdownlint, and terraform fmt
 	@printf "${BLUE}Formatting code...${NC}\n"
 	black .
 	isort .
 	npx markdownlint-cli -c .markdownlint.json --fix docs/**/*.md README.md CLAUDE.md presentation.md
+	@if command -v terraform >/dev/null 2>&1; then \
+		printf "${BLUE}Running terraform fmt...${NC}\n"; \
+		terraform fmt -recursive terraform/; \
+		printf "${GREEN}✓ Terraform formatted${NC}\n"; \
+	else \
+		printf "${YELLOW}⚠ Terraform not installed, skipping Terraform formatting${NC}\n"; \
+	fi
 	@printf "${GREEN}✓ Code formatted${NC}\n"
 
+.PHONY: format-terraform
+format-terraform: ## Format Terraform files
+	@printf "${BLUE}Formatting Terraform files...${NC}\n"
+	@if command -v terraform >/dev/null 2>&1; then \
+		terraform fmt -recursive terraform/; \
+		printf "${GREEN}✓ Terraform files formatted${NC}\n"; \
+	else \
+		printf "${YELLOW}⚠ Terraform not installed, cannot format Terraform files${NC}\n"; \
+	fi
+
 .PHONY: lint
-lint: lint-python lint-security lint-yaml lint-markdown ## Run all linters
+lint: lint-python lint-security lint-yaml lint-markdown lint-terraform ## Run all linters
 
 .PHONY: lint-python
 lint-python: ## Run Python linters (black, isort, pylint, flake8)
@@ -112,6 +129,29 @@ lint-markdown: ## Run Markdown linters
 	npx textlint ./README.md
 	@printf "${GREEN}✓ Markdown linting passed${NC}\n"
 
+.PHONY: lint-terraform
+lint-terraform: ## Run Terraform fmt check and validate
+	@printf "${BLUE}Running Terraform linters...${NC}\n"
+	@if command -v terraform >/dev/null 2>&1; then \
+		terraform fmt -check -recursive terraform/ || (printf "${RED}Terraform formatting issues found. Run 'make format-terraform' to fix.${NC}\n" && exit 1); \
+		errors=0; \
+		for env in demo hackathon; do \
+			printf "${BLUE}Validating terraform/environments/$$env...${NC}\n"; \
+			cd terraform/environments/$$env && \
+			terraform init -backend=false >/dev/null 2>&1 && \
+			terraform validate || errors=$$((errors + 1)); \
+			cd - >/dev/null; \
+		done; \
+		if [ $$errors -gt 0 ]; then \
+			printf "${RED}✗ Terraform validation failed${NC}\n"; \
+			exit 1; \
+		else \
+			printf "${GREEN}✓ Terraform linting passed${NC}\n"; \
+		fi \
+	else \
+		printf "${YELLOW}⚠ Terraform not installed, skipping Terraform linting${NC}\n"; \
+	fi
+
 .PHONY: update-claude-secrets
 update-claude-secrets: ## Update Claude secrets
 	./set_claude_code_secrets.sh
@@ -121,7 +161,7 @@ update-claude-secrets: ## Update Claude secrets
 .PHONY: check-files
 check-files: ## Check for large files and other issues
 	@printf "${BLUE}Checking for large files, case conflicts, merge conflicts...${NC}\n"
-	@find . -type f -size +1000k -not -path "./.git/*" -not -path "./node_modules/*" -not -path "./.venv/*" -not -path "./cli/target/*" -not -name "*.pdf" | if read line; then printf "${RED}Large files found:${NC}\n"; echo "$$line"; exit 1; fi
+	@find . -type f -size +1000k -not -path "./.git/*" -not -path "./node_modules/*" -not -path "./.venv/*" -not -path "./cli/target/*" -not -path "./.terraform/*" -not -path "*/.terraform/*" -not -name "*.pdf" | if read line; then printf "${RED}Large files found:${NC}\n"; echo "$$line"; exit 1; fi
 	@printf "${GREEN}✓ No large files found${NC}\n"
 
 .PHONY: before-commit

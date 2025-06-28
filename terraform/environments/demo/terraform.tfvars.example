@@ -1,0 +1,15 @@
+# GCPプロジェクトID（必須）
+project_id = "your-gcp-project-id"
+
+# リージョン（オプション）
+# region = "asia-northeast1"
+
+# 環境名（オプション）
+# environment = "demo"
+
+# 使用するGeminiモデル（オプション）
+# gemini_model = "gemini-1.5-flash-002"
+
+# 自動削除設定（オプション）
+# enable_auto_destroy = true
+# auto_destroy_schedule = "0 2 * * *"  # 毎日午前2時に削除
