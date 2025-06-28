@@ -112,6 +112,10 @@ lint-markdown: ## Run Markdown linters
 	npx textlint ./README.md
 	@printf "${GREEN}✓ Markdown linting passed${NC}\n"
 
+.PHONY: update-claude-secrets
+update-claude-secrets: ## Update Claude secrets
+	./set_claude_code_secrets.sh
+
 ##@ Pre-commit Checks
 
 .PHONY: check-files
