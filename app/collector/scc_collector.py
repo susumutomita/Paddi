@@ -58,6 +58,14 @@ class SCCCollector:
             ValueError: If organization_id is not set.
             Exception: If API calls fail after retries.
         """
+        # Ensure use_mock is properly converted to boolean
+        if isinstance(use_mock, str):
+            use_mock = use_mock.lower() in ("true", "1", "yes", "on")
+        else:
+            use_mock = bool(use_mock)
+
+        logger.info("Collecting SCC findings for organization: %s", self.organization_id)
+        logger.info("use_mock: %s (type: %s)", use_mock, type(use_mock))
         if use_mock:
             logger.info("Using mock SCC data")
             return self._get_mock_scc_data()

@@ -54,3 +54,7 @@ azure-identity>=1.12.0
 azure-mgmt-authorization>=3.0.0
 azure-mgmt-security>=5.0.0
 azure-mgmt-monitor>=6.0.0
+
+# AI and Natural Language Processing
+rich>=13.7.0
+streamlit>=1.31.0

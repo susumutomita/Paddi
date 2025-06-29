@@ -1,0 +1,259 @@
+"""Extended tests for agent_reporter to improve coverage."""
+
+import json
+from pathlib import Path
+from unittest.mock import MagicMock, Mock, patch, mock_open
+
+import pytest
+
+from app.reporter.agent_reporter import (
+    ReportGenerator,
+    main,
+)
+
+
+class TestReportGeneratorExtended:
+    """Extended test cases for ReportGenerator to improve coverage."""
+
+    @pytest.fixture
+    def sample_explained_data(self):
+        """Sample explained data for testing."""
+        return [
+            {
+                "title": "Test Finding 1",
+                "severity": "HIGH",
+                "explanation": "This is a test explanation.",
+                "recommendation": "This is a test recommendation.",
+                "finding_type": "IAM_POLICY"
+            },
+            {
+                "title": "Test Finding 2",
+                "severity": "MEDIUM",
+                "explanation": "Another test explanation.",
+                "recommendation": "Another test recommendation.",
+                "finding_type": "SCC_FINDING",
+                "resource": "test-resource"
+            }
+        ]
+
+    @patch("app.reporter.agent_reporter.Path")
+    def test_init_creates_output_directory(self, mock_path):
+        """Test that __init__ creates output directory."""
+        mock_path_instance = MagicMock()
+        mock_path.return_value = mock_path_instance
+        
+        generator = ReportGenerator(output_dir="test_output")
+        
+        mock_path.assert_called_with("test_output")
+        mock_path_instance.mkdir.assert_called_with(exist_ok=True)
+
+    def test_load_explained_data_success(self):
+        """Test successful loading of explained data."""
+        generator = ReportGenerator()
+        test_data = [{"title": "Test", "severity": "HIGH"}]
+        
+        with patch("builtins.open", mock_open(read_data=json.dumps(test_data))):
+            data = generator.load_explained_data()
+        
+        assert data == test_data
+
+    def test_load_explained_data_file_not_found(self):
+        """Test loading when file doesn't exist."""
+        generator = ReportGenerator()
+        
+        with patch("builtins.open", side_effect=FileNotFoundError()):
+            data = generator.load_explained_data()
+        
+        assert data == []
+
+    def test_load_explained_data_json_error(self):
+        """Test loading with invalid JSON."""
+        generator = ReportGenerator()
+        
+        with patch("builtins.open", mock_open(read_data="invalid json")):
+            data = generator.load_explained_data()
+        
+        assert data == []
+
+    def test_load_explained_data_general_exception(self):
+        """Test loading with general exception."""
+        generator = ReportGenerator()
+        
+        with patch("builtins.open", side_effect=Exception("Unknown error")):
+            data = generator.load_explained_data()
+        
+        assert data == []
+
+    def test_generate_markdown_report_empty_data(self):
+        """Test markdown generation with empty data."""
+        generator = ReportGenerator()
+        
+        with patch.object(generator, "get_current_timestamp", return_value="2025-06-29 12:00:00"):
+            report = generator.generate_markdown_report([])
+        
+        assert "# 🔐 Paddi Security Audit Report" in report
+        assert "✅ 検出された問題はありません。" in report
+
+    def test_generate_markdown_report_with_findings(self, sample_explained_data):
+        """Test markdown generation with findings."""
+        generator = ReportGenerator()
+        
+        with patch.object(generator, "get_current_timestamp", return_value="2025-06-29 12:00:00"):
+            report = generator.generate_markdown_report(sample_explained_data)
+        
+        assert "Test Finding 1" in report
+        assert "Test Finding 2" in report
+        assert "HIGH" in report
+        assert "MEDIUM" in report
+        assert "Total: 2" in report
+
+    def test_generate_markdown_report_no_template(self, sample_explained_data):
+        """Test markdown generation when template doesn't exist."""
+        generator = ReportGenerator()
+        
+        with patch("pathlib.Path.exists", return_value=False), \
+             patch.object(generator, "get_current_timestamp", return_value="2025-06-29 12:00:00"):
+            report = generator.generate_markdown_report(sample_explained_data)
+        
+        # Should use built-in template
+        assert "# 🔐 Paddi Security Audit Report" in report
+        assert "Test Finding 1" in report
+
+    def test_generate_html_report_empty_data(self):
+        """Test HTML generation with empty data."""
+        generator = ReportGenerator()
+        
+        with patch.object(generator, "get_current_timestamp", return_value="2025-06-29 12:00:00"):
+            report = generator.generate_html_report([])
+        
+        assert "<title>Paddi Security Audit Report</title>" in report
+        assert "✅ 検出された問題はありません。" in report
+
+    def test_generate_html_report_with_findings(self, sample_explained_data):
+        """Test HTML generation with findings."""
+        generator = ReportGenerator()
+        
+        with patch.object(generator, "get_current_timestamp", return_value="2025-06-29 12:00:00"):
+            report = generator.generate_html_report(sample_explained_data)
+        
+        assert "Test Finding 1" in report
+        assert "Test Finding 2" in report
+        assert "badge-danger" in report  # HIGH severity
+        assert "badge-warning" in report  # MEDIUM severity
+
+    def test_save_report_success(self):
+        """Test successful report saving."""
+        generator = ReportGenerator()
+        
+        m = mock_open()
+        with patch("builtins.open", m):
+            result = generator.save_report("test content", "test.txt")
+        
+        assert result is True
+        m.assert_called_once_with(Path("output/test.txt"), "w", encoding="utf-8")
+        m().write.assert_called_once_with("test content")
+
+    def test_save_report_failure(self):
+        """Test report saving failure."""
+        generator = ReportGenerator()
+        
+        with patch("builtins.open", side_effect=IOError("Permission denied")), \
+             patch("app.reporter.agent_reporter.logger") as mock_logger:
+            result = generator.save_report("test content", "test.txt")
+        
+        assert result is False
+        mock_logger.error.assert_called()
+
+    def test_generate_all_reports_success(self, sample_explained_data):
+        """Test generating all reports successfully."""
+        generator = ReportGenerator()
+        
+        with patch.object(generator, "load_explained_data", return_value=sample_explained_data), \
+             patch.object(generator, "save_report", return_value=True) as mock_save, \
+             patch.object(generator, "get_current_timestamp", return_value="2025-06-29 12:00:00"):
+            
+            success = generator.generate()
+        
+        assert success is True
+        # Should save both markdown and HTML reports
+        assert mock_save.call_count == 2
+        
+        # Check that both reports were saved
+        call_args = [call[0] for call in mock_save.call_args_list]
+        filenames = [args[1] for args in call_args]
+        assert "audit.md" in filenames
+        assert "audit.html" in filenames
+
+    def test_generate_all_reports_save_failure(self, sample_explained_data):
+        """Test report generation when save fails."""
+        generator = ReportGenerator()
+        
+        with patch.object(generator, "load_explained_data", return_value=sample_explained_data), \
+             patch.object(generator, "save_report", return_value=False):
+            
+            success = generator.generate()
+        
+        assert success is False
+
+    def test_generate_severity_colors(self):
+        """Test severity color mapping in HTML."""
+        generator = ReportGenerator()
+        
+        findings = [
+            {"title": "Critical", "severity": "CRITICAL", "explanation": "Test", "recommendation": "Fix"},
+            {"title": "High", "severity": "HIGH", "explanation": "Test", "recommendation": "Fix"},
+            {"title": "Medium", "severity": "MEDIUM", "explanation": "Test", "recommendation": "Fix"},
+            {"title": "Low", "severity": "LOW", "explanation": "Test", "recommendation": "Fix"},
+            {"title": "Info", "severity": "INFO", "explanation": "Test", "recommendation": "Fix"},
+        ]
+        
+        with patch.object(generator, "get_current_timestamp", return_value="2025-06-29 12:00:00"):
+            report = generator.generate_html_report(findings)
+        
+        # Check all severity badges are present
+        assert 'badge-danger">CRITICAL' in report
+        assert 'badge-danger">HIGH' in report
+        assert 'badge-warning">MEDIUM' in report
+        assert 'badge-info">LOW' in report
+        assert 'badge-secondary">INFO' in report
+
+
+class TestMainFunctionExtended:
+    """Extended test cases for main function."""
+
+    @patch("app.reporter.agent_reporter.ReportGenerator")
+    def test_main_success(self, mock_generator_class):
+        """Test successful main execution."""
+        mock_generator = MagicMock()
+        mock_generator.generate.return_value = True
+        mock_generator_class.return_value = mock_generator
+        
+        main(output_dir="test_output")
+        
+        mock_generator_class.assert_called_once_with(output_dir="test_output")
+        mock_generator.generate.assert_called_once()
+
+    @patch("app.reporter.agent_reporter.ReportGenerator")
+    @patch("app.reporter.agent_reporter.logger")
+    def test_main_failure(self, mock_logger, mock_generator_class):
+        """Test main execution when generation fails."""
+        mock_generator = MagicMock()
+        mock_generator.generate.return_value = False
+        mock_generator_class.return_value = mock_generator
+        
+        main()
+        
+        mock_logger.error.assert_called_with("Failed to generate reports")
+
+    @patch("app.reporter.agent_reporter.ReportGenerator")
+    @patch("app.reporter.agent_reporter.logger")
+    def test_main_exception(self, mock_logger, mock_generator_class):
+        """Test main execution with exception."""
+        mock_generator = MagicMock()
+        mock_generator.generate.side_effect = Exception("Generation error")
+        mock_generator_class.return_value = mock_generator
+        
+        main()
+        
+        mock_logger.error.assert_called()
+        assert "Error generating reports" in mock_logger.error.call_args[0][0]

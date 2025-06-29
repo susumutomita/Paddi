@@ -1,0 +1,68 @@
+"""Extended tests for CLI registry to improve coverage."""
+
+import pytest
+from unittest.mock import MagicMock, patch
+
+from app.cli.registry import CommandRegistry
+
+
+class TestCommandRegistryExtended:
+    """Extended tests for CommandRegistry."""
+
+    def test_register_duplicate_command(self):
+        """Test registering duplicate command raises error."""
+        registry = CommandRegistry()
+        
+        # Register first command
+        mock_command_class = MagicMock()
+        registry.register("test", mock_command_class)
+        
+        # Try to register duplicate
+        with pytest.raises(ValueError) as exc_info:
+            registry.register("test", mock_command_class)
+        
+        assert "already registered" in str(exc_info.value)
+
+    def test_get_command_not_found(self):
+        """Test getting non-existent command raises error."""
+        registry = CommandRegistry()
+        
+        with pytest.raises(KeyError) as exc_info:
+            registry.get_command("nonexistent")
+        
+        assert "not found" in str(exc_info.value)
+
+    def test_list_commands_empty(self):
+        """Test listing commands when registry is empty."""
+        registry = CommandRegistry()
+        registry._commands = {}  # Clear any default commands
+        
+        commands = registry.list_commands()
+        assert commands == {}
+
+    def test_list_commands_with_multiple(self):
+        """Test listing multiple registered commands."""
+        registry = CommandRegistry()
+        registry._commands = {}  # Clear any default commands
+        
+        # Register multiple commands
+        for i in range(3):
+            mock_command = MagicMock()
+            mock_command.return_value.description = f"Test command {i}"
+            registry.register(f"cmd{i}", mock_command)
+        
+        commands = registry.list_commands()
+        assert len(commands) == 3
+        assert commands["cmd0"] == "Test command 0"
+        assert commands["cmd1"] == "Test command 1"
+        assert commands["cmd2"] == "Test command 2"
+
+    def test_get_command_success(self):
+        """Test successfully getting a registered command."""
+        registry = CommandRegistry()
+        
+        mock_command_class = MagicMock()
+        registry.register("testcmd", mock_command_class)
+        
+        result = registry.get_command("testcmd")
+        assert result == mock_command_class
