@@ -19,6 +19,7 @@ class GCPProvider(CloudProvider):
             use_mock: Force use of mock data instead of real API calls
             **kwargs: Additional configuration
         """
+        super().__init__(**kwargs)
         self.project_id = project_id or "sample-project"
         self.use_mock = use_mock
 
@@ -123,13 +124,3 @@ class GCPProvider(CloudProvider):
                 "timestamp": "2024-01-01T11:00:00Z",
             },
         ]
-
-    def collect_all(self) -> Dict[str, Any]:
-        """Collect all GCP security data."""
-        return {
-            "provider": self.get_name(),
-            "project_id": self.project_id,
-            "iam_policies": self.get_iam_policies(),
-            "security_findings": self.get_security_findings(),
-            "audit_logs": self.get_audit_logs(),
-        }

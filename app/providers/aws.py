@@ -10,6 +10,7 @@ class AWSProvider(CloudProvider):
 
     def __init__(self, account_id: str = None, region: str = "us-east-1", **kwargs):
         """Initialize AWS provider."""
+        super().__init__(**kwargs)
         self.account_id = account_id or "123456789012"
         self.region = region
 
@@ -193,14 +194,3 @@ class AWSProvider(CloudProvider):
                 },
             },
         ]
-
-    def collect_all(self) -> Dict[str, Any]:
-        """Collect all AWS security data."""
-        return {
-            "provider": self.get_name(),
-            "account_id": self.account_id,
-            "region": self.region,
-            "iam_policies": self.get_iam_policies(),
-            "security_findings": self.get_security_findings(),
-            "audit_logs": self.get_audit_logs(),
-        }

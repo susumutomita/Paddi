@@ -10,6 +10,7 @@ class AzureProvider(CloudProvider):
 
     def __init__(self, subscription_id: str = None, tenant_id: str = None, **kwargs):
         """Initialize Azure provider."""
+        super().__init__(**kwargs)
         self.subscription_id = subscription_id or "00000000-0000-0000-0000-000000000000"
         self.tenant_id = tenant_id or "11111111-1111-1111-1111-111111111111"
 
@@ -219,14 +220,3 @@ class AzureProvider(CloudProvider):
                 "properties": {"statusCode": "OK", "serviceRequestId": "request-id-3"},
             },
         ]
-
-    def collect_all(self) -> Dict[str, Any]:
-        """Collect all Azure security data."""
-        return {
-            "provider": self.get_name(),
-            "subscription_id": self.subscription_id,
-            "tenant_id": self.tenant_id,
-            "iam_policies": self.get_iam_policies(),
-            "security_findings": self.get_security_findings(),
-            "audit_logs": self.get_audit_logs(),
-        }

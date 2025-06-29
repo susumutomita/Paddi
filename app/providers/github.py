@@ -32,9 +32,11 @@ class GitHubProvider(CloudProvider):
             use_mock: Force use of mock data instead of real API calls
             **kwargs: Additional configuration
         """
+        super().__init__(**kwargs)
         self.access_token = access_token or os.getenv("GITHUB_TOKEN")
         self.owner = owner or os.getenv("GITHUB_OWNER") or "example-org"
         self.repo = repo or os.getenv("GITHUB_REPO") or "example-repo"
+        self.repository = f"{self.owner}/{self.repo}"
         self.use_mock = use_mock or not self.access_token
         self.headers = (
             {
@@ -208,23 +210,6 @@ class GitHubProvider(CloudProvider):
                 },
             },
         ]
-
-    def collect_all(self) -> Dict[str, Any]:
-        """Collect all GitHub repository data."""
-        return {
-            "provider": self.get_name(),
-            "repository": f"{self.owner}/{self.repo}",
-            "timestamp": self._get_timestamp(),
-            "iam_policies": self.get_iam_policies(),
-            "security_findings": self.get_security_findings(),
-            "audit_logs": self.get_audit_logs(),
-        }
-
-    def _get_timestamp(self) -> str:
-        """Get current timestamp in ISO format."""
-        from datetime import timezone
-
-        return datetime.now(timezone.utc).isoformat()
 
     def collect_dependabot_alerts(self) -> List[Dict[str, Any]]:
         """Collect Dependabot alerts from GitHub API."""

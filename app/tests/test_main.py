@@ -2,7 +2,7 @@
 
 import json
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -54,9 +54,9 @@ class TestPaddiCLI:
         assert len(data["iam_policies"]) > 0
         assert len(data["scc_findings"]) > 0
 
-    @patch("app.main.collector_main")
-    @patch("app.main.explainer_main")
-    @patch("app.main.reporter_main")
+    @patch("app.cli.commands.collector_main")
+    @patch("app.cli.commands.explainer_main")
+    @patch("app.cli.commands.reporter_main")
     def test_init_with_run(
         self, mock_reporter, mock_explainer, mock_collector, cli, tmp_path, monkeypatch
     ):
@@ -77,7 +77,7 @@ class TestPaddiCLI:
         mock_explainer.assert_called_once()
         mock_reporter.assert_called_once()
 
-    @patch("app.main.collector_main")
+    @patch("app.cli.commands.collector_main")
     def test_collect_command(self, mock_collector, cli, tmp_path, monkeypatch):
         """Test the collect command."""
         monkeypatch.chdir(tmp_path)
@@ -94,10 +94,14 @@ class TestPaddiCLI:
         cli.collect(project_id="test-project", use_mock=True)
 
         mock_collector.assert_called_once_with(
-            project_id="test-project", organization_id=None, use_mock=True
+            project_id="test-project",
+            organization_id=None,
+            use_mock=True,
+            collect_all=False,
+            verbose=False,
         )
 
-    @patch("app.main.explainer_main")
+    @patch("app.cli.commands.explainer_main")
     def test_analyze_command(self, mock_explainer, cli, tmp_path, monkeypatch):
         """Test the analyze command."""
         monkeypatch.chdir(tmp_path)
@@ -119,21 +123,18 @@ class TestPaddiCLI:
             ollama_endpoint=None,
         )
 
-    @patch("app.main.reporter_main")
+    @patch("app.cli.commands.reporter_main")
     def test_report_command(self, mock_reporter, cli):
         """Test the report command."""
-        cli.report(formats=["markdown"], output_dir="test-output")
+        cli.report(output_dir="test-output")
 
         mock_reporter.assert_called_once_with(
-            template_dir="app/templates",
-            formats=["markdown"],
-            input_dir="data",
             output_dir="test-output",
         )
 
-    @patch("app.main.collector_main")
-    @patch("app.main.explainer_main")
-    @patch("app.main.reporter_main")
+    @patch("app.cli.commands.collector_main")
+    @patch("app.cli.commands.explainer_main")
+    @patch("app.cli.commands.reporter_main")
     def test_audit_command_success(
         self, mock_reporter, mock_explainer, mock_collector, cli, tmp_path, monkeypatch
     ):
@@ -155,22 +156,24 @@ class TestPaddiCLI:
         mock_explainer.assert_called_once()
         mock_reporter.assert_called_once()
 
-    @patch("app.main.collector_main")
+    @patch("app.cli.commands.collector_main")
     def test_audit_command_failure(self, mock_collector, cli, tmp_path, monkeypatch):
         """Test the audit command handles failures."""
         monkeypatch.chdir(tmp_path)
+        Path("data").mkdir()
+        Path("output").mkdir()
         mock_collector.side_effect = Exception("Collection failed")
 
-        with pytest.raises(SystemExit):
+        with pytest.raises(Exception, match="Collection failed"):
             cli.audit(project_id="test-project", use_mock=True)
 
-    @patch("app.main.collector_main")
-    @patch("app.main.explainer_main")
-    @patch("app.main.reporter_main")
+    @patch("app.cli.commands.collector_main")
+    @patch("app.cli.commands.explainer_main")
+    @patch("app.cli.commands.reporter_main")
     def test_audit_verbose_mode(
         self, mock_reporter, mock_explainer, mock_collector, cli, tmp_path, monkeypatch
     ):  # pylint: disable=unused-argument
-        """Test verbose mode sets debug logging."""
+        """Test verbose mode passes through to commands."""
         monkeypatch.chdir(tmp_path)
         Path("data").mkdir()
         Path("output").mkdir()
@@ -181,10 +184,9 @@ class TestPaddiCLI:
         )
         Path("data/explained.json").write_text(json.dumps([]), encoding="utf-8")
 
-        with patch("logging.getLogger") as mock_logger:
-            mock_root_logger = MagicMock()
-            mock_logger.return_value = mock_root_logger
+        cli.audit(verbose=True, use_mock=True, project_id="test-project")
 
-            cli.audit(verbose=True, use_mock=True)
-
-            mock_root_logger.setLevel.assert_called_with(10)  # logging.DEBUG = 10
+        # Check that verbose was passed to collector
+        mock_collector.assert_called_once()
+        _, kwargs = mock_collector.call_args
+        assert kwargs.get("verbose") is True
