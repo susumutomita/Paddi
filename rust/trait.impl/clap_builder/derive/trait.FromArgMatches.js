@@ -1,9 +1,0 @@
-(function() {
-    var implementors = Object.fromEntries([["paddi",[["impl FromArgMatches for <a class=\"enum\" href=\"paddi/commands/config/enum.ConfigCommands.html\" title=\"enum paddi::commands::config::ConfigCommands\">ConfigCommands</a>"],["impl FromArgMatches for <a class=\"enum\" href=\"paddi/enum.Commands.html\" title=\"enum paddi::Commands\">Commands</a>"],["impl FromArgMatches for <a class=\"struct\" href=\"paddi/commands/analyze/struct.AnalyzeArgs.html\" title=\"struct paddi::commands::analyze::AnalyzeArgs\">AnalyzeArgs</a>"],["impl FromArgMatches for <a class=\"struct\" href=\"paddi/commands/audit/struct.AuditArgs.html\" title=\"struct paddi::commands::audit::AuditArgs\">AuditArgs</a>"],["impl FromArgMatches for <a class=\"struct\" href=\"paddi/commands/collect/struct.CollectArgs.html\" title=\"struct paddi::commands::collect::CollectArgs\">CollectArgs</a>"],["impl FromArgMatches for <a class=\"struct\" href=\"paddi/commands/config/struct.ConfigArgs.html\" title=\"struct paddi::commands::config::ConfigArgs\">ConfigArgs</a>"],["impl FromArgMatches for <a class=\"struct\" href=\"paddi/commands/init/struct.InitArgs.html\" title=\"struct paddi::commands::init::InitArgs\">InitArgs</a>"],["impl FromArgMatches for <a class=\"struct\" href=\"paddi/commands/report/struct.ReportArgs.html\" title=\"struct paddi::commands::report::ReportArgs\">ReportArgs</a>"],["impl FromArgMatches for <a class=\"struct\" href=\"paddi/struct.Cli.html\" title=\"struct paddi::Cli\">Cli</a>"]]]]);
-    if (window.register_implementors) {
-        window.register_implementors(implementors);
-    } else {
-        window.pending_implementors = implementors;
-    }
-})()
-//{"start":57,"fragment_lengths":[1441]}
