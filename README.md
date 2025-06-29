@@ -273,6 +273,44 @@ python main.py report --input-dir data/ --output-dir reports/
 
 ---
 
+## 🛡️ 安全性機能 (Safety System)
+
+Paddiは、AIが提案する修正コマンドの安全性を確保するための包括的な安全システムを搭載しています。
+
+### 主な機能
+
+- **コマンド検証**: 危険なコマンドパターンを自動検出
+- **ドライラン**: 実行前に影響をシミュレーション
+- **影響分析**: リソースとサービスへの影響を評価
+- **承認ワークフロー**: 高リスクコマンドは人間の承認が必要
+- **監査ログ**: すべてのコマンド実行履歴を記録
+
+### 使用例
+
+```bash
+# コマンドの安全性を検証
+python main.py validate-command "firewall-cmd --remove-port=443/tcp"
+
+# ドライランで修正を実行
+python main.py execute-remediation "rm -rf /old-data" --dry-run
+
+# 承認待ちコマンドを表示
+python main.py list-approvals
+
+# コマンドを承認
+python main.py approve <approval-id>
+
+# 監査ログを表示
+python main.py audit-log --days=7
+
+# 安全システムのデモ
+python main.py safety-demo
+```
+
+詳細は[安全システムドキュメント](docs/safety_system.md)を参照してください。
+
+---
+
 ## 🎯 ユースケース
 
 ### 1. **開発とテスト**
