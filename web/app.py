@@ -85,8 +85,13 @@ def start_audit():
         )
 
     except Exception as e:
-        logger.error(f"Error starting audit: {str(e)}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        logger.error("Error starting audit: %s", str(e))
+        return (
+            jsonify(
+                {"success": False, "message": "An internal error occurred. Please try again later."}
+            ),
+            500,
+        )
 
 
 @app.route("/api/audit/status/<audit_id>")
