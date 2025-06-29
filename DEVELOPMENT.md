@@ -12,13 +12,27 @@
 
 ## 🏗️ アーキテクチャ
 
-Paddiは3つのエージェントによるパイプラインアーキテクチャを採用しています。
+Paddiはマルチエージェントアーキテクチャを採用しています。
 
 ```mermaid
-graph LR
-    A[Collector Agent] -->|collected.json| B[Explainer Agent]
-    B -->|explained.json| C[Reporter Agent]
-    C --> D[監査レポート]
+graph TB
+    subgraph Core Pipeline
+        A[Collector Agent] -->|collected.json| B[Explainer Agent]
+        B -->|explained.json| C[Reporter Agent]
+        C --> D[監査レポート]
+    end
+    
+    subgraph AI Agents
+        E[Orchestrator] --> F[Autonomous Auditor]
+        E --> G[Recursive Auditor]
+        E --> H[LangChain Auditor]
+        E --> I[Conversational Interface]
+    end
+    
+    subgraph Safety System
+        J[Safety Check] --> K[Approval Workflow]
+        J --> L[Audit Logger]
+    end
 
     style A fill:#4285f4,stroke:#1a73e8,stroke-width:2px,color:#fff
     style B fill:#ea4335,stroke:#d33b27,stroke-width:2px,color:#fff
@@ -65,6 +79,12 @@ pre-commit install
 ```
 Paddi/
 ├── app/
+│   ├── agents/             # AIエージェント
+│   │   ├── autonomous_auditor.py
+│   │   ├── recursive_auditor.py
+│   │   ├── langchain_auditor.py
+│   │   ├── orchestrator.py
+│   │   └── conversation.py
 │   ├── collector/           # データ収集エージェント
 │   │   ├── agent_collector.py
 │   │   ├── multi_cloud_collector.py
@@ -75,9 +95,16 @@ Paddi/
 │   │   └── prompt_templates.py
 │   ├── reporter/           # レポート生成エージェント
 │   │   └── agent_reporter.py
+│   ├── providers/          # マルチクラウドプロバイダー
+│   │   ├── gcp.py
+│   │   ├── aws.py
+│   │   ├── azure.py
+│   │   └── github.py
 │   ├── safety/            # 安全性チェックシステム
 │   ├── cli/               # CLIインターフェース
+│   ├── api/               # Web API
 │   └── tests/             # ユニットテスト
+├── web/                   # Web UI
 ├── templates/             # レポートテンプレート
 ├── docs/                  # ドキュメント
 ├── terraform/             # インフラ定義（Cloud Run）
@@ -112,7 +139,7 @@ class BaseCloudCollector(ABC):
 **責任**: AIを使用したセキュリティリスク分析
 
 **プロバイダー**:
-- Gemini (Vertex AI)
+- Vertex AI (Gemini)
 - Ollama（ローカルLLM）
 
 **ファクトリーパターン**:
@@ -240,6 +267,12 @@ CUSTOM_PROMPT = """
 2. `BaseProvider` を継承
 3. `app/providers/factory.py` に登録
 
+### AIエージェントの追加
+
+1. `app/agents/` に新しいエージェントを作成
+2. `orchestrator.py` に登録
+3. `paddi_cli.py` にコマンドを追加
+
 ## 📊 パフォーマンスガイドライン
 
 - **並行処理**: 複数プロジェクトの監査は `AsyncExecutor` を使用
@@ -276,3 +309,6 @@ python main.py audit -v
 - [Vertex AI Documentation](https://cloud.google.com/vertex-ai/docs)
 - [Ollama Documentation](https://ollama.ai/docs)
 - [Fire CLI Framework](https://github.com/google/python-fire)
+- [LangChain Documentation](https://python.langchain.com/docs/get_started/introduction)
+- [AWS SDK for Python](https://aws.amazon.com/sdk-for-python/)
+- [Azure SDK for Python](https://docs.microsoft.com/en-us/azure/developer/python/)

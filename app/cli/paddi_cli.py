@@ -1,6 +1,7 @@
 """Refactored Paddi CLI using command pattern."""
 
 import logging
+import os
 from typing import Optional
 
 from app.cli.base import CommandContext
@@ -245,6 +246,140 @@ class PaddiCLI:
             print(f"Command: {approval.command}")
             print(f"Risk: {approval.validation.risk_level.value}")
             print(f"Requested by: {approval.requested_by}")
+
+    def chat(self, web: bool = False):
+        """Start AI conversational interface.
+
+        Args:
+            web: Launch web interface instead of CLI (requires streamlit)
+        """
+        from app.agents.conversation import ConversationalInterface
+
+        interface = ConversationalInterface()
+        if web:
+            interface.start_web_interface()
+        else:
+            interface.start_cli_interface()
+
+    def ai_agent(self, prompt: str, project_id: str = None):
+        """Execute AI agent commands.
+
+        Args:
+            prompt: Natural language command or question
+            project_id: GCP project ID
+        """
+        from app.agents.orchestrator import MultiAgentCoordinator
+
+        coordinator = MultiAgentCoordinator(project_id=project_id)
+        response = coordinator.process_complex_request(prompt)
+
+        if response.get("success"):
+            print(f"\n✅ {response.get('message', 'Command processed successfully')}")
+            if "summary" in response:
+                print(f"\n{response['summary']}")
+            if "report_path" in response:
+                print(f"\nReport saved to: {response['report_path']}")
+        else:
+            print(f"\n❌ {response.get('message', 'Command failed')}")
+
+    def ai_audit(self, project_id: str, use_mock: bool = False, auto_fix: bool = False):
+        """Execute autonomous security audit using AI agents.
+
+        This command performs a complete security audit autonomously:
+        1. Collects real GCP configuration data
+        2. Analyzes findings with AI
+        3. Generates comprehensive reports
+        4. Optionally creates fixes (if auto_fix=True)
+
+        Args:
+            project_id: GCP project ID to audit
+            use_mock: Use mock data (default: False for real data)
+            auto_fix: Automatically create PRs for fixes
+        """
+        print(f"\n🤖 Starting AI-powered autonomous security audit for project: {project_id}")
+        print("=" * 70)
+
+        from app.agents.orchestrator import MultiAgentCoordinator
+
+        # Force real data collection
+        os.environ["USE_MOCK"] = "false" if not use_mock else "true"
+
+        coordinator = MultiAgentCoordinator(project_id=project_id)
+
+        # Execute autonomous audit
+        print("\n📊 Phase 1: Initiating security audit...")
+        response = coordinator.process_complex_request(
+            f"Perform a comprehensive security audit of GCP project {project_id}"
+        )
+
+        if response.get("success"):
+            print(f"\n✅ {response.get('message', 'Audit completed successfully')}")
+
+            # Display summary
+            if "summary" in response:
+                print("\n📋 Audit Summary:")
+                print(response["summary"])
+
+            # Display report location
+            if "report_path" in response:
+                print(f"\n📄 Detailed report available at: {response['report_path']}")
+
+                # Also show key findings
+                results = response.get("results", {})
+                analyze_result = results.get("analyze", {})
+                if analyze_result.get("findings"):
+                    print(f"\n⚠️  Security Issues Found: {analyze_result.get('total', 0)}")
+                    print(f"   - Critical: {analyze_result.get('critical', 0)}")
+                    print(f"   - High: {analyze_result.get('high', 0)}")
+
+            # Auto-fix if requested
+            if auto_fix and analyze_result.get("findings"):
+                print("\n🔧 Phase 2: Creating automated fixes...")
+                fix_response = coordinator.process_complex_request(
+                    "Create pull requests to fix the detected security issues"
+                )
+                if fix_response.get("success"):
+                    print(f"✅ {fix_response.get('message', 'Fixes created')}")
+                    if "pull_requests" in fix_response:
+                        print(f"   Pull requests: {fix_response['pull_requests']}")
+        else:
+            print(f"\n❌ Audit failed: {response.get('message', 'Unknown error')}")
+
+    def langchain_audit(self, project_id: str, verbose: bool = True):
+        """Execute autonomous security audit using LangChain AI agent.
+
+        This uses LangChain's agent framework for truly autonomous, recursive auditing:
+        - Self-directed resource discovery
+        - Recursive investigation of findings
+        - External research (CIS, NIST, etc.)
+        - Code analysis
+        - Automated remediation planning
+
+        Args:
+            project_id: GCP project ID to audit
+            verbose: Show detailed agent reasoning (default: True)
+        """
+        from app.agents.langchain_auditor import main as langchain_main
+
+        return langchain_main(project_id=project_id, verbose=verbose)
+
+    def recursive_audit(self, project_id: str):
+        """Execute recursive autonomous security audit.
+
+        This performs a truly autonomous audit that:
+        - Recursively discovers and investigates resources
+        - Makes AI-driven decisions about what to investigate next
+        - Checks compliance with CIS benchmarks
+        - Generates comprehensive findings and recommendations
+
+        No external API keys required - uses only GCP APIs and Vertex AI.
+
+        Args:
+            project_id: GCP project ID to audit
+        """
+        from app.agents.recursive_auditor import main as recursive_main
+
+        return recursive_main(project_id=project_id)
 
     def audit_log(self, user: Optional[str] = None):
         """View audit logs."""
