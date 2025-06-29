@@ -7,6 +7,8 @@
 
 クラウド環境（GCP、AWS、Azure）のセキュリティ設定をAIで自動監査し、わかりやすいレポートを生成します。Vertex AI（Gemini）とOllamaによる高度なセキュリティ分析を提供します。
 
+🌐 **デモURL**: https://paddi-[YOUR-PROJECT-ID]-an.a.run.app *(Cloud Runへのデプロイ後に更新されます)*
+
 ## 🚀 クイックスタート（1分）
 
 ```bash
@@ -23,6 +25,47 @@ python main.py init
 ```
 
 これで `output/audit.html` にレポートが生成されます。ブラウザで開いてご確認ください。
+
+## ☁️ Cloud Runへのデプロイ
+
+### 前提条件
+- Google Cloudアカウント
+- gcloud CLIのインストール
+- 課金が有効なGCPプロジェクト
+
+### デプロイ手順
+
+```bash
+# 1. プロジェクトの準備
+export GOOGLE_CLOUD_PROJECT=paddi-hackathon-2025  # または自分のプロジェクトID
+
+# 2. 必要なAPIを有効化
+gcloud services enable run.googleapis.com
+gcloud services enable containerregistry.googleapis.com
+gcloud services enable cloudbuild.googleapis.com
+gcloud services enable aiplatform.googleapis.com
+
+# 3. デプロイスクリプトを実行
+./deploy.sh
+
+# または、Cloud Buildを使用したデプロイ
+gcloud builds submit --config cloudbuild.yaml
+
+# 4. デプロイ後のURLを確認
+gcloud run services describe paddi --region asia-northeast1 --format 'value(status.url)'
+```
+
+### デプロイ後の動作確認
+
+```bash
+# ヘルスチェック
+curl https://paddi-xxxxx-an.a.run.app/api/health
+
+# モック監査を実行
+curl -X POST https://paddi-xxxxx-an.a.run.app/api/audit/start \
+  -H "Content-Type: application/json" \
+  -d '{"project_id": "demo-project", "use_mock": true}'
+```
 
 ## 📋 基本的な使い方
 
