@@ -1,16 +1,15 @@
 """Integration tests for Web API with real agents."""
 
 import json
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-import sys
-
 sys.path.append(str(Path(__file__).parent.parent))
 
-from web.app import app
+from web.app import app  # noqa: E402
 
 
 class TestWebIntegration(unittest.TestCase):

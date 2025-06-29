@@ -2,7 +2,6 @@
 
 import time
 import unittest
-from unittest.mock import MagicMock
 
 from app.api.async_executor import AsyncExecutor
 
@@ -68,7 +67,7 @@ class TestAsyncExecutor(unittest.TestCase):
         self.executor.submit_audit("audit-1", slow_task)
 
         # Cancel immediately
-        cancelled = self.executor.cancel_audit("audit-1")
+        self.executor.cancel_audit("audit-1")
 
         # Note: cancellation may not always succeed if task already started
         # This is a limitation of Python's concurrent.futures

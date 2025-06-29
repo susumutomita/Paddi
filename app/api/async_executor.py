@@ -17,9 +17,7 @@ class AsyncExecutor:
         self.running_tasks = {}  # audit_id -> future
         self._lock = threading.Lock()
 
-    def submit_audit(
-        self, audit_id: str, task: Callable, *args, **kwargs
-    ) -> None:
+    def submit_audit(self, audit_id: str, task: Callable, *args, **kwargs) -> None:
         """Submit an audit task for async execution."""
         with self._lock:
             if audit_id in self.running_tasks:
@@ -51,7 +49,7 @@ class AsyncExecutor:
             try:
                 return future.result()
             except Exception as e:
-                logger.error(f"Error getting result for {audit_id}: {str(e)}")
+                logger.error("Error getting result for %s: %s", audit_id, str(e))
                 return {"error": str(e)}
 
     def cancel_audit(self, audit_id: str) -> bool:
@@ -65,18 +63,15 @@ class AsyncExecutor:
 
     def _cleanup_completed_tasks(self) -> None:
         """Remove completed tasks from tracking."""
-        completed = [
-            audit_id
-            for audit_id, future in self.running_tasks.items()
-            if future.done()
-        ]
+        completed = [audit_id for audit_id, future in self.running_tasks.items() if future.done()]
         for audit_id in completed:
             try:
                 # Ensure any exceptions are logged
                 self.running_tasks[audit_id].result()
             except Exception as e:
-                logger.error(f"Task {audit_id} failed: {str(e)}")
-            del self.running_tasks[audit_id]
+                logger.error("Task %s failed: %s", audit_id, str(e))
+            # Don't delete the task immediately - get_result needs to access it
+            # del self.running_tasks[audit_id]
 
     def shutdown(self, wait: bool = True) -> None:
         """Shutdown the executor."""

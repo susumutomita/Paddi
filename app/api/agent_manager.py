@@ -68,7 +68,7 @@ class AgentManager:
         }
 
         self.audits[audit_id] = audit
-        logger.info(f"Created audit {audit_id} for project {project_id}")
+        logger.info("Created audit %s for project %s", audit_id, project_id)
 
         return audit_id
 
@@ -82,24 +82,24 @@ class AgentManager:
 
         try:
             # Step 1: Collect data
-            logger.info(f"Running collector for audit {audit_id}")
+            logger.info("Running collector for audit %s", audit_id)
             self._run_collector(audit)
 
             # Step 2: Explain findings
-            logger.info(f"Running explainer for audit {audit_id}")
+            logger.info("Running explainer for audit %s", audit_id)
             self._run_explainer(audit)
 
             # Step 3: Generate report
-            logger.info(f"Running reporter for audit {audit_id}")
+            logger.info("Running reporter for audit %s", audit_id)
             self._run_reporter(audit)
 
             # Mark as completed
             audit["status"] = AuditStatus.COMPLETED
             audit["completed_at"] = datetime.utcnow().isoformat()
-            logger.info(f"Audit {audit_id} completed successfully")
+            logger.info("Audit %s completed successfully", audit_id)
 
         except Exception as e:
-            logger.error(f"Audit {audit_id} failed: {str(e)}")
+            logger.error("Audit %s failed: %s", audit_id, str(e))
             audit["status"] = AuditStatus.FAILED
             audit["error"] = str(e)
             audit["completed_at"] = datetime.utcnow().isoformat()
@@ -117,7 +117,7 @@ class AgentManager:
                 output_dir=str(self.data_dir),
             )
         except Exception as e:
-            logger.error(f"Collector failed: {str(e)}")
+            logger.error("Collector failed: %s", str(e))
             raise
 
     def _run_explainer(self, audit: Dict[str, Any]) -> None:
@@ -133,16 +133,16 @@ class AgentManager:
                 ollama_endpoint=audit["config"]["ollama_endpoint"],
             )
         except Exception as e:
-            logger.error(f"Explainer failed: {str(e)}")
+            logger.error("Explainer failed: %s", str(e))
             raise
 
-    def _run_reporter(self, audit: Dict[str, Any]) -> None:
+    def _run_reporter(self, audit: Dict[str, Any]) -> None:  # pylint: disable=unused-argument
         """Run the reporter agent."""
         try:
             # Call reporter main function
             reporter_main(output_dir=str(self.output_dir))
         except Exception as e:
-            logger.error(f"Reporter failed: {str(e)}")
+            logger.error("Reporter failed: %s", str(e))
             raise
 
     def get_audit_status(self, audit_id: str) -> Optional[Dict[str, Any]]:
@@ -188,7 +188,7 @@ class AgentManager:
             }
 
         except Exception as e:
-            logger.error(f"Error reading findings: {str(e)}")
+            logger.error("Error reading findings: %s", str(e))
             return None
 
     def get_all_audits(self) -> Dict[str, Dict[str, Any]]:

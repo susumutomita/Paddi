@@ -3,9 +3,8 @@
 import json
 import tempfile
 import unittest
-from datetime import datetime
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from app.api.agent_manager import AgentManager, AuditStatus
 
@@ -54,14 +53,10 @@ class TestAgentManager(unittest.TestCase):
     @patch("app.api.agent_manager.collector_main")
     @patch("app.api.agent_manager.explainer_main")
     @patch("app.api.agent_manager.reporter_main")
-    def test_run_audit_sync_success(
-        self, mock_reporter, mock_explainer, mock_collector
-    ):
+    def test_run_audit_sync_success(self, mock_reporter, mock_explainer, mock_collector):
         """Test successful synchronous audit execution."""
         # Start audit
-        audit_id = self.agent_manager.start_audit(
-            project_id="test-project", use_mock=True
-        )
+        audit_id = self.agent_manager.start_audit(project_id="test-project", use_mock=True)
 
         # Run audit
         result = self.agent_manager.run_audit_sync(audit_id)
@@ -83,9 +78,7 @@ class TestAgentManager(unittest.TestCase):
         mock_collector.side_effect = Exception("Collection failed")
 
         # Start audit
-        audit_id = self.agent_manager.start_audit(
-            project_id="test-project", use_mock=True
-        )
+        audit_id = self.agent_manager.start_audit(project_id="test-project", use_mock=True)
 
         # Run audit
         result = self.agent_manager.run_audit_sync(audit_id)

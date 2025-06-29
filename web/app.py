@@ -8,14 +8,14 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from flask import Flask, jsonify, render_template, request
-from flask_cors import CORS
-
 sys.path.append(str(Path(__file__).parent.parent))
 
+from flask import Flask, jsonify, render_template, request  # noqa: E402
+from flask_cors import CORS  # noqa: E402
+
 # Import the agent manager and async executor
-from app.api.agent_manager import AgentManager
-from app.api.async_executor import AsyncExecutor
+from app.api.agent_manager import AgentManager  # noqa: E402
+from app.api.async_executor import AsyncExecutor  # noqa: E402
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -72,11 +72,7 @@ def start_audit():
         )
 
         # Submit for async execution
-        async_executor.submit_audit(
-            audit_id,
-            agent_manager.run_audit_sync,
-            audit_id
-        )
+        async_executor.submit_audit(audit_id, agent_manager.run_audit_sync, audit_id)
 
         logger.info(f"Started audit {audit_id} for project: {project_id}")
 
@@ -98,14 +94,14 @@ def get_audit_status(audit_id):
     """Get the status of an ongoing audit."""
     # Get audit status from agent manager
     audit = agent_manager.get_audit_status(audit_id)
-    
+
     if not audit:
         return jsonify({"error": "Audit not found"}), 404
-    
+
     # Check if audit is still running
     if async_executor.is_running(audit_id):
         audit["status"] = "running"
-    
+
     return jsonify(audit)
 
 
@@ -114,10 +110,10 @@ def get_findings():
     """Get security findings from the latest audit."""
     # Get real findings from agent manager
     findings_data = agent_manager.get_findings()
-    
+
     if findings_data:
         return jsonify(findings_data)
-    
+
     # Fall back to mock data if no real data available
     mock_findings = [
         {
@@ -157,7 +153,7 @@ def get_severity_distribution():
     """Get distribution of findings by severity."""
     # Try to get real data first
     findings_data = agent_manager.get_findings()
-    
+
     if findings_data and "severity_distribution" in findings_data:
         dist = findings_data["severity_distribution"]
         return jsonify(
@@ -172,7 +168,7 @@ def get_severity_distribution():
                 "colors": ["#dc3545", "#fd7e14", "#ffc107", "#28a745"],
             }
         )
-    
+
     # Fall back to mock data
     return jsonify(
         {
@@ -229,14 +225,16 @@ def chat_with_paddi():
     # TODO: Integrate with Ollama/Gemini through the explainer
     # For now, provide a contextual response based on real findings
     findings_data = agent_manager.get_findings()
-    
+
     if findings_data and findings_data["findings"]:
-        high_severity = sum(1 for f in findings_data["findings"] if f["severity"] in ["HIGH", "CRITICAL"])
+        high_severity = sum(
+            1 for f in findings_data["findings"] if f["severity"] in ["HIGH", "CRITICAL"]
+        )
         response = (
             f"Based on your security audit, I found {findings_data['total']} security issues. "
             f"There are {high_severity} high-severity findings that require immediate attention. "
-            f"Regarding your question: {question} - I recommend reviewing the findings in the dashboard "
-            f"and addressing the critical issues first."
+            f"Regarding your question: {question} - I recommend reviewing the findings in the "
+            f"dashboard and addressing the critical issues first."
         )
     else:
         response = (
