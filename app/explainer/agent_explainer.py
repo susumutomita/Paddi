@@ -549,7 +549,8 @@ class SecurityRiskExplainer:
                 project_id = os.getenv("GOOGLE_CLOUD_PROJECT") or os.getenv("PROJECT_ID")
             if not project_id and not use_mock:
                 raise ValueError(
-                    "project_id is required for Gemini (set via parameter or GOOGLE_CLOUD_PROJECT/PROJECT_ID env var)"
+                    "project_id is required for Gemini "
+                    "(set via parameter or GOOGLE_CLOUD_PROJECT/PROJECT_ID env var)"
                 )
             config["project_id"] = project_id
             # Check for location in environment variable

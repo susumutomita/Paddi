@@ -93,7 +93,7 @@ class TestGeminiSecurityAnalyzer:
         )
 
         assert analyzer.project_id == "test-project"
-        assert analyzer.location == "asia-northeast1"
+        assert analyzer.location == "us-central1"
         assert analyzer.use_mock is True
         assert analyzer._model is None
         assert analyzer.project_context == {}
@@ -125,7 +125,9 @@ class TestGeminiSecurityAnalyzer:
             use_mock=False,
         )
 
-        mock_aiplatform.init.assert_called_once_with(project="test-project", location="asia-northeast1")
+        mock_aiplatform.init.assert_called_once_with(
+            project="test-project", location="asia-northeast1"
+        )
         mock_models.GenerativeModel.assert_called_once_with("gemini-1.5-pro")
 
     def test_analyze_security_risks_with_mock(self):
@@ -262,7 +264,7 @@ class TestSecurityRiskExplainer:
         )
 
         assert explainer.project_id == "test-project"
-        assert explainer.location == "asia-northeast1"
+        assert explainer.location == "us-central1"
         assert explainer.use_mock is True
         assert isinstance(explainer.analyzer, GeminiSecurityAnalyzer)
 
