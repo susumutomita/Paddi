@@ -1,21 +1,53 @@
 """Safety models for risk assessment and validation."""
 
 from dataclasses import dataclass
-from enum import Enum
-from typing import List, Optional, Dict, Any
 from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional
 
 
 class RiskLevel(Enum):
     """Risk levels for command assessment."""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
     CRITICAL = "critical"
 
+    @property
+    def severity(self) -> int:
+        """Get numeric severity value for comparison."""
+        severity_map = {"low": 1, "medium": 2, "high": 3, "critical": 4}
+        return severity_map[self.value]
+
+    def __gt__(self, other):
+        """Compare risk levels by severity."""
+        if not isinstance(other, RiskLevel):
+            return NotImplemented
+        return self.severity > other.severity
+
+    def __ge__(self, other):
+        """Compare risk levels by severity."""
+        if not isinstance(other, RiskLevel):
+            return NotImplemented
+        return self.severity >= other.severity
+
+    def __lt__(self, other):
+        """Compare risk levels by severity."""
+        if not isinstance(other, RiskLevel):
+            return NotImplemented
+        return self.severity < other.severity
+
+    def __le__(self, other):
+        """Compare risk levels by severity."""
+        if not isinstance(other, RiskLevel):
+            return NotImplemented
+        return self.severity <= other.severity
+
 
 class CommandType(Enum):
     """Types of commands based on their impact."""
+
     READ_ONLY = "read_only"
     CONFIGURATION = "configuration"
     PERMISSION = "permission"
@@ -26,6 +58,7 @@ class CommandType(Enum):
 
 class ApprovalStatus(Enum):
     """Status of human approval for commands."""
+
     PENDING = "pending"
     APPROVED = "approved"
     REJECTED = "rejected"
@@ -35,6 +68,7 @@ class ApprovalStatus(Enum):
 @dataclass
 class CommandValidation:
     """Result of command validation."""
+
     command: str
     is_safe: bool
     risk_level: RiskLevel
@@ -43,7 +77,7 @@ class CommandValidation:
     warnings: List[str]
     requires_approval: bool
     dry_run_output: Optional[str] = None
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
@@ -54,13 +88,14 @@ class CommandValidation:
             "risks": self.risks,
             "warnings": self.warnings,
             "requires_approval": self.requires_approval,
-            "dry_run_output": self.dry_run_output
+            "dry_run_output": self.dry_run_output,
         }
 
 
 @dataclass
 class ImpactAnalysis:
     """Analysis of command impact on the system."""
+
     command: str
     affected_resources: List[str]
     affected_services: List[str]
@@ -68,7 +103,7 @@ class ImpactAnalysis:
     reversible: bool
     rollback_command: Optional[str]
     data_loss_risk: bool
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
@@ -78,13 +113,14 @@ class ImpactAnalysis:
             "estimated_downtime": self.estimated_downtime,
             "reversible": self.reversible,
             "rollback_command": self.rollback_command,
-            "data_loss_risk": self.data_loss_risk
+            "data_loss_risk": self.data_loss_risk,
         }
 
 
 @dataclass
 class ApprovalRequest:
     """Request for human approval of a command."""
+
     id: str
     command: str
     validation: CommandValidation
@@ -95,7 +131,7 @@ class ApprovalRequest:
     approved_by: Optional[str] = None
     approved_at: Optional[datetime] = None
     rejection_reason: Optional[str] = None
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
@@ -108,13 +144,14 @@ class ApprovalRequest:
             "status": self.status.value,
             "approved_by": self.approved_by,
             "approved_at": self.approved_at.isoformat() if self.approved_at else None,
-            "rejection_reason": self.rejection_reason
+            "rejection_reason": self.rejection_reason,
         }
 
 
 @dataclass
 class AuditLogEntry:
     """Audit log entry for command execution."""
+
     id: str
     timestamp: datetime
     command: str
@@ -125,7 +162,7 @@ class AuditLogEntry:
     execution_result: Optional[str]
     execution_error: Optional[str]
     dry_run: bool
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
@@ -138,5 +175,5 @@ class AuditLogEntry:
             "approval": self.approval.to_dict() if self.approval else None,
             "execution_result": self.execution_result,
             "execution_error": self.execution_error,
-            "dry_run": self.dry_run
+            "dry_run": self.dry_run,
         }

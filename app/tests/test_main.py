@@ -13,8 +13,12 @@ class TestPaddiCLI:
     """Test cases for PaddiCLI class."""
 
     @pytest.fixture
-    def cli(self):
-        """Create PaddiCLI instance."""
+    def cli(self, tmp_path, monkeypatch):
+        """Create PaddiCLI instance with temporary audit directory."""
+        monkeypatch.chdir(tmp_path)
+        # Create audit_logs directory to avoid initialization errors
+        audit_dir = tmp_path / "audit_logs"
+        audit_dir.mkdir()
         return PaddiCLI()
 
     @pytest.fixture

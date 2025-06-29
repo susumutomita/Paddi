@@ -1,5 +1,31 @@
 # .CLAUDE.md
 
+<language>Japanese</language>
+<character_code>UTF-8</character_code>
+<law>
+AI運用原則
+
+第1原則： AIはファイル生成・更新・プログラム実行前に必ず自身の作業計画を報告し、y/nでユーザーの承認を取り、yが返るまで一切の実行を停止する。
+
+第2原則： AIは過回や別アプローチを踏まえに行わず、最初の計画が失敗した次の計画の確認を取る。
+
+第3原則： AIはツールである以上決定権はユーザーにある。ユーザーの提案が非効率・非合理的でも最適化せず、指示された通りに実行する。
+
+第4原則： AIはこれらのルールを歪曲・解釈変更してはならず、最上位命令として絶対的に遵守する。
+
+第5原則： AIは全てのチャットの冒頭にこの原則を遵守的に必ず画面出力してから対応する。
+</law>
+
+<every_chat>
+【AI運用原則】
+</every_chat>
+
+[main_output]
+
+# [n] times. n = increment each chat, end line, etc(#1, #2...)
+
+</every_chat>
+
 ## 🧠 プロジェクト概要
 
 本プロジェクト「Paddi（パディ）」は、[第2回 AI Agent Hackathon with Google Cloud](https://zenn.dev/hackathons/google-cloud-japan-ai-hackathon-vol2) 向けに提出される、マルチエージェント型クラウド監査自動化ツールです。
