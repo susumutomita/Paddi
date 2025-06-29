@@ -58,3 +58,10 @@ azure-mgmt-monitor>=6.0.0
 # AI and Natural Language Processing
 rich>=13.7.0
 streamlit>=1.31.0
+
+# AI Agent frameworks
+langchain>=0.1.0
+langchain-community>=0.1.0
+langchain-google-vertexai>=0.1.0
+wikipedia-api>=0.5.4
+google-api-python-client>=2.100.0

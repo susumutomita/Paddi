@@ -276,42 +276,118 @@ class MultiAgentCoordinator:
 
     def _collect_cloud_data(self) -> Dict[str, Any]:
         """Collect cloud configuration data."""
-        # Simplified implementation
-        data = {
-            "iam_policies": {"bindings": []},
-            "scc_findings": [],
-        }
+        from app.collector.agent_collector import main as collector_main
 
-        return {
-            "status": "completed",
-            "summary": (
-                f"Collected {len(data.get('iam_policies', {}).get('bindings', []))} "
-                f"IAM bindings and {len(data.get('scc_findings', []))} security findings"
-            ),
-            "data": data,
-        }
+        try:
+            # Execute actual collection
+            logger.info(f"Collecting data for project: {self.project_id}")
+            collector_main(
+                project_id=self.project_id,
+                use_mock=False,  # Force real data collection
+                output_dir="data",
+            )
+
+            # Read collected data
+            import json
+            from pathlib import Path
+
+            collected_file = Path("data/collected.json")
+            if collected_file.exists():
+                with open(collected_file, "r") as f:
+                    data = json.load(f)
+
+                iam_count = len(data.get("iam_policies", {}).get("bindings", []))
+                scc_count = len(data.get("scc_findings", []))
+
+                return {
+                    "status": "completed",
+                    "summary": (
+                        f"Collected {iam_count} IAM bindings and "
+                        f"{scc_count} security findings from {self.project_id}"
+                    ),
+                    "data": data,
+                }
+            else:
+                return {"status": "failed", "summary": "No data collected", "data": {}}
+        except Exception as e:
+            logger.error(f"Error collecting data: {e}")
+            return {"status": "error", "summary": f"Collection failed: {str(e)}", "data": {}}
 
     def _analyze_findings(self) -> Dict[str, Any]:
         """Analyze security findings."""
-        # Simplified implementation
-        findings = [
-            {
-                "title": "Overly Permissive IAM Role",
-                "severity": "HIGH",
-                "resource": "project/example-project",
-            }
-        ]
+        from app.explainer.agent_explainer import main as explainer_main
 
-        return {"status": "completed", "findings": findings, "total": len(findings)}
+        try:
+            # Execute actual analysis
+            logger.info("Analyzing security findings with AI...")
+            explainer_main(
+                project_id=self.project_id,
+                use_mock=False,
+                ai_provider="vertex" if self.model else None,
+            )
+
+            # Read analysis results
+            import json
+            from pathlib import Path
+
+            explained_file = Path("data/explained.json")
+            if explained_file.exists():
+                with open(explained_file, "r") as f:
+                    findings = json.load(f)
+
+                critical_count = sum(1 for f in findings if f.get("severity") == "CRITICAL")
+                high_count = sum(1 for f in findings if f.get("severity") == "HIGH")
+
+                return {
+                    "status": "completed",
+                    "findings": findings,
+                    "total": len(findings),
+                    "critical": critical_count,
+                    "high": high_count,
+                    "summary": (
+                        f"Found {len(findings)} security issues: "
+                        f"{critical_count} critical, {high_count} high severity"
+                    ),
+                }
+            else:
+                return {"status": "failed", "findings": [], "total": 0}
+        except Exception as e:
+            logger.error(f"Error analyzing findings: {e}")
+            return {"status": "error", "findings": [], "total": 0, "error": str(e)}
 
     def _generate_report(self) -> Dict[str, Any]:
         """Generate security report."""
-        # Simplified implementation
-        return {
-            "status": "completed",
-            "format": "html",
-            "path": "output/audit.html",
-        }
+        from app.reporter.agent_reporter import main as reporter_main
+
+        try:
+            # Execute actual report generation
+            logger.info("Generating comprehensive security report...")
+            reporter_main(output_dir="output")
+
+            # Check if reports were generated
+            from pathlib import Path
+
+            html_report = Path("output/audit.html")
+            md_report = Path("output/audit.md")
+
+            if html_report.exists() and md_report.exists():
+                return {
+                    "status": "completed",
+                    "format": "html+markdown",
+                    "path": str(html_report),
+                    "markdown_path": str(md_report),
+                    "summary": "Security audit report generated successfully",
+                }
+            else:
+                return {
+                    "status": "failed",
+                    "format": None,
+                    "path": None,
+                    "error": "Report files not generated",
+                }
+        except Exception as e:
+            logger.error(f"Error generating report: {e}")
+            return {"status": "error", "format": None, "path": None, "error": str(e)}
 
     def _generate_audit_summary(self, results: Dict[str, Any]) -> str:
         """Generate audit summary text."""

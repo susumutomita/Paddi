@@ -1,10 +1,10 @@
 # Paddi Documentation
 
-Welcome to Paddi's documentation! Paddi is a multi-agent cloud audit automation tool designed for the Google Cloud AI Hackathon.
+Welcome to Paddi's documentation! Paddi is a multi-cloud security audit automation tool that uses AI agents to analyze and report security risks across multiple cloud environments.
 
 ## Overview
 
-Paddi automates cloud security auditing by leveraging Google Cloud's configuration data and Gemini (Vertex AI) to identify and explain security risks in natural language.
+Paddi automates cloud security auditing across GCP, AWS, and Azure by leveraging Vertex AI (Gemini) to identify and explain security risks in natural language. It features autonomous AI agents that can recursively investigate security issues and generate comprehensive reports.
 
 ## Contents
 

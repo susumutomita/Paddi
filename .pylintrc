@@ -9,6 +9,7 @@ ignore=agents,analyzer,remediation
 # Disable some checks that are too strict for this project
 disable=
     too-few-public-methods,
+    too-many-public-methods,
     too-many-instance-attributes,
     too-many-arguments,
     too-many-positional-arguments,

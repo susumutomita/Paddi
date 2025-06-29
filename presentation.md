@@ -320,16 +320,19 @@ style: |
 <h3><span class="gradient-blue">現在利用可能</span></h3>
 
 ◆ <span class="green">✓</span> **Google Cloud Platform**
+◆ <span class="green">✓</span> **Amazon Web Services**
+◆ <span class="green">✓</span> **Microsoft Azure**
 ◆ <span class="green">✓</span> **GitHub**
 
 </div>
 
 <div>
 
-<h3><span class="gradient-purple">近日公開</span></h3>
+<h3><span class="gradient-purple">AIエージェント</span></h3>
 
-◆ <span class="yellow">◐</span> **Amazon Web Services**
-◆ <span class="yellow">◐</span> **Microsoft Azure**
+◆ **再帰的監査** - 自律的調査
+◆ **LangChain統合** - 外部知識活用
+◆ **対話型インターフェース**
 
 </div>
 
@@ -342,20 +345,23 @@ style: |
 <div class="card">
 
 ```bash
-$ git push origin feature/new-api
+$ python main.py recursive-audit --project-id=my-project
 
-[Paddi] 🔍 セキュリティ監査開始...
-[Paddi] ⚠️  SQLインジェクション脆弱性を検出
-[Paddi] 📊 影響範囲: 3ファイル、12関数
-[Paddi] 🔧 修正PR #142 を自動作成しました
-[Paddi] ✅ 監査レポート: https://paddi.io/report/abc123
+[Paddi] 🤖 自律型AI監査開始...
+[Paddi] 🔍 探索中: IAMポリシー分析
+[Paddi] ⚠️  過剰権限を検出: roles/owner
+[Paddi] 🤔 AI判断: 関連リソースを調査
+[Paddi] 🔍 探索中: Storageバケット
+[Paddi] ⚠️  公開バケットを発見
+[Paddi] 📊 CISベンチマークチェック完了
+[Paddi] ✅ 監査レポート: output/audit.html
 
-監査完了!
+監査完了! 脅威: 12件発見
 ```
 
 </div>
 
-**CI/CDパイプラインにシームレスに統合**
+**AIが自律的に調査対象を決定して実行**
 
 ---
 
@@ -419,7 +425,7 @@ $ git push origin feature/new-api
 
 <h3><span class="gradient-blue">Google Cloud活用</span></h3>
 
-◆ **Vertex AI** - Gemini Pro
+◆ **Vertex AI** - Gemini 1.5 Pro
 ◆ **Cloud Run** - デプロイ
 ◆ **IAM API** - 権限分析
 ◆ **SCC API** - 脅威検出
