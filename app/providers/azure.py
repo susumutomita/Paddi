@@ -220,4 +220,3 @@ class AzureProvider(CloudProvider):
                 "properties": {"statusCode": "OK", "serviceRequestId": "request-id-3"},
             },
         ]
-

@@ -211,8 +211,6 @@ class GitHubProvider(CloudProvider):
             },
         ]
 
-
-
     def collect_dependabot_alerts(self) -> List[Dict[str, Any]]:
         """Collect Dependabot alerts from GitHub API."""
         url = f"https://api.github.com/repos/{self.owner}/{self.repo}/dependabot/alerts"

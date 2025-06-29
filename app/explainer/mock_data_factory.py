@@ -9,18 +9,11 @@ class MockDataFactory:
     """Factory for creating mock security findings."""
 
     def create_finding(
-        self, 
-        title: str, 
-        severity: str, 
-        explanation: str, 
-        recommendation: str
+        self, title: str, severity: str, explanation: str, recommendation: str
     ) -> SecurityFinding:
         """Create a single security finding."""
         return SecurityFinding(
-            title=title,
-            severity=severity,
-            explanation=explanation,
-            recommendation=recommendation
+            title=title, severity=severity, explanation=explanation, recommendation=recommendation
         )
 
     def create_iam_findings(self) -> List[SecurityFinding]:
@@ -63,9 +56,9 @@ class MockDataFactory:
         """Create provider-specific IAM findings."""
         if provider == "aws":
             return self._create_aws_iam_findings()
-        elif provider == "azure":
+        if provider == "azure":
             return self._create_azure_iam_findings()
-        elif provider == "gcp":
+        if provider == "gcp":
             return self.create_iam_findings()  # Use generic for GCP
         return []
 
@@ -141,7 +134,7 @@ class MockDataFactory:
         """Create provider-specific security findings."""
         if provider == "aws":
             return self._create_aws_security_findings()
-        elif provider == "azure":
+        if provider == "azure":
             return self._create_azure_security_findings()
         return []
 

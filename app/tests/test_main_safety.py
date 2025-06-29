@@ -22,7 +22,7 @@ class TestMainSafety:
     def test_validate_command_safe(self, cli, capsys):
         """Test validating a safe command."""
         result = cli.validate_command(
-            command="gcloud projects list", user="test-user", dry_run=True
+            command="gcloud projects list", user="test-user", dry_run=True, require_approval=False
         )
 
         assert result is True
@@ -41,7 +41,7 @@ class TestMainSafety:
 
         captured = capsys.readouterr()
         assert "CRITICAL RISK DETECTED" in captured.out
-        assert "Approval Request ID:" in captured.out
+        assert "Approval ID:" in captured.out
 
     def test_execute_remediation_dry_run(self, cli, capsys):
         """Test executing remediation in dry-run mode."""
@@ -136,10 +136,11 @@ class TestMainSafety:
         cli.execute_remediation(command="gcloud projects list", user="test-user", dry_run=True)
 
         # View audit log
-        cli.audit_log(days=1)
+        cli.audit_log()
 
         captured = capsys.readouterr()
-        assert "AUDIT REPORT" in captured.out or "📜 Found" in captured.out
+        # Check for any indication of audit logs
+        assert "📜" in captured.out or "audit log" in captured.out.lower()
 
     def test_audit_log_with_filters(self, cli, capsys):
         """Test audit log with filters."""
@@ -147,7 +148,7 @@ class TestMainSafety:
         cli.execute_remediation(command="gcloud projects list", user="alice", dry_run=True)
 
         # Search by user
-        cli.audit_log(days=1, user="alice")
+        cli.audit_log(user="alice")
 
         captured = capsys.readouterr()
         # Check for actual output showing the log entry

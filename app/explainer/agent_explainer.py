@@ -25,8 +25,8 @@ except ImportError:
 
 from app.common.auth import check_gcp_credentials
 from app.common.models import SecurityFinding
-from app.explainer.prompt_templates import SYSTEM_PROMPT_ENHANCED, build_analysis_prompt
 from app.explainer.mock_data_factory import MockDataFactory
+from app.explainer.prompt_templates import SYSTEM_PROMPT_ENHANCED, build_analysis_prompt
 
 # Configure logging
 logging.basicConfig(

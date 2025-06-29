@@ -124,4 +124,3 @@ class GCPProvider(CloudProvider):
                 "timestamp": "2024-01-01T11:00:00Z",
             },
         ]
-
