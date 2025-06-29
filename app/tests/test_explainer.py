@@ -93,7 +93,7 @@ class TestGeminiSecurityAnalyzer:
         )
 
         assert analyzer.project_id == "test-project"
-        assert analyzer.location == "us-central1"
+        assert analyzer.location == "asia-northeast1"
         assert analyzer.use_mock is True
         assert analyzer._model is None
         assert analyzer.project_context == {}
@@ -121,12 +121,12 @@ class TestGeminiSecurityAnalyzer:
 
         GeminiSecurityAnalyzer(
             project_id="test-project",
-            location="us-central1",
+            location="asia-northeast1",
             use_mock=False,
         )
 
-        mock_aiplatform.init.assert_called_once_with(project="test-project", location="us-central1")
-        mock_models.GenerativeModel.assert_called_once_with("gemini-1.5-flash")
+        mock_aiplatform.init.assert_called_once_with(project="test-project", location="asia-northeast1")
+        mock_models.GenerativeModel.assert_called_once_with("gemini-1.5-pro")
 
     def test_analyze_security_risks_with_mock(self):
         """Test analyzing security risks with mock data"""
@@ -262,7 +262,7 @@ class TestSecurityRiskExplainer:
         )
 
         assert explainer.project_id == "test-project"
-        assert explainer.location == "us-central1"
+        assert explainer.location == "asia-northeast1"
         assert explainer.use_mock is True
         assert isinstance(explainer.analyzer, GeminiSecurityAnalyzer)
 
@@ -393,7 +393,7 @@ class TestMainFunction:
         # Run main
         main(
             project_id="test-project",
-            location="us-central1",
+            location="asia-northeast1",
             use_mock=True,
         )
 
@@ -581,6 +581,46 @@ class TestAnalyzerFactory:
                 call_config = mock_factory.call_args[0][0]
                 assert call_config["ai_provider"] == "ollama"
                 assert call_config["ollama_model"] == "mistral"
+
+    def test_environment_variable_handling(self):
+        """Test environment variable handling for Vertex AI configuration"""
+        import os
+
+        # Test with GOOGLE_CLOUD_PROJECT
+        with patch.dict(
+            os.environ,
+            {"GOOGLE_CLOUD_PROJECT": "env-project", "VERTEX_AI_LOCATION": "us-east1"},
+            clear=False,
+        ):
+            with patch("explainer.agent_explainer.get_analyzer") as mock_factory:
+                mock_analyzer = Mock()
+                mock_factory.return_value = mock_analyzer
+
+                SecurityRiskExplainer(use_mock=True)
+
+                # Verify factory was called with env config
+                mock_factory.assert_called_once()
+                call_config = mock_factory.call_args[0][0]
+                assert call_config["project_id"] == "env-project"
+                assert call_config["location"] == "us-east1"
+
+        # Test with PROJECT_ID fallback
+        with patch.dict(os.environ, {"PROJECT_ID": "fallback-project"}, clear=False):
+            # Remove GOOGLE_CLOUD_PROJECT if exists
+            env_copy = os.environ.copy()
+            env_copy.pop("GOOGLE_CLOUD_PROJECT", None)
+            with patch.dict(os.environ, env_copy, clear=True):
+                with patch("explainer.agent_explainer.get_analyzer") as mock_factory:
+                    mock_analyzer = Mock()
+                    mock_factory.return_value = mock_analyzer
+
+                    SecurityRiskExplainer(use_mock=True)
+
+                    # Verify factory was called with fallback config
+                    mock_factory.assert_called_once()
+                    call_config = mock_factory.call_args[0][0]
+                    assert call_config["project_id"] == "fallback-project"
+                    assert call_config["location"] == "asia-northeast1"  # Default
 
 
 class TestEnhancedFeatures:

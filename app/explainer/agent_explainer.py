@@ -117,8 +117,8 @@ class GeminiSecurityAnalyzer(LLMInterface):
     def __init__(
         self,
         project_id: str,
-        location: str = "us-central1",
-        model_name: str = "gemini-1.5-flash",
+        location: str = "asia-northeast1",
+        model_name: str = "gemini-1.5-pro",
         temperature: float = 0.1,
         max_output_tokens: int = 2048,
         use_mock: bool = False,
@@ -493,8 +493,9 @@ def get_analyzer(config: Dict[str, Any]) -> LLMInterface:
     # Gemini
     return GeminiSecurityAnalyzer(
         project_id=config["project_id"],
-        location=config.get("location", "us-central1"),
+        location=config.get("location", "asia-northeast1"),
         use_mock=config.get("use_mock", False),
+        project_context=config.get("project_context"),
     )
 
 
@@ -504,7 +505,7 @@ class SecurityRiskExplainer:
     def __init__(
         self,
         project_id: str = None,
-        location: str = "us-central1",
+        location: str = "asia-northeast1",
         use_mock: bool = False,
         input_file: str = "data/collected.json",
         output_dir: str = "data",
@@ -545,12 +546,15 @@ class SecurityRiskExplainer:
         else:
             # Gemini requires project_id
             if not project_id:
-                project_id = os.getenv("PROJECT_ID")
+                project_id = os.getenv("GOOGLE_CLOUD_PROJECT") or os.getenv("PROJECT_ID")
             if not project_id and not use_mock:
                 raise ValueError(
-                    "project_id is required for Gemini (set via parameter or PROJECT_ID env var)"
+                    "project_id is required for Gemini (set via parameter or GOOGLE_CLOUD_PROJECT/PROJECT_ID env var)"
                 )
             config["project_id"] = project_id
+            # Check for location in environment variable
+            if not location or location == "asia-northeast1":
+                location = os.getenv("VERTEX_AI_LOCATION", "asia-northeast1")
             config["location"] = location
 
         # Add project context to config
@@ -597,7 +601,7 @@ class SecurityRiskExplainer:
 
 def main(
     project_id: str = None,
-    location: str = "us-central1",
+    location: str = "asia-northeast1",
     use_mock: bool = True,
     input_file: str = "data/collected.json",
     output_dir: str = "data",
