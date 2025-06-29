@@ -334,10 +334,15 @@ function addChatMessage(message, sender) {
     messageDiv.className = `chat-message ${sender}`;
     
     const icon = sender === 'user' ? 'person' : 'smart_toy';
-    messageDiv.innerHTML = `
-        <span class="material-icons">${icon}</span>
-        <p>${message}</p>
-    `;
+    const iconSpan = document.createElement('span');
+    iconSpan.className = 'material-icons';
+    iconSpan.textContent = icon;
+    
+    const messageParagraph = document.createElement('p');
+    messageParagraph.textContent = message;
+    
+    messageDiv.appendChild(iconSpan);
+    messageDiv.appendChild(messageParagraph);
     
     chatContainer.appendChild(messageDiv);
     chatContainer.scrollTop = chatContainer.scrollHeight;
