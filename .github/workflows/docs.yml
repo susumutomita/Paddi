@@ -5,7 +5,6 @@ on:
     branches: [main]
     paths:
       - '**.py'
-      - '**.rs'
       - 'docs/**'
       - 'README.md'
   workflow_dispatch:
@@ -24,40 +23,30 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Install documentation tools
-        run: |
-          python -m pip install --upgrade pip
-          pip install sphinx sphinx-rtd-theme myst-parser autodoc-pydantic
-          pip install -r requirements.txt
-
-      - name: Generate Python API docs
-        run: |
-          mkdir -p docs/api
-          sphinx-apidoc -o docs/api app/
-
-      - name: Build Sphinx documentation
-        run: |
-          cd docs
-          make html || echo "Sphinx build skipped - docs directory not configured"
-
       - name: Setup Pages
         uses: actions/configure-pages@v4
+
+      - name: Create simple documentation
+        run: |
+          mkdir -p ./_site
+          cp README.md ./_site/
+          echo "<h1>Paddi Documentation</h1>" > ./_site/index.html
+          echo "<p>See <a href='README.md'>README</a> for details.</p>" >> ./_site/index.html
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./docs/_build/html
+          path: ./_site
 
   # Deploy job
   deploy:
     if: github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Deploy to GitHub Pages
