@@ -8,14 +8,14 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from flask import Flask, jsonify, render_template, request
-from flask_cors import CORS
-
 sys.path.append(str(Path(__file__).parent.parent))
-# Note: The actual agent modules don't export classes, they have main() functions
-# from app.collector.agent_collector import main as collector_main
-# from app.explainer.agent_explainer import main as explainer_main
-# from app.reporter.agent_reporter import main as reporter_main
+
+from flask import Flask, jsonify, render_template, request  # noqa: E402
+from flask_cors import CORS  # noqa: E402
+
+# Import the agent manager and async executor
+from app.api.agent_manager import AgentManager  # noqa: E402
+from app.api.async_executor import AsyncExecutor  # noqa: E402
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -29,9 +29,9 @@ CORS(app)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key")
 app.config["GEMINI_API_KEY"] = os.environ.get("GEMINI_API_KEY", "")
 
-# Data storage (in production, use a database)
-audit_results = []
-current_audit = None
+# Initialize agent manager and async executor
+agent_manager = AgentManager(data_dir="data", output_dir="output")
+async_executor = AsyncExecutor(max_workers=3)
 
 
 @app.route("/")
@@ -49,58 +49,77 @@ def health_check():
 @app.route("/api/audit/start", methods=["POST"])
 def start_audit():
     """Start a new security audit."""
-    global current_audit
-
     try:
-        # Get project ID from request
-        data = request.get_json()
+        # Get parameters from request
+        data = request.get_json() or {}
         project_id = data.get("project_id", "demo-project")
+        organization_id = data.get("organization_id")
+        use_mock = data.get("use_mock", True)
+        location = data.get("location", "us-central1")
+        ai_provider = data.get("ai_provider")
+        ollama_model = data.get("ollama_model")
+        ollama_endpoint = data.get("ollama_endpoint")
 
-        # Initialize audit
-        current_audit = {
-            "id": f"audit-{datetime.now().strftime('%Y%m%d-%H%M%S')}",
-            "project_id": project_id,
-            "status": "running",
-            "started_at": datetime.utcnow().isoformat(),
-            "findings": [],
-        }
+        # Start audit through agent manager
+        audit_id = agent_manager.start_audit(
+            project_id=project_id,
+            organization_id=organization_id,
+            use_mock=use_mock,
+            location=location,
+            ai_provider=ai_provider,
+            ollama_model=ollama_model,
+            ollama_endpoint=ollama_endpoint,
+        )
 
-        # In a real implementation, this would run asynchronously
-        # For now, we'll use mock data
-        logger.info(f"Starting audit for project: {project_id}")
+        # Submit for async execution
+        async_executor.submit_audit(audit_id, agent_manager.run_audit_sync, audit_id)
+
+        logger.info(f"Started audit {audit_id} for project: {project_id}")
 
         return jsonify(
             {
                 "success": True,
-                "audit_id": current_audit["id"],
+                "audit_id": audit_id,
                 "message": "Audit started successfully",
             }
         )
 
     except Exception as e:
-        logger.error(f"Error starting audit: {str(e)}")
-        return jsonify({"success": False}), 500
+        logger.error("Error starting audit: %s", str(e))
+        return (
+            jsonify(
+                {"success": False, "message": "An internal error occurred. Please try again later."}
+            ),
+            500,
+        )
 
 
 @app.route("/api/audit/status/<audit_id>")
 def get_audit_status(audit_id):
     """Get the status of an ongoing audit."""
-    if current_audit and current_audit["id"] == audit_id:
-        return jsonify(current_audit)
+    # Get audit status from agent manager
+    audit = agent_manager.get_audit_status(audit_id)
 
-    # Check historical audits
-    for audit in audit_results:
-        if audit["id"] == audit_id:
-            return jsonify(audit)
+    if not audit:
+        return jsonify({"error": "Audit not found"}), 404
 
-    return jsonify({"error": "Audit not found"}), 404
+    # Check if audit is still running
+    if async_executor.is_running(audit_id):
+        audit["status"] = "running"
+
+    return jsonify(audit)
 
 
 @app.route("/api/findings")
 def get_findings():
     """Get security findings from the latest audit."""
-    # For demo purposes, return mock data
-    # In production, this would fetch from the explained.json file
+    # Get real findings from agent manager
+    findings_data = agent_manager.get_findings()
+
+    if findings_data:
+        return jsonify(findings_data)
+
+    # Fall back to mock data if no real data available
     mock_findings = [
         {
             "title": "Excessive Owner Role Permissions",
@@ -137,7 +156,25 @@ def get_findings():
 @app.route("/api/findings/severity-distribution")
 def get_severity_distribution():
     """Get distribution of findings by severity."""
-    # Mock data for visualization
+    # Try to get real data first
+    findings_data = agent_manager.get_findings()
+
+    if findings_data and "severity_distribution" in findings_data:
+        dist = findings_data["severity_distribution"]
+        return jsonify(
+            {
+                "labels": ["Critical", "High", "Medium", "Low"],
+                "data": [
+                    dist.get("CRITICAL", 0),
+                    dist.get("HIGH", 0),
+                    dist.get("MEDIUM", 0),
+                    dist.get("LOW", 0),
+                ],
+                "colors": ["#dc3545", "#fd7e14", "#ffc107", "#28a745"],
+            }
+        )
+
+    # Fall back to mock data
     return jsonify(
         {
             "labels": ["Critical", "High", "Medium", "Low"],
@@ -190,14 +227,27 @@ def chat_with_paddi():
     data = request.get_json()
     question = data.get("question", "")
 
-    # Mock response - in production, this would use Gemini
-    mock_response = (
-        f"Based on your security audit, I can see that {question}. "
-        f"The most critical issue is the excessive owner role permissions. "
-        f"I recommend starting with addressing the high-severity findings first."
-    )
+    # TODO: Integrate with Ollama/Gemini through the explainer
+    # For now, provide a contextual response based on real findings
+    findings_data = agent_manager.get_findings()
 
-    return jsonify({"response": mock_response, "timestamp": datetime.utcnow().isoformat()})
+    if findings_data and findings_data["findings"]:
+        high_severity = sum(
+            1 for f in findings_data["findings"] if f["severity"] in ["HIGH", "CRITICAL"]
+        )
+        response = (
+            f"Based on your security audit, I found {findings_data['total']} security issues. "
+            f"There are {high_severity} high-severity findings that require immediate attention. "
+            f"Regarding your question: {question} - I recommend reviewing the findings in the "
+            f"dashboard and addressing the critical issues first."
+        )
+    else:
+        response = (
+            f"I understand you're asking about: {question}. "
+            f"Please run an audit first to get specific security findings for your project."
+        )
+
+    return jsonify({"response": response, "timestamp": datetime.utcnow().isoformat()})
 
 
 @app.route("/api/audit", methods=["POST"])
