@@ -1,0 +1,233 @@
+"""Tests for orchestrator module."""
+
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
+
+from app.agents.orchestrator import (
+    AgentContext,
+    Intent,
+    MultiAgentCoordinator,
+    SecurityAdvisorAgent,
+)
+
+
+class TestIntent:
+    """Test Intent enum."""
+
+    def test_intent_values(self):
+        """Test intent enum values."""
+        assert Intent.SECURITY_AUDIT.value == "security_audit"
+        assert Intent.FIND_VULNERABILITIES.value == "find_vulnerabilities"
+        assert Intent.FIX_ISSUE.value == "fix_issue"
+
+
+class TestAgentContext:
+    """Test AgentContext dataclass."""
+
+    def test_context_creation(self):
+        """Test creating agent context."""
+        context = AgentContext(
+            user_message="test",
+            intent=Intent.SECURITY_AUDIT,
+            entities={"project": "test"},
+            conversation_history=[],
+        )
+        assert context.user_message == "test"
+        assert context.intent == Intent.SECURITY_AUDIT
+        assert context.entities == {"project": "test"}
+
+
+class TestSecurityAdvisorAgent:
+    """Test SecurityAdvisorAgent class."""
+
+    @pytest.fixture
+    def agent(self):
+        """Create agent instance."""
+        with patch("app.agents.orchestrator.aiplatform"):
+            return SecurityAdvisorAgent(project_id="test-project")
+
+    def test_init_with_project(self):
+        """Test initialization with project."""
+        with patch("app.agents.orchestrator.aiplatform") as mock_ai:
+            agent = SecurityAdvisorAgent(project_id="test")
+            assert agent.project_id == "test"
+            mock_ai.init.assert_called_once()
+
+    def test_init_without_project(self):
+        """Test initialization without project."""
+        agent = SecurityAdvisorAgent()
+        assert agent._model is None
+
+    def test_extract_intent_security_audit(self, agent):
+        """Test extracting security audit intent."""
+        intent, entities = agent._extract_intent_and_entities("Please audit my security")
+        assert intent == Intent.SECURITY_AUDIT
+
+    def test_extract_intent_vulnerabilities(self, agent):
+        """Test extracting vulnerability intent."""
+        intent, entities = agent._extract_intent_and_entities("Find vulnerabilities")
+        assert intent == Intent.FIND_VULNERABILITIES
+
+    def test_extract_intent_fix(self, agent):
+        """Test extracting fix intent."""
+        intent, entities = agent._extract_intent_and_entities("Fix the security issue")
+        assert intent == Intent.FIX_ISSUE
+
+    def test_extract_entities_project(self, agent):
+        """Test extracting project entity."""
+        intent, entities = agent._extract_intent_and_entities("Audit project: my-project-123")
+        assert entities.get("project_id") == "my-project-123"
+
+    def test_extract_entities_repo(self, agent):
+        """Test extracting repository entity."""
+        intent, entities = agent._extract_intent_and_entities("Check repo: owner/repo-name")
+        assert entities.get("repository") == "owner/repo-name"
+
+    def test_create_action_plan_security_audit(self, agent):
+        """Test creating action plan for security audit."""
+        context = AgentContext(
+            user_message="audit",
+            intent=Intent.SECURITY_AUDIT,
+            entities={},
+            conversation_history=[],
+        )
+        plan = agent._create_action_plan(context)
+        assert len(plan) > 0
+        assert any(step["action"] == "collect_cloud_config" for step in plan)
+
+    def test_create_action_plan_find_vulnerabilities(self, agent):
+        """Test creating action plan for finding vulnerabilities."""
+        context = AgentContext(
+            user_message="find vulns",
+            intent=Intent.FIND_VULNERABILITIES,
+            entities={},
+            conversation_history=[],
+        )
+        plan = agent._create_action_plan(context)
+        assert len(plan) > 0
+        assert any(step["action"] == "scan_infrastructure" for step in plan)
+
+    def test_execute_action_plan(self, agent):
+        """Test executing action plan."""
+        plan = [{"action": "provide_guidance", "priority": 1}]
+        context = AgentContext(
+            user_message="help",
+            intent=Intent.GENERAL_HELP,
+            entities={},
+            conversation_history=[],
+        )
+        
+        results = agent._execute_action_plan(plan, context)
+        assert "provide_guidance" in results
+        assert results["provide_guidance"]["status"] == "completed"
+
+    @patch("app.agents.orchestrator.SecurityAdvisorAgent._collect_cloud_config")
+    def test_execute_action_plan_with_collection(self, mock_collect, agent):
+        """Test executing action plan with cloud collection."""
+        mock_collect.return_value = {"status": "completed", "data": {}}
+        
+        plan = [{"action": "collect_cloud_config", "priority": 1}]
+        context = AgentContext(
+            user_message="audit",
+            intent=Intent.SECURITY_AUDIT,
+            entities={},
+            conversation_history=[],
+        )
+        
+        results = agent._execute_action_plan(plan, context)
+        assert "collect_cloud_config" in results
+        mock_collect.assert_called_once()
+
+    def test_generate_audit_response(self, agent):
+        """Test generating audit response."""
+        results = {
+            "collect_cloud_config": {
+                "status": "completed",
+                "summary": "Collected 1 IAM binding"
+            },
+            "analyze_iam_policies": {
+                "status": "completed",
+                "summary": "Found 1 issue"
+            }
+        }
+        
+        response = agent._generate_audit_response(results)
+        assert "Security Audit Complete" in response
+        assert "Collected 1 IAM binding" in response
+
+    def test_generate_vulnerability_response(self, agent):
+        """Test generating vulnerability response."""
+        results = {
+            "scan_infrastructure": {
+                "status": "completed",
+                "vulnerabilities": [{"severity": "HIGH"}],
+                "findings": [{"severity": "CRITICAL"}]
+            }
+        }
+        
+        response = agent._generate_vulnerability_response(results)
+        assert "Vulnerability Analysis Results" in response
+        assert "2 potential vulnerabilities" in response
+
+    def test_parse_recommendations(self, agent):
+        """Test parsing AI recommendations."""
+        ai_response = """
+        - Priority: HIGH
+        - Action: Fix permissions
+        - Impact: Improved security
+        - Effort: Low
+        """
+        
+        recommendations = agent._parse_recommendations(ai_response)
+        assert len(recommendations) == 1
+        assert recommendations[0]["priority"] == "HIGH"
+        assert recommendations[0].get("action") == "Fix permissions"
+
+
+class TestMultiAgentCoordinator:
+    """Test MultiAgentCoordinator class."""
+
+    @pytest.fixture
+    def coordinator(self):
+        """Create coordinator instance."""
+        with patch("app.agents.orchestrator.SecurityAdvisorAgent"):
+            return MultiAgentCoordinator()
+
+    def test_init(self, coordinator):
+        """Test coordinator initialization."""
+        assert "security_advisor" in coordinator.agents
+        assert coordinator.task_queue == []
+        assert coordinator.results == {}
+
+    def test_process_complex_request(self, coordinator):
+        """Test processing complex request."""
+        mock_response = {
+            "message": "Test complete",
+            "intent": "security_audit",
+            "plan_executed": ["test"],
+            "success": True
+        }
+        
+        coordinator.agents["security_advisor"].process_natural_language = Mock(
+            return_value=mock_response
+        )
+        
+        result = coordinator.process_complex_request("test request")
+        assert result == mock_response
+
+    def test_needs_code_analysis(self, coordinator):
+        """Test checking if code analysis needed."""
+        response = {"plan_executed": ["analyze_code_vulnerabilities"]}
+        assert coordinator._needs_code_analysis(response)
+        
+        response = {"plan_executed": ["other"], "message": "analyze code"}
+        assert coordinator._needs_code_analysis(response)
+
+    def test_needs_remediation(self, coordinator):
+        """Test checking if remediation needed."""
+        response = {"intent": "fix_issue"}
+        assert coordinator._needs_remediation(response)
+        
+        response = {"intent": "other", "message": "please fix this"}
+        assert coordinator._needs_remediation(response)

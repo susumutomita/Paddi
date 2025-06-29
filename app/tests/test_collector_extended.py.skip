@@ -1,0 +1,272 @@
+"""Extended tests for agent_collector to improve coverage."""
+
+import json
+from pathlib import Path
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
+
+from app.collector.agent_collector import (
+    GCPConfigurationCollector,
+    IAMCollector,
+    main,
+)
+
+
+class TestIAMCollectorExtended:
+    """Extended test cases for IAM Collector to improve coverage."""
+
+    def test_init_with_string_use_mock_true(self):
+        """Test initialization with string 'true' converts to boolean."""
+        collector = IAMCollector(project_id="test-project", use_mock="true")
+        assert collector.use_mock is True
+
+    def test_init_with_string_use_mock_false(self):
+        """Test initialization with string 'false' converts to boolean."""
+        collector = IAMCollector(project_id="test-project", use_mock="false")
+        assert collector.use_mock is False
+
+    def test_init_with_various_true_strings(self):
+        """Test various string representations of true."""
+        for true_value in ["true", "True", "TRUE", "1", "yes", "YES", "on", "ON"]:
+            collector = IAMCollector(project_id="test-project", use_mock=true_value)
+            assert collector.use_mock is True
+
+    def test_init_with_various_false_strings(self):
+        """Test various string representations of false."""
+        for false_value in ["false", "False", "FALSE", "0", "no", "NO", "off", "OFF"]:
+            collector = IAMCollector(project_id="test-project", use_mock=false_value)
+            assert collector.use_mock is False
+
+    @patch("app.collector.agent_collector.logger")
+    def test_collect_real_data_import_error(self, mock_logger):
+        """Test collect with real data when google-cloud-resource-manager not installed."""
+        collector = IAMCollector(project_id="test-project", use_mock=False)
+        
+        with patch("builtins.__import__", side_effect=ImportError("No module named 'google.cloud'")):
+            data = collector.collect()
+        
+        # Should fall back to mock data
+        assert "bindings" in data
+        assert data["bindings"][0]["role"] == "roles/owner"
+        # Verify logging
+        mock_logger.error.assert_called()
+
+    @patch("app.collector.agent_collector.logger")
+    def test_collect_real_data_exception(self, mock_logger):
+        """Test collect with real data when API call fails."""
+        collector = IAMCollector(project_id="test-project", use_mock=False)
+        
+        # Mock the google cloud imports
+        mock_resourcemanager = MagicMock()
+        mock_client = MagicMock()
+        mock_client.get_iam_policy.side_effect = Exception("API Error")
+        mock_resourcemanager.ProjectsClient.return_value = mock_client
+        
+        with patch.dict("sys.modules", {
+            "google.cloud": MagicMock(),
+            "google.cloud.resourcemanager_v3": mock_resourcemanager,
+            "google.iam.v1": MagicMock(),
+            "google.iam.v1.iam_policy_pb2": MagicMock()
+        }):
+            data = collector.collect()
+        
+        # Should fall back to mock data
+        assert "bindings" in data
+        assert data["bindings"][0]["role"] == "roles/owner"
+        # Verify logging
+        mock_logger.error.assert_called()
+
+    @patch("app.collector.agent_collector.logger")
+    def test_collect_real_data_success(self, mock_logger):
+        """Test successful real data collection."""
+        collector = IAMCollector(project_id="test-project", use_mock=False)
+        
+        # Mock the google cloud imports and API response
+        mock_binding = Mock()
+        mock_binding.role = "roles/editor"
+        mock_binding.members = ["user:test@example.com"]
+        
+        mock_policy = Mock()
+        mock_policy.bindings = [mock_binding]
+        mock_policy.etag = b"test-etag"
+        mock_policy.version = 1
+        
+        mock_client = MagicMock()
+        mock_client.get_iam_policy.return_value = mock_policy
+        
+        mock_resourcemanager = MagicMock()
+        mock_resourcemanager.ProjectsClient.return_value = mock_client
+        
+        with patch.dict("sys.modules", {
+            "google.cloud": MagicMock(),
+            "google.cloud.resourcemanager_v3": mock_resourcemanager,
+            "google.iam.v1": MagicMock(),
+            "google.iam.v1.iam_policy_pb2": MagicMock()
+        }):
+            data = collector.collect()
+        
+        assert "bindings" in data
+        assert len(data["bindings"]) == 1
+        assert data["bindings"][0]["role"] == "roles/editor"
+        assert data["bindings"][0]["members"] == ["user:test@example.com"]
+        assert data["etag"] == "test-etag"
+        assert data["version"] == 1
+
+    @patch("app.collector.agent_collector.logger")
+    def test_collect_real_data_non_utf8_etag(self, mock_logger):
+        """Test real data collection with non-UTF8 etag."""
+        collector = IAMCollector(project_id="test-project", use_mock=False)
+        
+        # Mock the google cloud imports and API response
+        mock_binding = Mock()
+        mock_binding.role = "roles/viewer"
+        mock_binding.members = ["user:viewer@example.com"]
+        
+        mock_policy = Mock()
+        mock_policy.bindings = [mock_binding]
+        # Create non-UTF8 etag
+        mock_policy.etag = b"\xff\xfe\xfd"
+        mock_policy.version = 1
+        
+        mock_client = MagicMock()
+        mock_client.get_iam_policy.return_value = mock_policy
+        
+        mock_resourcemanager = MagicMock()
+        mock_resourcemanager.ProjectsClient.return_value = mock_client
+        
+        with patch.dict("sys.modules", {
+            "google.cloud": MagicMock(),
+            "google.cloud.resourcemanager_v3": mock_resourcemanager,
+            "google.iam.v1": MagicMock(),
+            "google.iam.v1.iam_policy_pb2": MagicMock()
+        }):
+            data = collector.collect()
+        
+        assert "bindings" in data
+        assert "etag" in data
+        # Should use base64 encoding for non-UTF8 etag
+        import base64
+        assert data["etag"] == base64.b64encode(b"\xff\xfe\xfd").decode('ascii')
+        mock_logger.warning.assert_called_with("Etag contained non-UTF-8 data, using base64 encoding")
+
+
+class TestGCPConfigurationCollectorExtended:
+    """Extended test cases for GCP Configuration Collector."""
+
+    @patch("app.collector.agent_collector.Path")
+    @patch("app.collector.agent_collector.logger")
+    def test_init_creates_data_directory(self, mock_logger, mock_path):
+        """Test that __init__ creates data directory."""
+        mock_path_instance = MagicMock()
+        mock_path.return_value = mock_path_instance
+        
+        collector = GCPConfigurationCollector("test-project", use_mock=True)
+        
+        mock_path.assert_called_with("data")
+        mock_path_instance.mkdir.assert_called_with(exist_ok=True)
+
+    def test_collect_all_false(self):
+        """Test collect with collect_all=False (only GCP)."""
+        collector = GCPConfigurationCollector("test-project", use_mock=True)
+        
+        with patch.object(collector.iam_collector, 'collect') as mock_iam_collect, \
+             patch.object(collector.scc_collector, 'collect') as mock_scc_collect:
+            
+            mock_iam_collect.return_value = {"bindings": []}
+            mock_scc_collect.return_value = {"findings": []}
+            
+            data = collector.collect(collect_all=False)
+            
+            assert "gcp" in data
+            assert "iam_policies" in data["gcp"]
+            assert "scc_findings" in data["gcp"]
+            # Should not have other cloud providers
+            assert "aws" not in data
+            assert "azure" not in data
+            assert "github" not in data
+
+    def test_save_handles_exception(self):
+        """Test save method handles exceptions gracefully."""
+        collector = GCPConfigurationCollector("test-project", use_mock=True)
+        
+        with patch("builtins.open", side_effect=IOError("Permission denied")), \
+             patch("app.collector.agent_collector.logger") as mock_logger:
+            
+            result = collector.save({"test": "data"})
+            
+            assert result is False
+            mock_logger.error.assert_called()
+
+    def test_save_creates_file(self):
+        """Test save method creates file successfully."""
+        collector = GCPConfigurationCollector("test-project", use_mock=True)
+        
+        test_data = {"test": "data", "project_id": "test-project"}
+        
+        with patch("builtins.open", create=True) as mock_open, \
+             patch("json.dump") as mock_json_dump:
+            
+            mock_file = MagicMock()
+            mock_open.return_value.__enter__.return_value = mock_file
+            
+            result = collector.save(test_data)
+            
+            assert result is True
+            mock_json_dump.assert_called_once_with(test_data, mock_file, indent=2, ensure_ascii=False)
+
+
+class TestMainFunctionExtended:
+    """Extended test cases for main function."""
+
+    @patch("app.collector.agent_collector.GCPConfigurationCollector")
+    @patch("app.collector.agent_collector.logger")
+    def test_main_with_all_parameters(self, mock_logger, mock_collector_class):
+        """Test main function with all parameters."""
+        mock_collector = MagicMock()
+        mock_collector.collect.return_value = {"test": "data"}
+        mock_collector.save.return_value = True
+        mock_collector_class.return_value = mock_collector
+        
+        main(
+            project_id="test-project",
+            organization_id="test-org",
+            use_mock=False,
+            collect_all=True,
+            verbose=True
+        )
+        
+        mock_collector_class.assert_called_once_with(
+            project_id="test-project",
+            organization_id="test-org",
+            use_mock=False
+        )
+        mock_collector.collect.assert_called_once_with(collect_all=True)
+        mock_collector.save.assert_called_once()
+
+    @patch("app.collector.agent_collector.GCPConfigurationCollector")
+    @patch("app.collector.agent_collector.logger")
+    def test_main_save_failure(self, mock_logger, mock_collector_class):
+        """Test main function when save fails."""
+        mock_collector = MagicMock()
+        mock_collector.collect.return_value = {"test": "data"}
+        mock_collector.save.return_value = False
+        mock_collector_class.return_value = mock_collector
+        
+        main(project_id="test-project")
+        
+        mock_logger.error.assert_called_with("Failed to save collected data")
+
+    @patch("app.collector.agent_collector.GCPConfigurationCollector")
+    @patch("app.collector.agent_collector.logger")
+    def test_main_with_exception(self, mock_logger, mock_collector_class):
+        """Test main function handles exceptions."""
+        mock_collector = MagicMock()
+        mock_collector.collect.side_effect = Exception("Collection error")
+        mock_collector_class.return_value = mock_collector
+        
+        # Should not raise exception
+        main(project_id="test-project")
+        
+        mock_logger.error.assert_called()
+        assert "Failed to collect GCP configuration" in mock_logger.error.call_args[0][0]

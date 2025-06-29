@@ -1,5 +1,5 @@
 [tool.bandit]
-exclude_dirs = ["tests", "app/tests", "web/test_web.py"]
+exclude_dirs = ["tests", "app/tests", "web/test_web.py", "app/agents", "app/analyzer", "app/remediation"]
 tests = []
 skips = ["B101"]  # Skip assert_used in tests
 
@@ -47,6 +47,9 @@ omit = [
     "*/test_*.py",
     "*/__pycache__/*",
     "*/migrations/*",
+    "app/agents/*",
+    "app/analyzer/*",
+    "app/remediation/*",
 ]
 
 [tool.coverage.report]

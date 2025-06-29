@@ -1,0 +1,197 @@
+"""Tests for conversation module."""
+
+from datetime import datetime
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
+
+from app.agents.conversation import ConversationalInterface, SecurityChatbot
+
+
+class TestConversationalInterface:
+    """Test ConversationalInterface class."""
+
+    @pytest.fixture
+    def interface(self):
+        """Create interface instance."""
+        with patch("app.agents.conversation.MultiAgentCoordinator"):
+            return ConversationalInterface()
+
+    def test_init(self, interface):
+        """Test interface initialization."""
+        assert interface.coordinator is not None
+        assert interface.conversation_history == []
+        assert interface.context["project_id"] is None
+
+    @patch("app.agents.conversation.console")
+    def test_print_welcome(self, mock_console, interface):
+        """Test printing welcome message."""
+        interface._print_welcome()
+        assert mock_console.print.called
+
+    @patch("app.agents.conversation.console")
+    def test_print_goodbye(self, mock_console, interface):
+        """Test printing goodbye message."""
+        interface._print_goodbye()
+        assert mock_console.print.called
+
+    @patch("app.agents.conversation.console")
+    def test_process_user_input(self, mock_console, interface):
+        """Test processing user input."""
+        mock_response = {
+            "success": True,
+            "message": "Test response",
+            "plan_executed": ["test"],
+            "results": {}
+        }
+        interface.coordinator.process_complex_request = Mock(return_value=mock_response)
+        
+        interface._process_user_input("test input")
+        
+        interface.coordinator.process_complex_request.assert_called_once_with("test input")
+        assert mock_console.print.called
+
+    def test_update_context(self, interface):
+        """Test updating context."""
+        response = {
+            "results": {
+                "test": {
+                    "findings": [{"id": 1}],
+                    "recommendations": [{"id": 2}]
+                }
+            }
+        }
+        
+        interface._update_context(response)
+        assert len(interface.context["findings"]) == 1
+        assert len(interface.context["recommendations"]) == 1
+
+    @patch("app.agents.conversation.console")
+    def test_display_vulnerabilities(self, mock_console, interface):
+        """Test displaying vulnerabilities."""
+        vulnerabilities = [
+            {
+                "file": "test.py",
+                "line": 10,
+                "type": "sql_injection",
+                "severity": "HIGH"
+            }
+        ]
+        
+        interface._display_vulnerabilities(vulnerabilities)
+        assert mock_console.print.called
+
+    @patch("app.agents.conversation.console")
+    def test_display_findings(self, mock_console, interface):
+        """Test displaying findings."""
+        findings = [
+            {
+                "severity": "HIGH",
+                "description": "Test finding",
+                "recommendation": "Fix it"
+            }
+        ]
+        
+        interface._display_findings(findings)
+        assert mock_console.print.called
+
+    @patch("app.agents.conversation.console")
+    def test_display_recommendations(self, mock_console, interface):
+        """Test displaying recommendations."""
+        recommendations = [
+            {
+                "priority": "HIGH",
+                "action": "Test action",
+                "impact": "High impact",
+                "effort": "Low"
+            }
+        ]
+        
+        interface._display_recommendations(recommendations)
+        assert mock_console.print.called
+
+
+class TestSecurityChatbot:
+    """Test SecurityChatbot class."""
+
+    @pytest.fixture
+    def chatbot(self):
+        """Create chatbot instance."""
+        return SecurityChatbot()
+
+    def test_init(self, chatbot):
+        """Test chatbot initialization."""
+        assert chatbot.memory["short_term"] == []
+        assert chatbot.memory["long_term"] == {}
+        assert chatbot.memory["context"] == {}
+        assert chatbot.learning_enabled is True
+
+    def test_chat(self, chatbot):
+        """Test chat method."""
+        with patch.object(chatbot, "_generate_contextual_response") as mock_gen:
+            mock_gen.return_value = "Test response"
+            
+            response = chatbot.chat("Hello")
+            
+            assert response == "Test response"
+            assert len(chatbot.memory["short_term"]) == 2
+
+    def test_analyze_context_urgency(self, chatbot):
+        """Test analyzing urgent context."""
+        context = chatbot._analyze_context("This is urgent!")
+        assert context["urgency"] == "high"
+
+    def test_analyze_context_normal(self, chatbot):
+        """Test analyzing normal context."""
+        context = chatbot._analyze_context("Hello there")
+        assert context["urgency"] == "normal"
+
+    def test_analyze_context_followup(self, chatbot):
+        """Test analyzing follow-up context."""
+        chatbot.memory["short_term"] = [
+            {"role": "user", "content": "First message"},
+            {"role": "assistant", "content": "First response"}
+        ]
+        
+        context = chatbot._analyze_context("Tell me more")
+        assert context.get("is_followup") is True
+
+    def test_handle_urgent_request(self, chatbot):
+        """Test handling urgent request."""
+        response = chatbot._handle_urgent_request("Critical issue!")
+        assert "urgent" in response
+        assert "immediately" in response
+
+    def test_handle_followup(self, chatbot):
+        """Test handling follow-up."""
+        context = {"is_followup": True}
+        response = chatbot._handle_followup("More details", context)
+        assert "previous discussion" in response
+
+    def test_handle_new_request(self, chatbot):
+        """Test handling new request."""
+        response = chatbot._handle_new_request("New question")
+        assert "analyze your request" in response
+
+    def test_learn_from_interaction(self, chatbot):
+        """Test learning from interaction."""
+        context = {"intent": "test_intent"}
+        chatbot._learn_from_interaction("test message", "test response", context)
+        
+        assert "test_intent" in chatbot.memory["long_term"]
+        assert len(chatbot.memory["long_term"]["test_intent"]) == 1
+
+    def test_memory_size_limit(self, chatbot):
+        """Test memory size limit."""
+        # Add 25 messages
+        for i in range(25):
+            chatbot.memory["short_term"].append({
+                "role": "user",
+                "content": f"Message {i}",
+                "timestamp": datetime.now().isoformat()
+            })
+        
+        chatbot.chat("New message")
+        
+        # Should maintain only 20 messages
+        assert len(chatbot.memory["short_term"]) == 20

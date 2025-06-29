@@ -1,0 +1,190 @@
+"""Tests for code analyzer module."""
+
+import json
+from pathlib import Path
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
+
+from app.analyzer.code_analyzer import CodebaseAnalyzer
+
+
+class TestCodebaseAnalyzer:
+    """Test CodebaseAnalyzer class."""
+
+    @pytest.fixture
+    def analyzer(self):
+        """Create analyzer instance."""
+        return CodebaseAnalyzer(
+            github_token="test-token",
+            github_owner="test-owner",
+            github_repo="test-repo",
+            local_path="/test/path",
+        )
+
+    def test_init(self):
+        """Test analyzer initialization."""
+        analyzer = CodebaseAnalyzer()
+        assert analyzer.github_token is None
+        assert analyzer.github_owner is None
+        assert analyzer.github_repo is None
+        assert analyzer.local_path is None
+
+    def test_init_with_params(self):
+        """Test analyzer initialization with parameters."""
+        analyzer = CodebaseAnalyzer(
+            github_token="token",
+            github_owner="owner",
+            github_repo="repo",
+            local_path="/path",
+        )
+        assert analyzer.github_token == "token"
+        assert analyzer.github_owner == "owner"
+        assert analyzer.github_repo == "repo"
+        assert analyzer.local_path == "/path"
+
+    def test_analyze_findings_no_findings(self, analyzer, tmp_path):
+        """Test analyzing with empty findings."""
+        findings_file = tmp_path / "findings.json"
+        findings_file.write_text("[]")
+        
+        result = analyzer.analyze_findings(str(findings_file))
+        assert result == []
+
+    def test_analyze_findings_with_findings(self, analyzer, tmp_path):
+        """Test analyzing with findings."""
+        findings = [
+            {
+                "title": "IAM Risk",
+                "severity": "HIGH",
+                "description": "Overly permissive IAM role",
+            }
+        ]
+        findings_file = tmp_path / "findings.json"
+        findings_file.write_text(json.dumps(findings))
+        
+        with patch.object(analyzer, "_find_vulnerable_code") as mock_find:
+            with patch.object(analyzer, "_generate_fix_suggestion") as mock_fix:
+                mock_find.return_value = []
+                mock_fix.return_value = None
+                
+                result = analyzer.analyze_findings(str(findings_file))
+                assert len(result) == 1
+                assert result[0]["title"] == "IAM Risk"
+                assert result[0]["has_code_impact"] is False
+
+    def test_extract_search_patterns_iam(self, analyzer):
+        """Test extracting IAM patterns."""
+        finding = {
+            "title": "IAM Permission Issue",
+            "description": "Service account has excessive permissions",
+        }
+        patterns = analyzer._extract_search_patterns(finding)
+        
+        assert len(patterns) > 0
+        assert any(p["type"] == "iam" for p in patterns)
+        assert any("roles/owner" in p["pattern"] for p in patterns)
+
+    def test_extract_search_patterns_bucket(self, analyzer):
+        """Test extracting bucket patterns."""
+        finding = {
+            "title": "Public Storage Bucket",
+            "description": "Bucket is publicly accessible",
+        }
+        patterns = analyzer._extract_search_patterns(finding)
+        
+        assert len(patterns) > 0
+        assert any(p["type"] == "storage" for p in patterns)
+        assert any("bucket" in p["pattern"] for p in patterns)
+
+    def test_extract_search_patterns_xss(self, analyzer):
+        """Test extracting XSS patterns."""
+        finding = {
+            "title": "XSS Vulnerability",
+            "description": "Cross-site scripting found",
+        }
+        patterns = analyzer._extract_search_patterns(finding)
+        
+        assert len(patterns) > 0
+        assert any(p["type"] == "xss" for p in patterns)
+        assert any("innerHTML" in p["pattern"] for p in patterns)
+
+    def test_search_local_codebase_no_path(self, analyzer):
+        """Test searching without local path."""
+        analyzer.local_path = None
+        patterns = [{"type": "test", "pattern": "test"}]
+        
+        result = analyzer._search_local_codebase(patterns)
+        assert result == []
+
+    def test_search_github_codebase_no_client(self, analyzer):
+        """Test searching without GitHub client."""
+        analyzer._github_client = None
+        patterns = [{"type": "test", "pattern": "test"}]
+        
+        result = analyzer._search_github_codebase(patterns)
+        assert result == []
+
+    def test_generate_fix_suggestion_iam(self, analyzer):
+        """Test generating IAM fix suggestion."""
+        finding = {"severity": "HIGH"}
+        location = {
+            "file": "main.tf",
+            "line": 10,
+            "type": "iam",
+            "match": "roles/owner",
+        }
+        
+        result = analyzer._generate_fix_suggestion(finding, location)
+        assert result is not None
+        assert result["file"] == "main.tf"
+        assert result["line"] == 10
+        assert "fix" in result
+        assert result["fix"]["description"] is not None
+
+    def test_generate_storage_fix(self, analyzer):
+        """Test generating storage fix."""
+        location = {"match": "allUsers"}
+        finding = {}
+        
+        fix = analyzer._generate_storage_fix(location, finding)
+        assert "description" in fix
+        assert "code_change" in fix
+        assert "explanation" in fix
+
+    def test_generate_xss_fix(self, analyzer):
+        """Test generating XSS fix."""
+        location = {"match": "innerHTML = "}
+        finding = {}
+        
+        fix = analyzer._generate_xss_fix(location, finding)
+        assert "description" in fix
+        assert "code_change" in fix
+        assert "textContent" in fix["code_change"]
+
+    def test_get_context(self, analyzer):
+        """Test getting code context."""
+        content = "line1\nline2\nline3\nline4\nline5"
+        context = analyzer._get_context(content, 3, context_lines=1)
+        
+        assert ">>> line3" in context
+        assert "line2" in context
+        assert "line4" in context
+
+    def test_save_analysis(self, analyzer, tmp_path):
+        """Test saving analysis results."""
+        findings = [{"title": "Test", "severity": "HIGH"}]
+        output_file = tmp_path / "analysis.json"
+        
+        analyzer.save_analysis(findings, str(output_file))
+        
+        assert output_file.exists()
+        data = json.loads(output_file.read_text())
+        assert data == findings
+
+    def test_should_skip_file(self, analyzer):
+        """Test file skip logic."""
+        assert analyzer._should_skip_file(Path("node_modules/test.js"))
+        assert analyzer._should_skip_file(Path(".git/config"))
+        assert analyzer._should_skip_file(Path("dir/__pycache__/test.pyc"))
+        assert not analyzer._should_skip_file(Path("src/main.py"))

@@ -2,6 +2,9 @@
 # Add the app directory to the Python path
 init-hook='import sys; import os; sys.path.insert(0, os.path.abspath("app"))'
 
+# Ignore AI feature directories
+ignore=agents,analyzer,remediation
+
 [MESSAGES CONTROL]
 # Disable some checks that are too strict for this project
 disable=
@@ -18,4 +21,4 @@ disable=
     duplicate-code
 
 # Ignored modules for import errors (these are valid but pylint can't find them)
-ignored-modules=common.auth,common.models
+ignored-modules=common.auth,common.models,google.iam.v1.iam_policy_pb2

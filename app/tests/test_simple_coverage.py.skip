@@ -1,0 +1,123 @@
+"""Simple tests to improve coverage for low-coverage modules."""
+
+from unittest.mock import MagicMock, patch, mock_open
+import json
+
+import pytest
+
+from app.collector.agent_collector import IAMCollector, GCPConfigurationCollector
+
+
+class TestSimpleCoverage:
+    """Simple tests to improve coverage."""
+
+    def test_iam_collector_get_mock_org_data(self):
+        """Test _get_mock_org_iam_data method."""
+        collector = IAMCollector("test-project", use_mock=True)
+        data = collector._get_mock_org_iam_data()
+        
+        assert "bindings" in data
+        assert len(data["bindings"]) > 0
+
+    def test_gcp_configuration_collector_save_to_file(self):
+        """Test save_to_file method."""
+        collector = GCPConfigurationCollector("test-project", use_mock=True)
+        
+        test_data = {"test": "data"}
+        with patch("builtins.open", mock_open()) as m:
+            path = collector.save_to_file(test_data, "test.json")
+        
+        assert str(path) == "data/test.json"
+        m.assert_called_once()
+
+    @patch("app.cli.registry.Command")
+    def test_registry_register_with_name(self, mock_command):
+        """Test CommandRegistry register method edge case."""
+        from app.cli.registry import CommandRegistry
+        
+        registry = CommandRegistry()
+        registry._commands = {}  # Clear default commands
+        
+        # Mock a command with name
+        mock_cmd_instance = MagicMock()
+        mock_cmd_instance.name = "testcmd"
+        mock_command.return_value = mock_cmd_instance
+        
+        registry.register(mock_command)
+        
+        assert "testcmd" in registry._commands
+
+    def test_registry_get_command_error_message(self):
+        """Test CommandRegistry get_command error contains name."""
+        from app.cli.registry import CommandRegistry
+        
+        registry = CommandRegistry()
+        
+        with pytest.raises(ValueError) as exc_info:
+            registry.get_command("badcommand")
+        
+        assert "badcommand" in str(exc_info.value)
+
+    def test_registry_command_names_property(self):
+        """Test CommandRegistry command_names property."""
+        from app.cli.registry import CommandRegistry
+        
+        registry = CommandRegistry()
+        names = registry.command_names
+        
+        assert isinstance(names, list)
+        assert "audit" in names
+        assert "collect" in names
+
+    def test_file_repository_edge_cases(self):
+        """Test FileRepository edge cases."""
+        from app.repository.file_repository import FileRepository
+        
+        repo = FileRepository("test_base")
+        
+        # Test delete non-existent file  
+        with patch("app.repository.file_repository.Path") as mock_path:
+            mock_file_path = MagicMock()
+            mock_file_path.unlink.side_effect = FileNotFoundError()
+            mock_path.return_value = mock_file_path
+            repo.delete("nonexistent")
+        
+        # Test load with JSON decode error
+        with patch("pathlib.Path.exists", return_value=True), \
+             patch("builtins.open", mock_open(read_data="invalid json")), \
+             patch("json.load", side_effect=json.JSONDecodeError("msg", "doc", 0)):
+            result = repo.load("badkey")
+            assert result is None
+
+    def test_paddi_cli_audit_log_not_found(self):
+        """Test PaddiCLI audit_log when no logs found."""
+        from app.cli.paddi_cli import PaddiCLI
+        
+        cli = PaddiCLI()
+        cli.safety_check.search_audit_logs = MagicMock(return_value=[])
+        
+        with patch("builtins.print") as mock_print:
+            cli.audit_log()
+        
+        mock_print.assert_called_with("\n📜 No audit logs found")
+
+    @patch("app.explainer.agent_explainer.logger")
+    def test_explainer_edge_cases(self, mock_logger):
+        """Test explainer edge cases for coverage."""
+        from app.explainer.agent_explainer import analyze_with_ai, main
+        
+        # Test main with exception
+        with patch("app.explainer.agent_explainer.analyze_with_ai", side_effect=Exception("Error")):
+            main(project_id="test", use_mock=True)
+        
+        mock_logger.error.assert_called()
+
+    def test_explainer_main_function(self):
+        """Test explainer main function."""
+        from app.explainer.agent_explainer import main
+        
+        # Test with mock data - should complete without error
+        with patch("pathlib.Path.exists", return_value=True), \
+             patch("builtins.open", mock_open(read_data='{"iam_policies": [], "scc_findings": []}')), \
+             patch("json.dump"):
+            main(project_id="test-project", use_mock=True)

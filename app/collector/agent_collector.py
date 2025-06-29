@@ -37,27 +37,84 @@ class IAMCollector(CollectorInterface):
     def __init__(self, project_id: str, use_mock: bool = False):
         """Initialize IAMCollector with project configuration."""
         self.project_id = project_id
-        self.use_mock = use_mock
+        # Ensure use_mock is properly converted to boolean
+        if isinstance(use_mock, str):
+            self.use_mock = use_mock.lower() in ("true", "1", "yes", "on")
+        else:
+            self.use_mock = bool(use_mock)
+        logger.info(
+            "IAMCollector initialized: project_id=%s, use_mock=%s (converted from %s)",
+            project_id,
+            self.use_mock,
+            use_mock,
+        )
 
     def collect(self) -> Dict[str, Any]:
         """Collect IAM policies."""
+        logger.info(
+            "IAMCollector.collect() called: self.use_mock=%s (type: %s)",
+            self.use_mock,
+            type(self.use_mock),
+        )
         if self.use_mock:
+            logger.info("Using mock data because self.use_mock is True")
             return self._get_mock_iam_data()
 
         try:
-            from google.cloud import iam_admin_v1 as iam
+            logger.info("Attempting to collect real IAM data for project: %s", self.project_id)
+            from google.cloud import resourcemanager_v3
+            from google.iam.v1 import iam_policy_pb2
 
-            # Initialize IAM admin client
-            iam.IAMClient()  # pylint: disable=no-member
-            # This would collect real IAM data
-            # For now, returning mock structure
-            logger.warning("Real IAM collection not fully implemented, using mock data")
-            return self._get_mock_iam_data()
-        except ImportError:
-            logger.error("google-cloud-iam not installed, using mock data")
+            # Initialize Resource Manager client to get IAM policy
+            logger.info("Initializing Resource Manager client...")
+            client = resourcemanager_v3.ProjectsClient()
+
+            # Get IAM policy for the project
+            resource = f"projects/{self.project_id}"
+            logger.info("Making IAM policy request for resource: %s", resource)
+            request = iam_policy_pb2.GetIamPolicyRequest(resource=resource)
+
+            policy = client.get_iam_policy(request=request)
+            logger.info("IAM policy retrieved successfully")
+
+            # Convert protobuf to dict
+            bindings = []
+            for binding in policy.bindings:
+                bindings.append({"role": binding.role, "members": list(binding.members)})
+
+            logger.info(
+                "Successfully collected %d IAM bindings from project %s",
+                len(bindings),
+                self.project_id,
+            )
+
+            # Handle etag encoding safely
+            etag_str = ""
+            if policy.etag:
+                try:
+                    etag_str = policy.etag.decode("utf-8")
+                except UnicodeDecodeError:
+                    # If UTF-8 decode fails, use base64 encoding as fallback
+                    import base64
+
+                    etag_str = base64.b64encode(policy.etag).decode("ascii")
+                    logger.warning("Etag contained non-UTF-8 data, using base64 encoding")
+
+            return {"bindings": bindings, "etag": etag_str, "version": policy.version}
+
+        except ImportError as e:
+            logger.error("ImportError: google-cloud-resource-manager not installed: %s", e)
+            logger.error("Run: pip install google-cloud-resource-manager")
             return self._get_mock_iam_data()
         except Exception as e:
             logger.error("Error collecting IAM data: %s", e)
+            logger.error("Error type: %s", type(e).__name__)
+            logger.error(
+                "Make sure you have authenticated with 'gcloud auth application-default login'"
+            )
+            import traceback
+
+            logger.error("Full traceback: %s", traceback.format_exc())
             return self._get_mock_iam_data()
 
     def _get_mock_iam_data(self) -> Dict[str, Any]:
@@ -91,7 +148,17 @@ class SCCCollectorAdapter(CollectorInterface):
         from .scc_collector import SCCCollector
 
         self.organization_id = organization_id
-        self.use_mock = use_mock
+        # Ensure use_mock is properly converted to boolean
+        if isinstance(use_mock, str):
+            self.use_mock = use_mock.lower() in ("true", "1", "yes", "on")
+        else:
+            self.use_mock = bool(use_mock)
+        logger.info(
+            "SCCCollectorAdapter initialized: organization_id=%s, use_mock=%s (converted from %s)",
+            organization_id,
+            self.use_mock,
+            use_mock,
+        )
         self.scc_collector = SCCCollector(organization_id)
 
     def collect(self) -> List[Dict[str, Any]]:
@@ -122,12 +189,39 @@ class GCPConfigurationCollector:
         self.output_dir.mkdir(exist_ok=True)
 
         # Initialize collectors
+        logger.info(
+            "Initializing IAMCollector with project_id=%s, use_mock=%s", project_id, use_mock
+        )
         self.iam_collector = IAMCollector(project_id, use_mock)
+        logger.info(
+            "Initializing SCCCollector with organization_id=%s, use_mock=%s",
+            self.organization_id,
+            use_mock,
+        )
         self.scc_collector = SCCCollectorAdapter(self.organization_id, use_mock)
 
     def collect_all(self) -> Dict[str, Any]:
         """Collect all GCP configurations."""
         logger.info("Starting GCP configuration collection for project: %s", self.project_id)
+
+        # Collect IAM policies with debugging
+        logger.info("About to call IAM collector...")
+        iam_data = self.iam_collector.collect()
+        logger.info("IAM data collected, type: %s", type(iam_data))
+        if isinstance(iam_data, dict) and "bindings" in iam_data:
+            logger.info("IAM bindings count: %d", len(iam_data["bindings"]))
+            for i, binding in enumerate(iam_data["bindings"][:2]):  # Log first 2 bindings
+                logger.info(
+                    "Binding %d: role=%s, members=%s",
+                    i,
+                    binding.get("role"),
+                    binding.get("members"),
+                )
+
+        # Collect SCC findings
+        logger.info("About to call SCC collector...")
+        scc_data = self.scc_collector.collect()
+        logger.info("SCC data collected, type: %s", type(scc_data))
 
         collected_data = {
             "metadata": {
@@ -135,8 +229,8 @@ class GCPConfigurationCollector:
                 "organization_id": self.organization_id,
                 "timestamp": self._get_timestamp(),
             },
-            "iam_policies": self.iam_collector.collect(),
-            "scc_findings": self.scc_collector.collect(),
+            "iam_policies": iam_data,
+            "scc_findings": scc_data,
         }
 
         logger.info("Collection completed successfully")

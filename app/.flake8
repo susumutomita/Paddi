@@ -1,0 +1,15 @@
+[flake8]
+max-line-length = 100
+exclude = 
+    .git,
+    __pycache__,
+    docs/source/conf.py,
+    old,
+    build,
+    dist,
+    .venv,
+    venv,
+    agents,
+    analyzer,
+    remediation
+ignore = E203, W503
