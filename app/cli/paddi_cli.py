@@ -7,6 +7,10 @@ from typing import Optional
 from app.cli.base import CommandContext
 from app.cli.registry import registry
 from app.safety.safety_check import SafetyCheck
+from app.cli.progressive_commands import (
+    ProgressiveAuditCommand,
+    ProgressiveCollectCommand,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +44,7 @@ class PaddiCLI:
         ai_provider: str = None,
         ollama_model: str = None,
         ollama_endpoint: str = None,
+        progressive: bool = True,
         **kwargs,
     ):
         """Run complete audit pipeline."""
@@ -55,7 +60,14 @@ class PaddiCLI:
             ollama_endpoint=ollama_endpoint,
             **kwargs,
         )
-        command = self.registry.get_command("audit")()
+        
+        if progressive:
+            # Use progressive execution with real-time feedback
+            command = ProgressiveAuditCommand(interactive=verbose, visual=True)
+        else:
+            # Use traditional execution
+            command = self.registry.get_command("audit")()
+        
         command.execute(context)
 
     def collect(
@@ -71,6 +83,7 @@ class PaddiCLI:
         azure_tenant_id: Optional[str] = None,
         github_owner: Optional[str] = None,
         github_repo: Optional[str] = None,
+        progressive: bool = True,
         **kwargs,
     ):
         """Collect GCP configuration."""
@@ -88,7 +101,14 @@ class PaddiCLI:
             github_repo=github_repo,
             **kwargs,
         )
-        command = self.registry.get_command("collect")()
+        
+        if progressive:
+            # Use progressive execution with real-time feedback
+            command = ProgressiveCollectCommand(interactive=verbose, visual=True)
+        else:
+            # Use traditional execution
+            command = self.registry.get_command("collect")()
+        
         command.execute(context)
 
     def analyze(
