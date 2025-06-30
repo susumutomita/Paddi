@@ -6,7 +6,7 @@ flask-cors==4.0.0
 asyncio==3.4.3
 
 # Environment variables
-python-dotenv==1.0.0
+python-dotenv==1.1.1
 
 # Production server
 gunicorn==21.2.0
