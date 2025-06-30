@@ -9,7 +9,7 @@ asyncio==3.4.3
 python-dotenv==1.0.0
 
 # Production server
-gunicorn==21.2.0
+gunicorn==23.0.0
 
 # Import main app dependencies
 google-cloud-aiplatform>=1.38.0
