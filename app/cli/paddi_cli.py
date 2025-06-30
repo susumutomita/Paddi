@@ -71,9 +71,41 @@ class PaddiCLI:
         azure_tenant_id: Optional[str] = None,
         github_owner: Optional[str] = None,
         github_repo: Optional[str] = None,
+        use_new_tool: bool = False,
         **kwargs,
     ):
         """Collect GCP configuration."""
+        # Demonstrate using the new tool system
+        if use_new_tool:
+            from app.tools.integration import tool_integration
+            tool_integration.discover_and_register_tools()
+            
+            # Determine provider
+            if collect_all:
+                provider = "all"
+            elif aws_account_id:
+                provider = "aws"
+            elif azure_subscription_id:
+                provider = "azure"
+            elif github_owner:
+                provider = "github"
+            else:
+                provider = "gcp"
+            
+            result = tool_integration.execute_tool(
+                "security_collector",
+                provider=provider,
+                use_mock=use_mock,
+                output_file="data/collected.json"
+            )
+            
+            if result["success"]:
+                print(f"✅ Collection successful! Collected {result['metadata']['items_collected']} items.")
+            else:
+                print(f"❌ Collection failed: {result['error']}")
+            return
+        
+        # Original implementation
         context = self._create_context(
             project_id=project_id,
             organization_id=organization_id,
@@ -427,3 +459,44 @@ class PaddiCLI:
     def audit_logs(self, **kwargs):
         """Alias for audit_log method."""
         self.audit_log(**kwargs)
+
+    # Tool-related methods
+    def list_tools(self):
+        """List all available tools."""
+        context = self._create_context()
+        command = self.registry.get_command("list-tools")()
+        command.execute(context)
+
+    def search_tools(self, query: str):
+        """Search for tools by query.
+        
+        Args:
+            query: Search query to find matching tools
+        """
+        context = self._create_context(query=query)
+        command = self.registry.get_command("search-tools")()
+        command.execute(context)
+
+    def execute_tool(self, tool_name: str, dry_run: bool = False, **kwargs):
+        """Execute a specific tool by name.
+        
+        Args:
+            tool_name: Name of the tool to execute
+            dry_run: Whether to run in dry-run mode
+            **kwargs: Tool-specific parameters
+        """
+        context = self._create_context(tool_name=tool_name, dry_run=dry_run, **kwargs)
+        command = self.registry.get_command("execute-tool")()
+        command.execute(context)
+
+    def tool_intent(self, intent: str, dry_run: bool = False, **kwargs):
+        """Execute the best matching tool based on user intent.
+        
+        Args:
+            intent: User's intent or task description
+            dry_run: Whether to run in dry-run mode
+            **kwargs: Tool-specific parameters
+        """
+        context = self._create_context(intent=intent, dry_run=dry_run, **kwargs)
+        command = self.registry.get_command("tool-intent")()
+        command.execute(context)

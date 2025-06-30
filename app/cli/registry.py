@@ -9,6 +9,10 @@ from .commands import (
     ExplainCommand,
     InitCommand,
     ReportCommand,
+    ListToolsCommand,
+    SearchToolsCommand,
+    ExecuteToolCommand,
+    ExecuteByIntentCommand,
 )
 
 
@@ -27,6 +31,11 @@ class CommandRegistry:
         self.register(CollectCommand)
         self.register(ExplainCommand)
         self.register(ReportCommand)
+        # Tool commands
+        self.register(ListToolsCommand)
+        self.register(SearchToolsCommand)
+        self.register(ExecuteToolCommand)
+        self.register(ExecuteByIntentCommand)
 
     def register(self, command_class: Type[Command]) -> None:
         """Register a command class."""
