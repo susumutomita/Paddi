@@ -53,9 +53,14 @@ class TestSCCCollector:
 
     def test_collect_findings_without_organization_id(self):
         """Test that collect_findings raises ValueError without organization ID."""
-        collector = SCCCollector()
-        with pytest.raises(ValueError, match="Organization ID is required"):
-            collector.collect_findings(use_mock=False)
+        # Clear GCP_ORGANIZATION_ID from environment to ensure no org ID
+        with patch.dict(os.environ, {}, clear=False):
+            if "GCP_ORGANIZATION_ID" in os.environ:
+                del os.environ["GCP_ORGANIZATION_ID"]
+
+            collector = SCCCollector()
+            with pytest.raises(ValueError, match="Organization ID is required"):
+                collector.collect_findings(use_mock=False)
 
     @patch("app.collector.scc_collector.securitycenter_v1.SecurityCenterClient")
     def test_collect_findings_success(self, mock_client_class):

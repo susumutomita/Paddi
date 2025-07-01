@@ -210,10 +210,17 @@ class TestGitHubProvider:
 
     def test_init_without_token(self):
         """Test GitHub provider initialization without token."""
+        import os
+
         from app.providers.github import GitHubProvider
 
-        provider = GitHubProvider(access_token=None)
-        assert provider.use_mock is True
+        # Clear GITHUB_TOKEN from environment to ensure mock mode
+        with patch.dict(os.environ, {}, clear=False):
+            if "GITHUB_TOKEN" in os.environ:
+                del os.environ["GITHUB_TOKEN"]
+
+            provider = GitHubProvider(access_token=None)
+            assert provider.use_mock is True
 
     def test_get_iam_policies(self):
         """Test getting repository access permissions."""
