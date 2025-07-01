@@ -6,9 +6,7 @@ Provides a gemini-cli style interface for interacting with Paddi through natural
 Supports both interactive and one-shot modes with special commands.
 """
 
-import json
 import logging
-import os
 import sys
 from dataclasses import dataclass
 from datetime import datetime
@@ -60,21 +58,24 @@ class NaturalLanguageParser:
         """Initialize the parser."""
         self.command_patterns = {
             "audit": [
-                "監査", "audit", "セキュリティチェック", "security check",
-                "診断", "analyze security", "脆弱性を調べ"
+                "監査",
+                "audit",
+                "セキュリティチェック",
+                "security check",
+                "診断",
+                "analyze security",
+                "脆弱性を調べ",
             ],
             "collect": [
-                "収集", "collect", "構成情報", "configuration",
-                "データを取得", "gather data"
+                "収集",
+                "collect",
+                "構成情報",
+                "configuration",
+                "データを取得",
+                "gather data",
             ],
-            "analyze": [
-                "分析", "analyze", "解析", "explain",
-                "リスクを説明", "risk analysis"
-            ],
-            "report": [
-                "レポート", "report", "報告書", "結果をまとめ",
-                "summary", "サマリー"
-            ]
+            "analyze": ["分析", "analyze", "解析", "explain", "リスクを説明", "risk analysis"],
+            "report": ["レポート", "report", "報告書", "結果をまとめ", "summary", "サマリー"],
         }
 
     def parse_command(self, input_text: str) -> Tuple[str, Dict[str, Any]]:
@@ -93,9 +94,7 @@ class NaturalLanguageParser:
         command = self._determine_command(input_lower)
 
         # Extract additional parameters
-        params = {
-            "project_id": project_id
-        }
+        params = {"project_id": project_id}
 
         # Check for specific flags
         if "mock" in input_lower or "テスト" in input_lower:
@@ -109,18 +108,18 @@ class NaturalLanguageParser:
         """Extract project ID from text."""
         # Look for patterns like "project xxx" or "プロジェクト xxx"
         import re
-        
+
         patterns = [
             r"project[:\s]+([a-zA-Z0-9\-_]+)",
             r"プロジェクト[:\s]*([a-zA-Z0-9\-_]+)",
             r"project_id[:\s]+([a-zA-Z0-9\-_]+)",
         ]
-        
+
         for pattern in patterns:
             match = re.search(pattern, text, re.IGNORECASE)
             if match:
                 return match.group(1)
-        
+
         return None
 
     def _determine_command(self, input_lower: str) -> str:
@@ -128,7 +127,7 @@ class NaturalLanguageParser:
         for command, patterns in self.command_patterns.items():
             if any(pattern in input_lower for pattern in patterns):
                 return command
-        
+
         # Default to using the orchestrator for complex requests
         return "ai_agent"
 
@@ -180,7 +179,7 @@ class AutonomousCLI:
     def _handle_special_command(self, input_text: str) -> bool:
         """
         Handle special commands.
-        
+
         Returns:
             True if command was handled, False otherwise
         """
@@ -302,10 +301,10 @@ class AutonomousCLI:
         except Exception as e:
             error_msg = f"エラー: {str(e)}"
             history_entry["response"] = error_msg
-            
+
             if not one_shot:
                 console.print(f"\n[red]{error_msg}[/red]")
-            
+
             return {"success": False, "error": str(e)}
 
         finally:
@@ -326,32 +325,34 @@ class AutonomousCLI:
 
         # Execute the command
         method = method_map[command]
-        
+
         # Filter out None values from params
         filtered_params = {k: v for k, v in params.items() if v is not None}
-        
+
         # Execute and capture output
         # Note: In a real implementation, we'd capture stdout/stderr
         method(**filtered_params)
-        
+
         return {
             "success": True,
             "command": command,
             "params": filtered_params,
-            "message": f"{command} コマンドを実行しました。"
+            "message": f"{command} コマンドを実行しました。",
         }
 
     def _format_response(self, result: Dict[str, Any]) -> str:
         """Format the response for display."""
         if result.get("success"):
-            response = f"[green]✅ {result.get('message', 'コマンドが正常に実行されました。')}[/green]"
-            
+            response = (
+                f"[green]✅ {result.get('message', 'コマンドが正常に実行されました。')}[/green]"
+            )
+
             if result.get("summary"):
                 response += f"\n\n{result['summary']}"
-            
+
             if result.get("report_path"):
                 response += f"\n\n📄 レポート: {result['report_path']}"
-            
+
             return response
         else:
             return f"[red]❌ {result.get('message', 'コマンドの実行に失敗しました。')}[/red]"
@@ -360,23 +361,21 @@ class AutonomousCLI:
 def main():
     """Main entry point for the autonomous CLI."""
     import argparse
-    
+
     parser = argparse.ArgumentParser(description="Paddi Autonomous CLI")
     parser.add_argument(
         "command",
         nargs="?",
-        help="Natural language command to execute (optional for interactive mode)"
+        help="Natural language command to execute (optional for interactive mode)",
     )
     parser.add_argument(
-        "--interactive", "-i",
-        action="store_true",
-        help="Start in interactive mode"
+        "--interactive", "-i", action="store_true", help="Start in interactive mode"
     )
-    
+
     args = parser.parse_args()
-    
+
     cli = AutonomousCLI()
-    
+
     if args.command and not args.interactive:
         # One-shot mode
         result = cli.execute_one_shot(args.command)
