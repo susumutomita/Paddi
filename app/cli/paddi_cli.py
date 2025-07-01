@@ -427,3 +427,14 @@ class PaddiCLI:
     def audit_logs(self, **kwargs):
         """Alias for audit_log method."""
         self.audit_log(**kwargs)
+
+    def natural(self):
+        """Start natural language interface for Paddi.
+
+        This provides a gemini-cli style autonomous interface that accepts
+        natural language commands in both Japanese and English.
+        """
+        from app.agents.autonomous_cli import AutonomousCLI
+
+        cli = AutonomousCLI()
+        cli.start_interactive()

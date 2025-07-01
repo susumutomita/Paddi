@@ -45,17 +45,17 @@ class TestPrivacyFilter:
     def test_mask_credentials(self):
         """Test credential masking."""
         privacy_filter = PrivacyFilter()
-        text = "Use password: secretpass123 and api_key: sk-1234567890"
+        text = "Use password: test_pwd_value and api_key: sk-test-key-value"
         masked = privacy_filter.mask_sensitive_data(text)
-        assert "secretpass123" not in masked
-        assert "sk-1234567890" not in masked
+        assert "test_pwd_value" not in masked
+        assert "sk-test-key-value" not in masked
         assert masked.count("[MASKED]") >= 2
 
     def test_contains_sensitive_data(self):
         """Test sensitive data detection."""
         privacy_filter = PrivacyFilter()
         assert privacy_filter.contains_sensitive_data("email@test.com")
-        assert privacy_filter.contains_sensitive_data("password: test123")
+        assert privacy_filter.contains_sensitive_data("password: test_value")
         assert not privacy_filter.contains_sensitive_data("This is safe text")
 
     def test_custom_patterns(self):
