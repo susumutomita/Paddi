@@ -58,6 +58,7 @@ azure-mgmt-monitor>=6.0.0
 # AI and Natural Language Processing
 rich>=13.7.0
 streamlit>=1.31.0
+plotly>=5.18.0
 
 # AI Agent frameworks
 langchain>=0.1.0
