@@ -29,7 +29,7 @@ python-socketio==5.13.0
 
 # Authentication (for future OAuth support)
 google-auth==2.40.3
-google-auth-oauthlib==1.2.0
+google-auth-oauthlib==1.2.2
 google-auth-httplib2==0.2.0
 
 # Additional utilities
