@@ -6,6 +6,8 @@ from typing import Any, Dict, List
 
 import requests
 
+from app.common.models import SecurityFinding
+
 logger = logging.getLogger(__name__)
 
 
@@ -46,9 +48,9 @@ class OllamaSecurityAnalyzer:
             logger.error("Failed to pull model %s: %s", self.model, e)
             raise
 
-    def analyze_findings(self, collected_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def analyze_security_risks(self, configuration: Dict[str, Any]) -> List[SecurityFinding]:
         """Ollamaを使用してセキュリティ分析を実行"""
-        prompt = self._build_analysis_prompt(collected_data)
+        prompt = self._build_analysis_prompt(configuration)
 
         try:
             response = requests.post(
@@ -70,11 +72,11 @@ class OllamaSecurityAnalyzer:
             logger.error("Ollama analysis failed: %s", e)
             raise
 
-    def _build_analysis_prompt(self, collected_data: Dict[str, Any]) -> str:
+    def _build_analysis_prompt(self, configuration: Dict[str, Any]) -> str:
         """分析用のプロンプトを構築"""
-        findings = collected_data.get("findings", [])
-        iam_policies = collected_data.get("iam_policies", [])
-        cloud_type = collected_data.get("cloud_type", "multi")
+        findings = configuration.get("scc_findings", [])
+        iam_policies = configuration.get("iam_policies", [])
+        cloud_type = "GCP"
 
         prompt = f"""
 あなたはクラウドセキュリティの専門家です。以下のクラウド構成情報を分析し、セキュリティリスクを特定してください。
@@ -114,18 +116,17 @@ IAMポリシー:
                 results = json.loads(json_str)
 
                 # 結果の検証と正規化
-                normalized_results = []
+                findings = []
                 for result in results:
-                    normalized_results.append(
-                        {
-                            "title": result.get("title", "不明なリスク"),
-                            "severity": result.get("severity", "MEDIUM").upper(),
-                            "explanation": result.get("explanation", "詳細情報なし"),
-                            "recommendation": result.get("recommendation", "推奨事項なし"),
-                        }
+                    finding = SecurityFinding(
+                        title=result.get("title", "不明なリスク"),
+                        severity=result.get("severity", "MEDIUM").upper(),
+                        explanation=result.get("explanation", "詳細情報なし"),
+                        recommendation=result.get("recommendation", "推奨事項なし"),
                     )
+                    findings.append(finding)
 
-                return normalized_results
+                return findings
             logger.error("No JSON found in response: %s", response_text)
             return self._create_fallback_response()
 
@@ -136,10 +137,10 @@ IAMポリシー:
     def _create_fallback_response(self) -> List[Dict[str, Any]]:
         """パースエラー時のフォールバックレスポンス"""
         return [
-            {
-                "title": "分析エラー",
-                "severity": "MEDIUM",
-                "explanation": "Ollamaからの応答を正しく解析できませんでした。",
-                "recommendation": "ログを確認し、Ollama設定を見直してください。",
-            }
+            SecurityFinding(
+                title="分析エラー",
+                severity="MEDIUM",
+                explanation="Ollamaからの応答を正しく解析できませんでした。",
+                recommendation="ログを確認し、Ollama設定を見直してください。",
+            )
         ]

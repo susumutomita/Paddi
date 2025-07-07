@@ -2,9 +2,10 @@
 
 import logging
 import os
+import sys
 from typing import Optional
 
-from app.cli.base import CommandContext
+from app.cli.base import Command, CommandContext
 from app.cli.registry import registry
 from app.safety.safety_check import SafetyCheck
 
@@ -19,15 +20,29 @@ class PaddiCLI:
         self.safety_check = SafetyCheck(audit_log_dir="audit_logs")
         self.registry = registry
 
+    def _execute_command(self, command: Command, context: CommandContext, verbose: bool = False):
+        """Execute command with error handling based on verbose mode."""
+        try:
+            command.execute(context)
+        except Exception:
+            if not verbose:
+                # In normal mode, exit cleanly without traceback
+                sys.exit(1)
+            else:
+                # In verbose mode, show full traceback
+                raise
+
     def _create_context(self, **kwargs) -> CommandContext:
         """Create command context from kwargs."""
         return CommandContext(**kwargs)
 
-    def init(self, skip_run: bool = False, output: str = "output", **kwargs):
+    def init(self, skip_run: bool = False, output: str = "output", verbose: bool = False, **kwargs):
         """Initialize Paddi with sample data."""
-        context = self._create_context(skip_run=skip_run, output_dir=output, **kwargs)
+        context = self._create_context(
+            skip_run=skip_run, output_dir=output, verbose=verbose, **kwargs
+        )
         command = self.registry.get_command("init")()
-        command.execute(context)
+        self._execute_command(command, context, verbose)
 
     def audit(
         self,
@@ -56,7 +71,7 @@ class PaddiCLI:
             **kwargs,
         )
         command = self.registry.get_command("audit")()
-        command.execute(context)
+        self._execute_command(command, context, verbose)
 
     def collect(
         self,
@@ -89,7 +104,7 @@ class PaddiCLI:
             **kwargs,
         )
         command = self.registry.get_command("collect")()
-        command.execute(context)
+        self._execute_command(command, context, verbose)
 
     def analyze(
         self,
@@ -137,13 +152,13 @@ class PaddiCLI:
             **kwargs,
         )
         command = self.registry.get_command("explain")()
-        command.execute(context)
+        self._execute_command(command, context, verbose)
 
     def report(self, output_dir: str = "output", verbose: bool = False, **kwargs):
         """Generate audit report."""
         context = self._create_context(output_dir=output_dir, verbose=verbose, **kwargs)
         command = self.registry.get_command("report")()
-        command.execute(context)
+        self._execute_command(command, context, verbose)
 
     def list_commands(self):
         """List available commands."""

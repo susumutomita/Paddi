@@ -5,14 +5,22 @@ Main entry point for Paddi Python agents orchestration.
 
 import logging
 import sys
+import warnings
 
 import fire
 
 from app.cli.paddi_cli import PaddiCLI
+from app.common.logging_config import LoggingConfig
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+# Suppress Google auth warnings
+warnings.filterwarnings(
+    "ignore", message="Your application has authenticated using end user credentials"
 )
+
+# Configure logging before any other imports
+LoggingConfig.setup(level="INFO")
+LoggingConfig.silence_noisy_libraries()
+
 logger = logging.getLogger(__name__)
 
 

@@ -165,7 +165,7 @@ class TestPaddiCLI:
         mock_collector.side_effect = Exception("Collection failed")
 
         with pytest.raises(Exception, match="Collection failed"):
-            cli.audit(project_id="test-project", use_mock=True)
+            cli.audit(project_id="test-project", use_mock=True, verbose=True)
 
     @patch("app.cli.commands.collector_main")
     @patch("app.cli.commands.explainer_main")

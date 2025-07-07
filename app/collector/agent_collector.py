@@ -13,13 +13,14 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import fire
+from google.auth.exceptions import RefreshError
+from grpc import StatusCode
+from grpc._channel import _InactiveRpcError
 
 from app.common.auth import check_gcp_credentials
+from app.common.exceptions import AuthenticationError, CollectionError
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
 logger = logging.getLogger(__name__)
 
 
@@ -49,7 +50,38 @@ class IAMCollector(CollectorInterface):
             use_mock,
         )
 
-    def collect(self) -> Dict[str, Any]:
+    def _convert_bindings(self, policy) -> List[Dict[str, Any]]:
+        """Convert policy bindings to dictionary format."""
+        bindings = []
+        for binding in policy.bindings:
+            bindings.append({"role": binding.role, "members": list(binding.members)})
+        return bindings
+
+    def _encode_etag(self, etag: bytes) -> str:
+        """Encode etag safely, handling non-UTF-8 data."""
+        if not etag:
+            return ""
+        try:
+            return etag.decode("utf-8")
+        except UnicodeDecodeError:
+            import base64
+
+            logger.warning("Etag contained non-UTF-8 data, using base64 encoding")
+            return base64.b64encode(etag).decode("ascii")
+
+    def _raise_auth_error(self, exception=None) -> None:
+        """Raise authentication error with consistent message."""
+        error_msg = (
+            "認証エラー: Google Cloud の認証に問題があります。\n"
+            "以下のコマンドを実行して再認証してください:\n"
+            "  gcloud auth application-default login"
+        )
+        logger.error(error_msg)
+        raise AuthenticationError(
+            "GCP", {"solution": "gcloud auth application-default login"}
+        ) from exception
+
+    def collect(self) -> Dict[str, Any]:  # pylint: disable=inconsistent-return-statements
         """Collect IAM policies."""
         logger.info(
             "IAMCollector.collect() called: self.use_mock=%s (type: %s)",
@@ -62,26 +94,24 @@ class IAMCollector(CollectorInterface):
 
         try:
             logger.info("Attempting to collect real IAM data for project: %s", self.project_id)
+            logger.info("🔑 Google Cloud API に接続中...")
             from google.cloud import resourcemanager_v3
             from google.iam.v1 import iam_policy_pb2
 
             # Initialize Resource Manager client to get IAM policy
-            logger.info("Initializing Resource Manager client...")
+            logger.info("Resource Manager クライアントを初期化中...")
             client = resourcemanager_v3.ProjectsClient()
 
             # Get IAM policy for the project
             resource = f"projects/{self.project_id}"
-            logger.info("Making IAM policy request for resource: %s", resource)
+            logger.info("📝 IAM ポリシーを取得中: %s", resource)
             request = iam_policy_pb2.GetIamPolicyRequest(resource=resource)
 
             policy = client.get_iam_policy(request=request)
             logger.info("IAM policy retrieved successfully")
 
             # Convert protobuf to dict
-            bindings = []
-            for binding in policy.bindings:
-                bindings.append({"role": binding.role, "members": list(binding.members)})
-
+            bindings = self._convert_bindings(policy)
             logger.info(
                 "Successfully collected %d IAM bindings from project %s",
                 len(bindings),
@@ -89,33 +119,27 @@ class IAMCollector(CollectorInterface):
             )
 
             # Handle etag encoding safely
-            etag_str = ""
-            if policy.etag:
-                try:
-                    etag_str = policy.etag.decode("utf-8")
-                except UnicodeDecodeError:
-                    # If UTF-8 decode fails, use base64 encoding as fallback
-                    import base64
-
-                    etag_str = base64.b64encode(policy.etag).decode("ascii")
-                    logger.warning("Etag contained non-UTF-8 data, using base64 encoding")
+            etag_str = self._encode_etag(policy.etag)
 
             return {"bindings": bindings, "etag": etag_str, "version": policy.version}
 
-        except ImportError as e:
-            logger.error("ImportError: google-cloud-resource-manager not installed: %s", e)
-            logger.error("Run: pip install google-cloud-resource-manager")
+        except ImportError:
+            logger.error("google-cloud-resource-manager がインストールされていません")
+            logger.info("pip install google-cloud-resource-manager を実行してください")
             return self._get_mock_iam_data()
+        except RefreshError:
+            self._raise_auth_error()
+        except _InactiveRpcError as e:
+            if e.code() == StatusCode.UNAUTHENTICATED:
+                self._raise_auth_error(e)
+            logger.error("GCP API エラー: %s", e.details())
+            raise CollectionError("IAM", {"error_type": "APIError", "error": e.details()}) from e
         except Exception as e:
-            logger.error("Error collecting IAM data: %s", e)
-            logger.error("Error type: %s", type(e).__name__)
-            logger.error(
-                "Make sure you have authenticated with 'gcloud auth application-default login'"
-            )
-            import traceback
-
-            logger.error("Full traceback: %s", traceback.format_exc())
-            return self._get_mock_iam_data()
+            error_type = type(e).__name__
+            if "RefreshError" in str(e) or "Reauthentication" in str(e):
+                self._raise_auth_error(e)
+            logger.error("IAMデータの収集中にエラーが発生しました: %s", error_type)
+            raise CollectionError("IAM", {"error_type": error_type, "error": str(e)}) from e
 
     def _get_mock_iam_data(self) -> Dict[str, Any]:
         """Return mock IAM data for testing."""
@@ -165,10 +189,20 @@ class SCCCollectorAdapter(CollectorInterface):
         """Collect SCC findings using the dedicated collector."""
         try:
             return self.scc_collector.collect_findings(use_mock=self.use_mock)
+        except RefreshError:
+            error_msg = (
+                "Google Cloud の認証が期限切れです。\n"
+                "以下のコマンドを実行して再認証してください:\n"
+                "  gcloud auth application-default login"
+            )
+            logger.error(error_msg)
+            raise AuthenticationError(
+                "GCP", {"solution": "gcloud auth application-default login"}
+            ) from None
         except Exception as e:
-            logger.error("Error collecting SCC data: %s", e)
-            # Fallback to mock data on error
-            return self.scc_collector._get_mock_scc_data()
+            error_type = type(e).__name__
+            logger.error("SCCデータの収集中にエラーが発生しました: %s", error_type)
+            raise CollectionError("SCC", {"error_type": error_type, "error": str(e)}) from e
 
 
 class GCPConfigurationCollector:
