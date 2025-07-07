@@ -33,4 +33,4 @@ google-auth-oauthlib==1.2.0
 google-auth-httplib2==0.2.0
 
 # Additional utilities
-pyyaml==6.0.1
+pyyaml==6.0.2
