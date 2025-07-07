@@ -5,6 +5,7 @@ import logging
 from pathlib import Path
 
 from app.collector.agent_collector import main as collector_main
+from app.common.exceptions import AuthenticationError, CollectionError, PaddiException
 from app.explainer.agent_explainer import main as explainer_main
 from app.reporter.agent_reporter import main as reporter_main
 
@@ -80,13 +81,31 @@ class CollectCommand(Command):
         """Execute collect command."""
         logger.info("📥 Collecting cloud configuration data...")
 
-        collector_main(
-            project_id=context.project_id,
-            organization_id=context.organization_id,
-            use_mock=context.use_mock,
-            collect_all=context.collect_all,
-            verbose=context.verbose,
-        )
+        try:
+            collector_main(
+                project_id=context.project_id,
+                organization_id=context.organization_id,
+                use_mock=context.use_mock,
+                collect_all=context.collect_all,
+                verbose=context.verbose,
+            )
+        except AuthenticationError as e:
+            logger.error("\n❌ %s", e.message)
+            if e.details.get("solution"):
+                logger.info("\n💡 解決方法: %s", e.details["solution"])
+            raise
+        except CollectionError as e:
+            logger.error("\n❌ %s", e.message)
+            if e.details.get("error_type"):
+                logger.debug("エラータイプ: %s", e.details["error_type"])
+            raise
+        except PaddiException as e:
+            logger.error("\n❌ エラー: %s", e.message)
+            raise
+        except Exception as e:
+            logger.error("\n❌ 予期しないエラーが発生しました")
+            logger.debug("詳細: %s", str(e))
+            raise
 
 
 class ExplainCommand(Command):
@@ -147,13 +166,36 @@ class AuditCommand(Command):
         """Execute audit command."""
         logger.info("🔐 Starting complete security audit...")
 
-        # Run all steps in sequence
-        collect_cmd = CollectCommand()
-        explain_cmd = ExplainCommand()
-        report_cmd = ReportCommand()
+        try:
+            # Run all steps in sequence
+            collect_cmd = CollectCommand()
+            explain_cmd = ExplainCommand()
+            report_cmd = ReportCommand()
 
-        collect_cmd.execute(context)
-        explain_cmd.execute(context)
-        report_cmd.execute(context)
+            logger.info("📥 Collecting cloud configuration data...")
+            collect_cmd.execute(context)
 
-        logger.info("✅ Audit complete! Check %s/ for results.", context.output_dir)
+            logger.info("🔍 Analyzing security risks...")
+            explain_cmd.execute(context)
+
+            logger.info("📝 Generating audit report...")
+            report_cmd.execute(context)
+
+            logger.info("✅ Audit complete! Check %s/ for results.", context.output_dir)
+        except AuthenticationError as e:
+            logger.error("\n❌ %s", e.message)
+            if e.details.get("solution"):
+                logger.info("\n💡 解決方法: %s", e.details["solution"])
+            raise
+        except CollectionError as e:
+            logger.error("\n❌ %s", e.message)
+            if e.details.get("error_type"):
+                logger.debug("エラータイプ: %s", e.details["error_type"])
+            raise
+        except PaddiException as e:
+            logger.error("\n❌ エラー: %s", e.message)
+            raise
+        except Exception as e:
+            logger.error("\n❌ 予期しないエラーが発生しました")
+            logger.debug("詳細: %s", str(e))
+            raise

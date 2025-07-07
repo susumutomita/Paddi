@@ -24,16 +24,19 @@ class TestOllamaSecurityAnalyzer:
     def sample_collected_data(self):
         """テスト用の収集データ"""
         return {
-            "cloud_type": "multi",
-            "findings": [
+            "metadata": {
+                "project_id": "test-project",
+                "organization_id": "123456",
+                "timestamp": "2024-01-01T00:00:00Z",
+            },
+            "scc_findings": [
                 {"name": "test-finding", "severity": "HIGH", "description": "Test security issue"}
             ],
-            "iam_policies": [
-                {
-                    "resource": "projects/test-project",
-                    "bindings": [{"role": "roles/owner", "members": ["user:admin@example.com"]}],
-                }
-            ],
+            "iam_policies": {
+                "bindings": [{"role": "roles/owner", "members": ["user:admin@example.com"]}],
+                "etag": "etag123",
+                "version": 1,
+            },
         }
 
     def test_init_with_existing_model(self):
@@ -69,7 +72,7 @@ class TestOllamaSecurityAnalyzer:
             with pytest.raises(ConnectionError, match="Failed to connect to Ollama"):
                 OllamaSecurityAnalyzer()
 
-    def test_analyze_findings_success(self, analyzer, sample_collected_data):
+    def test_analyze_security_risks_success(self, analyzer, sample_collected_data):
         """正常な分析のテスト"""
         mock_response = {
             "response": json.dumps(
@@ -88,19 +91,19 @@ class TestOllamaSecurityAnalyzer:
             mock_post.return_value.json.return_value = mock_response
             mock_post.return_value.raise_for_status = Mock()
 
-            findings = analyzer.analyze_findings(sample_collected_data)
+            findings = analyzer.analyze_security_risks(sample_collected_data)
 
             assert len(findings) == 1
-            assert findings[0]["title"] == "オーナー権限の過剰付与"
-            assert findings[0]["severity"] == "HIGH"
+            assert findings[0].title == "オーナー権限の過剰付与"
+            assert findings[0].severity == "HIGH"
 
-    def test_analyze_findings_with_ollama_error(self, analyzer, sample_collected_data):
+    def test_analyze_security_risks_with_ollama_error(self, analyzer, sample_collected_data):
         """Ollamaエラー時のテスト"""
         with patch("app.explainer.ollama_explainer.requests.post") as mock_post:
             mock_post.side_effect = Exception("Ollama error")
 
             with pytest.raises(Exception, match="Ollama error"):
-                analyzer.analyze_findings(sample_collected_data)
+                analyzer.analyze_security_risks(sample_collected_data)
 
     def test_parse_ollama_response_valid_json(self, analyzer):
         """有効なJSONレスポンスのパーステスト"""
@@ -118,8 +121,8 @@ class TestOllamaSecurityAnalyzer:
 
         findings = analyzer._parse_ollama_response(response_text)
         assert len(findings) == 1
-        assert findings[0]["title"] == "Test Finding"
-        assert findings[0]["severity"] == "MEDIUM"
+        assert findings[0].title == "Test Finding"
+        assert findings[0].severity == "MEDIUM"
 
     def test_parse_ollama_response_invalid_json(self, analyzer):
         """無効なJSONレスポンスのパーステスト"""
@@ -127,7 +130,7 @@ class TestOllamaSecurityAnalyzer:
 
         findings = analyzer._parse_ollama_response(response_text)
         assert len(findings) == 1
-        assert findings[0]["title"] == "分析エラー"
+        assert findings[0].title == "分析エラー"
 
     def test_parse_ollama_response_missing_fields(self, analyzer):
         """必須フィールドが欠けているレスポンスのテスト"""
@@ -135,16 +138,16 @@ class TestOllamaSecurityAnalyzer:
 
         findings = analyzer._parse_ollama_response(response_text)
         assert len(findings) == 1
-        assert findings[0]["title"] == "Test"
-        assert findings[0]["severity"] == "MEDIUM"  # デフォルト値
-        assert findings[0]["explanation"] == "詳細情報なし"
-        assert findings[0]["recommendation"] == "推奨事項なし"
+        assert findings[0].title == "Test"
+        assert findings[0].severity == "MEDIUM"  # デフォルト値
+        assert findings[0].explanation == "詳細情報なし"
+        assert findings[0].recommendation == "推奨事項なし"
 
     def test_build_analysis_prompt(self, analyzer, sample_collected_data):
         """プロンプト構築のテスト"""
         prompt = analyzer._build_analysis_prompt(sample_collected_data)
 
-        assert "クラウドタイプ: multi" in prompt
+        assert "クラウドタイプ: GCP" in prompt
         assert "発見事項:" in prompt
         assert "IAMポリシー:" in prompt
         assert "JSON" in prompt
@@ -183,5 +186,5 @@ class TestOllamaSecurityAnalyzer:
             mock_post.return_value.json.return_value = mock_response
             mock_post.return_value.raise_for_status = Mock()
 
-            findings = analyzer.analyze_findings(multi_cloud_data)
+            findings = analyzer.analyze_security_risks(multi_cloud_data)
             assert len(findings) == 2

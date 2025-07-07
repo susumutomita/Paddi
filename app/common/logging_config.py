@@ -96,7 +96,14 @@ class LoggingConfig:
             "google.cloud",
             "requests",
             "azure",
+            "grpc._plugin_wrapping",
+            "grpc",
+            "google.auth.transport.grpc",
+            "google.auth._default",
         ]
 
         for lib in noisy_libs:
             logging.getLogger(lib).setLevel(logging.WARNING)
+
+        # Completely silence grpc plugin wrapper
+        logging.getLogger("grpc._plugin_wrapping").setLevel(logging.CRITICAL)
