@@ -1,4 +1,6 @@
 [flake8]
 max-line-length = 100
-ignore = E203, W503
+ignore = E203, W503, I100, I101, I201, I202
 exclude = node_modules,venv,env,.venv,.git,__pycache__,docs,build,dist
+import-order-style = google
+application-import-names = app
